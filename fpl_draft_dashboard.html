@@ -1,0 +1,4000 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="utf-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+>
+
+<title>
+    McDraft 26/27 — FPL Draft Dashboard
+</title>
+
+<style>
+
+
+:root {
+    --bg: #070b14;
+    --bg-secondary: #0b1120;
+    --card: #111827;
+    --card-hover: #172033;
+    --border: #263244;
+    --border-light: #334155;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --muted-dark: #64748b;
+    --accent: #38bdf8;
+    --accent-dark: #0284c7;
+    --green: #4ade80;
+    --red: #f87171;
+    --gold: #facc15;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+    min-height: 100vh;
+}
+
+button,
+input {
+    font-family: inherit;
+}
+
+.app-shell {
+    min-height: 100vh;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.header {
+    background:
+        linear-gradient(
+            135deg,
+            #0f172a,
+            #111827
+        );
+    border-bottom: 1px solid var(--border);
+    padding: 24px 32px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(16px);
+}
+
+.header-top {
+    max-width: 1500px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding-bottom: 20px;
+}
+
+.logo {
+    font-size: 25px;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -0.5px;
+}
+
+.logo span {
+    color: var(--accent);
+}
+
+.header-meta {
+    color: var(--muted);
+    font-size: 13px;
+    text-align: right;
+}
+
+.nav {
+    max-width: 1500px;
+    margin: 0 auto;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+}
+
+.nav-button {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 13px 20px;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.nav-button:hover {
+    background: #172033;
+    color: white;
+}
+
+.nav-button.active {
+    background: var(--card);
+    color: white;
+    box-shadow:
+        inset 0 -3px 0 var(--accent);
+}
+
+
+/* ============================================================
+   MAIN
+   ============================================================ */
+
+.main {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 30px;
+}
+
+.page {
+    display: none;
+    animation: pageIn 0.2s ease;
+}
+
+.page.active {
+    display: block;
+}
+
+@keyframes pageIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-heading {
+    margin-bottom: 25px;
+}
+
+.page-heading h1 {
+    margin: 0 0 6px;
+    font-size: 30px;
+    color: white;
+}
+
+.page-heading p {
+    margin: 0;
+    color: var(--muted);
+}
+
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.card h2 {
+    margin: 0 0 18px;
+    font-size: 19px;
+    color: white;
+}
+
+.card h3 {
+    margin: 0 0 15px;
+    color: white;
+}
+
+.card-description {
+    color: var(--muted);
+    font-size: 14px;
+    margin: -8px 0 18px;
+}
+
+.notice {
+    background: #172033;
+    border-left: 4px solid var(--accent);
+    padding: 14px;
+    border-radius: 8px;
+    color: var(--muted);
+    margin: 10px 0;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.positive {
+    color: var(--green) !important;
+}
+
+.negative {
+    color: var(--red) !important;
+}
+
+
+/* ============================================================
+   DASHBOARD GRID
+   ============================================================ */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+    gap: 24px;
+}
+
+.dashboard-grid .full {
+    grid-column: 1 / -1;
+}
+
+
+/* ============================================================
+   TABLES
+   ============================================================ */
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+th,
+td {
+    padding: 11px 13px;
+    text-align: left;
+    border-bottom: 1px solid #1f2937;
+}
+
+th {
+    background: #172033;
+    color: #cbd5e1;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    position: sticky;
+    top: 0;
+}
+
+td {
+    font-size: 14px;
+}
+
+tbody tr:hover {
+    background: #172033;
+}
+
+.rank-cell {
+    color: var(--muted-dark);
+    width: 50px;
+}
+
+.manager-name {
+    font-weight: 650;
+    color: white;
+}
+
+
+/* ============================================================
+   MINI STAT CARDS
+   ============================================================ */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(
+                220px,
+                1fr
+            )
+        );
+    gap: 14px;
+}
+
+.stat-card {
+    background: #172033;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    min-height: 135px;
+}
+
+.stat-label {
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.stat-value {
+    color: white;
+    font-size: 21px;
+    font-weight: 750;
+    margin-bottom: 7px;
+}
+
+.stat-description {
+    color: var(--muted-dark);
+    font-size: 13px;
+}
+
+
+/* ============================================================
+   TOP PLAYER CARDS
+   ============================================================ */
+
+.top-player-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(
+                180px,
+                1fr
+            )
+        );
+    gap: 12px;
+}
+
+.top-player-card {
+    background: #172033;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 15px;
+}
+
+.top-player-rank {
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.top-player-name {
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 5px 0 10px;
+}
+
+.top-player-stat {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 3px;
+}
+
+
+/* ============================================================
+   RESULTS
+   ============================================================ */
+
+.results-container {
+    position: relative;
+}
+
+.results-title,
+.totw-title {
+    text-align: center;
+    font-size: 20px;
+    font-weight: 750;
+    color: white;
+    margin-bottom: 18px;
+}
+
+.fixtures-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.fixture {
+    display: grid;
+    grid-template-columns:
+        1fr
+        55px
+        1fr;
+    align-items: center;
+    background: #172033;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 18px;
+}
+
+.fixture-team {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 14px;
+}
+
+.fixture-team:first-child {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.fixture-team:last-child {
+    justify-content: flex-start;
+    text-align: left;
+}
+
+.fixture-score {
+    font-size: 19px;
+    font-weight: 800;
+    min-width: 25px;
+}
+
+.fixture-vs {
+    text-align: center;
+    color: var(--muted-dark);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.fixture-team.winner {
+    color: white;
+    font-weight: 750;
+}
+
+.fixture-team.loser {
+    color: var(--muted-dark);
+}
+
+.fixture-team.draw {
+    color: var(--text);
+}
+
+.results-navigation,
+.totw-navigation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+    margin-top: 20px;
+}
+
+.results-button,
+.totw-button {
+    background: #172033;
+    color: white;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 9px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition:
+        background 0.15s ease,
+        transform 0.15s ease;
+}
+
+.results-button:hover,
+.totw-button:hover {
+    background: #253149;
+    transform: translateY(-1px);
+}
+
+.results-button:disabled,
+.totw-button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.results-gw-display,
+.totw-gw-display {
+    min-width: 75px;
+    text-align: center;
+    color: white;
+    font-weight: 750;
+}
+
+
+/* ============================================================
+   TEAM OF THE WEEK
+   ============================================================ */
+
+.pitch {
+    background:
+        linear-gradient(
+            #166534,
+            #15803d
+        );
+    border-radius: 13px;
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    min-height: 440px;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.pitch::before {
+    content: "";
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    top: 50%;
+    border-top: 2px solid rgba(
+        255,
+        255,
+        255,
+        0.2
+    );
+}
+
+.pitch::after {
+    content: "";
+    position: absolute;
+    width: 130px;
+    height: 65px;
+    border: 2px solid rgba(
+        255,
+        255,
+        255,
+        0.2
+    );
+    border-bottom: none;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+}
+
+.row {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 2;
+}
+
+.chip {
+    background: rgba(
+        255,
+        255,
+        255,
+        0.96
+    );
+    color: #111827;
+    border-radius: 10px;
+    padding: 9px 13px;
+    text-align: center;
+    min-width: 105px;
+    box-shadow:
+        0 4px 12px rgba(
+            0,
+            0,
+            0,
+            0.25
+        );
+    transition:
+        transform 0.15s ease;
+}
+
+.chip:hover {
+    transform: translateY(-3px);
+}
+
+.chip-name {
+    font-weight: 750;
+}
+
+.chip-sub {
+    font-size: 11px;
+    color: #475569;
+    margin-top: 3px;
+}
+
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+
+.player-search-box {
+    width: 100%;
+    background: #0b1120;
+    color: white;
+    border: 1px solid var(--border-light);
+    border-radius: 9px;
+    padding: 13px;
+    font-size: 15px;
+    outline: none;
+    margin-bottom: 18px;
+}
+
+.player-search-box:focus {
+    border-color: var(--accent);
+    box-shadow:
+        0 0 0 2px rgba(
+            56,
+            189,
+            248,
+            0.12
+        );
+}
+
+.player-search-results {
+    display: none;
+}
+
+.player-history-card {
+    background: #172033;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 16px;
+    margin-bottom: 14px;
+}
+
+.player-history-title {
+    font-size: 19px;
+    font-weight: 750;
+    color: white;
+    margin-bottom: 7px;
+}
+
+.player-meta {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media (
+    max-width: 900px
+) {
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-grid .full {
+        grid-column: auto;
+    }
+
+    .header {
+        padding:
+            18px
+            18px
+            0;
+    }
+
+    .header-top {
+        align-items: flex-start;
+        flex-direction: column;
+        padding-bottom: 15px;
+    }
+
+    .header-meta {
+        text-align: left;
+    }
+
+    .main {
+        padding: 18px;
+    }
+
+    .page-heading h1 {
+        font-size: 25px;
+    }
+
+}
+
+@media (
+    max-width: 600px
+) {
+
+    .card {
+        padding: 15px;
+    }
+
+    .fixture {
+        grid-template-columns:
+            1fr
+            35px
+            1fr;
+        padding: 10px;
+    }
+
+    .fixture-team {
+        gap: 7px;
+        font-size: 12px;
+    }
+
+    .fixture-score {
+        font-size: 17px;
+    }
+
+    .chip {
+        min-width: 82px;
+        padding: 8px;
+    }
+
+    .pitch {
+        padding:
+            25px
+            8px;
+    }
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="app-shell">
+
+
+    <!-- ====================================================
+         HEADER
+         ==================================================== -->
+
+    <header class="header">
+
+        <div class="header-top">
+
+            <div class="logo">
+                McDraft 26/27
+                <span>FPL Draft</span>
+            </div>
+
+
+            <div class="header-meta">
+
+                Last updated:
+                2026-08-31T15:13:38.574516+00:00
+
+                <br>
+
+                1
+                completed gameweeks
+
+            </div>
+
+        </div>
+
+
+        <nav class="nav">
+
+            <button
+                class="nav-button active"
+                data-page="overview"
+                onclick="showPage('overview')"
+            >
+                Overview
+            </button>
+
+
+            <button
+                class="nav-button"
+                data-page="gameweeks"
+                onclick="showPage('gameweeks')"
+            >
+                Gameweeks
+            </button>
+
+
+            <button
+                class="nav-button"
+                data-page="players"
+                onclick="showPage('players')"
+            >
+                Players
+            </button>
+
+
+            <button
+                class="nav-button"
+                data-page="transfers"
+                onclick="showPage('transfers')"
+            >
+                Transfers
+            </button>
+
+
+            <button
+                class="nav-button"
+                data-page="stats"
+                onclick="showPage('stats')"
+            >
+                Stats
+            </button>
+
+        </nav>
+
+    </header>
+
+
+    <main class="main">
+
+
+        <!-- ==================================================
+             OVERVIEW
+             ================================================== -->
+
+        <section
+            class="page active"
+            id="page-overview"
+        >
+
+            <div class="page-heading">
+
+                <h1>
+                    League Overview
+                </h1>
+
+                <p>
+                    Head-to-head standings,
+                    performance and league trends.
+                </p>
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    Current Standings
+                </h2>
+
+                
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Manager</th>
+
+                        <th>League Pts</th>
+
+                        <th>W-D-L</th>
+
+                        <th>Pts For</th>
+
+                        <th>Pts Against</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    
+            <tr>
+
+                <td class="rank-cell">
+                    1
+                </td>
+
+                <td class="manager-name">
+                    Backstreet Moyes
+                </td>
+
+                <td>
+                    3
+                </td>
+
+                <td>
+                    1-
+                    0-
+                    0
+                </td>
+
+                <td>
+                    59
+                </td>
+
+                <td>
+                    43
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td class="rank-cell">
+                    2
+                </td>
+
+                <td class="manager-name">
+                    NoRSNoRB No Chance
+                </td>
+
+                <td>
+                    3
+                </td>
+
+                <td>
+                    1-
+                    0-
+                    0
+                </td>
+
+                <td>
+                    53
+                </td>
+
+                <td>
+                    29
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td class="rank-cell">
+                    3
+                </td>
+
+                <td class="manager-name">
+                    Jaap? Best Stam
+                </td>
+
+                <td>
+                    3
+                </td>
+
+                <td>
+                    1-
+                    0-
+                    0
+                </td>
+
+                <td>
+                    42
+                </td>
+
+                <td>
+                    25
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td class="rank-cell">
+                    4
+                </td>
+
+                <td class="manager-name">
+                    Ollie Gonna Squashya
+                </td>
+
+                <td>
+                    3
+                </td>
+
+                <td>
+                    1-
+                    0-
+                    0
+                </td>
+
+                <td>
+                    37
+                </td>
+
+                <td>
+                    24
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td class="rank-cell">
+                    5
+                </td>
+
+                <td class="manager-name">
+                    Kamararama FC
+                </td>
+
+                <td>
+                    3
+                </td>
+
+                <td>
+                    1-
+                    0-
+                    0
+                </td>
+
+                <td>
+                    29
+                </td>
+
+                <td>
+                    26
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td class="rank-cell">
+                    6
+                </td>
+
+                <td class="manager-name">
+                    Jacquet Potato
+                </td>
+
+                <td>
+                    0
+                </td>
+
+                <td>
+                    0-
+                    0-
+                    1
+                </td>
+
+                <td>
+                    43
+                </td>
+
+                <td>
+                    59
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td class="rank-cell">
+                    7
+                </td>
+
+                <td class="manager-name">
+                    No Weimann No Cry
+                </td>
+
+                <td>
+                    0
+                </td>
+
+                <td>
+                    0-
+                    0-
+                    1
+                </td>
+
+                <td>
+                    29
+                </td>
+
+                <td>
+                    53
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td class="rank-cell">
+                    8
+                </td>
+
+                <td class="manager-name">
+                    PAUer Rangers
+                </td>
+
+                <td>
+                    0
+                </td>
+
+                <td>
+                    0-
+                    0-
+                    1
+                </td>
+
+                <td>
+                    26
+                </td>
+
+                <td>
+                    29
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td class="rank-cell">
+                    9
+                </td>
+
+                <td class="manager-name">
+                    Buendophilia
+                </td>
+
+                <td>
+                    0
+                </td>
+
+                <td>
+                    0-
+                    0-
+                    1
+                </td>
+
+                <td>
+                    25
+                </td>
+
+                <td>
+                    42
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td class="rank-cell">
+                    10
+                </td>
+
+                <td class="manager-name">
+                    danny’s doggy dudes
+                </td>
+
+                <td>
+                    0
+                </td>
+
+                <td>
+                    0-
+                    0-
+                    1
+                </td>
+
+                <td>
+                    24
+                </td>
+
+                <td>
+                    37
+                </td>
+
+            </tr>
+        
+
+                </tbody>
+
+            </table>
+
+        </div>
+    
+
+            </div>
+
+
+            <div class="dashboard-grid">
+
+
+                <div class="card">
+
+                    <h2>
+                        H2H League Points
+                    </h2>
+
+                    <div style="height:430px; width:100%;">                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-4.0.0.min.js" integrity="sha256-FEYfO0yRyLtZCpnW0Dw/0DHKQO7Afrq3ml4+rBB818o=" crossorigin="anonymous"></script>                <div id="5ac8e7a5-5f30-4e1b-bd02-8497e4e1aab5" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("5ac8e7a5-5f30-4e1b-bd02-8497e4e1aab5")) {                    Plotly.newPlot(                        "5ac8e7a5-5f30-4e1b-bd02-8497e4e1aab5",                        [{"mode":"lines+markers","name":"No Weimann No Cry","x":[1],"y":[0],"type":"scatter"},{"mode":"lines+markers","name":"Kamararama FC","x":[1],"y":[3],"type":"scatter"},{"mode":"lines+markers","name":"PAUer Rangers","x":[1],"y":[0],"type":"scatter"},{"mode":"lines+markers","name":"Backstreet Moyes","x":[1],"y":[3],"type":"scatter"},{"mode":"lines+markers","name":"Jaap? Best Stam","x":[1],"y":[3],"type":"scatter"},{"mode":"lines+markers","name":"Ollie Gonna Squashya","x":[1],"y":[3],"type":"scatter"},{"mode":"lines+markers","name":"NoRSNoRB No Chance","x":[1],"y":[3],"type":"scatter"},{"mode":"lines+markers","name":"danny\u2019s doggy dudes","x":[1],"y":[0],"type":"scatter"},{"mode":"lines+markers","name":"Buendophilia","x":[1],"y":[0],"type":"scatter"},{"mode":"lines+markers","name":"Jacquet Potato","x":[1],"y":[0],"type":"scatter"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"font":{"color":"#e5e7eb"},"margin":{"l":60,"r":30,"t":60,"b":50},"legend":{"orientation":"h","yanchor":"bottom","y":1.02,"xanchor":"left","x":0},"title":{"text":"H2H League Points Over Time"},"xaxis":{"title":{"text":"Gameweek"}},"yaxis":{"title":{"text":"Cumulative League Points"}},"height":430,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true}                    )                };            </script>        </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <h2>
+                        League Position
+                    </h2>
+
+                    <div style="height:430px; width:100%;">                            <div id="9b07beae-a807-4a25-88c2-4b47e5b281ae" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("9b07beae-a807-4a25-88c2-4b47e5b281ae")) {                    Plotly.newPlot(                        "9b07beae-a807-4a25-88c2-4b47e5b281ae",                        [{"mode":"lines+markers","name":"No Weimann No Cry","x":[1],"y":[7],"type":"scatter"},{"mode":"lines+markers","name":"Kamararama FC","x":[1],"y":[5],"type":"scatter"},{"mode":"lines+markers","name":"PAUer Rangers","x":[1],"y":[8],"type":"scatter"},{"mode":"lines+markers","name":"Backstreet Moyes","x":[1],"y":[1],"type":"scatter"},{"mode":"lines+markers","name":"Jaap? Best Stam","x":[1],"y":[3],"type":"scatter"},{"mode":"lines+markers","name":"Ollie Gonna Squashya","x":[1],"y":[4],"type":"scatter"},{"mode":"lines+markers","name":"NoRSNoRB No Chance","x":[1],"y":[2],"type":"scatter"},{"mode":"lines+markers","name":"danny\u2019s doggy dudes","x":[1],"y":[10],"type":"scatter"},{"mode":"lines+markers","name":"Buendophilia","x":[1],"y":[9],"type":"scatter"},{"mode":"lines+markers","name":"Jacquet Potato","x":[1],"y":[6],"type":"scatter"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"font":{"color":"#e5e7eb"},"margin":{"l":60,"r":30,"t":60,"b":50},"legend":{"orientation":"h","yanchor":"bottom","y":1.02,"xanchor":"left","x":0},"title":{"text":"League Position Over Time"},"xaxis":{"title":{"text":"Gameweek"}},"yaxis":{"title":{"text":"Position"},"autorange":"reversed","dtick":1},"height":430,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true}                    )                };            </script>        </div>
+
+                </div>
+
+
+                <div class="card full">
+
+                    <h2>
+                        Points Per Gameweek
+                    </h2>
+
+                    <div style="height:430px; width:100%;">                            <div id="3f256436-0a09-4232-9538-205b3d3e1202" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("3f256436-0a09-4232-9538-205b3d3e1202")) {                    Plotly.newPlot(                        "3f256436-0a09-4232-9538-205b3d3e1202",                        [{"mode":"lines+markers","name":"No Weimann No Cry","x":[1],"y":[29],"type":"scatter"},{"mode":"lines+markers","name":"Kamararama FC","x":[1],"y":[29],"type":"scatter"},{"mode":"lines+markers","name":"PAUer Rangers","x":[1],"y":[26],"type":"scatter"},{"mode":"lines+markers","name":"Backstreet Moyes","x":[1],"y":[59],"type":"scatter"},{"mode":"lines+markers","name":"Jaap? Best Stam","x":[1],"y":[42],"type":"scatter"},{"mode":"lines+markers","name":"Ollie Gonna Squashya","x":[1],"y":[37],"type":"scatter"},{"mode":"lines+markers","name":"NoRSNoRB No Chance","x":[1],"y":[53],"type":"scatter"},{"mode":"lines+markers","name":"danny\u2019s doggy dudes","x":[1],"y":[24],"type":"scatter"},{"mode":"lines+markers","name":"Buendophilia","x":[1],"y":[25],"type":"scatter"},{"mode":"lines+markers","name":"Jacquet Potato","x":[1],"y":[43],"type":"scatter"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"font":{"color":"#e5e7eb"},"margin":{"l":60,"r":30,"t":60,"b":50},"legend":{"orientation":"h","yanchor":"bottom","y":1.02,"xanchor":"left","x":0},"title":{"text":"Points Scored Per Gameweek"},"xaxis":{"title":{"text":"Gameweek"}},"yaxis":{"title":{"text":"Points Scored"}},"height":430,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true}                    )                };            </script>        </div>
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             GAMEWEEKS
+             ================================================== -->
+
+        <section
+            class="page"
+            id="page-gameweeks"
+        >
+
+            <div class="page-heading">
+
+                <h1>
+                    Gameweeks
+                </h1>
+
+                <p>
+                    Results, Team of the Week and weekly awards.
+                </p>
+
+            </div>
+
+
+            <!-- RESULTS -->
+
+            <div class="card">
+
+                <h2>
+                    Gameweek Results
+                </h2>
+
+
+                <div class="results-container">
+
+                    
+        <div
+            class="results-slide"
+            id="results-gw-1"
+            style="display:block;"
+        >
+
+            <div class="results-title">
+                Gameweek 1
+            </div>
+
+            <div class="fixtures-list">
+                
+            <div class="fixture">
+
+                <div class="fixture-team winner">
+
+                    <span class="fixture-manager">
+                        NoRSNoRB No Chance
+                    </span>
+
+                    <span class="fixture-score">
+                        53
+                    </span>
+
+                </div>
+
+                <div class="fixture-vs">
+                    VS
+                </div>
+
+                <div class="fixture-team loser">
+
+                    <span class="fixture-score">
+                        29
+                    </span>
+
+                    <span class="fixture-manager">
+                        No Weimann No Cry
+                    </span>
+
+                </div>
+
+            </div>
+        
+            <div class="fixture">
+
+                <div class="fixture-team loser">
+
+                    <span class="fixture-manager">
+                        danny’s doggy dudes
+                    </span>
+
+                    <span class="fixture-score">
+                        24
+                    </span>
+
+                </div>
+
+                <div class="fixture-vs">
+                    VS
+                </div>
+
+                <div class="fixture-team winner">
+
+                    <span class="fixture-score">
+                        37
+                    </span>
+
+                    <span class="fixture-manager">
+                        Ollie Gonna Squashya
+                    </span>
+
+                </div>
+
+            </div>
+        
+            <div class="fixture">
+
+                <div class="fixture-team loser">
+
+                    <span class="fixture-manager">
+                        Buendophilia
+                    </span>
+
+                    <span class="fixture-score">
+                        25
+                    </span>
+
+                </div>
+
+                <div class="fixture-vs">
+                    VS
+                </div>
+
+                <div class="fixture-team winner">
+
+                    <span class="fixture-score">
+                        42
+                    </span>
+
+                    <span class="fixture-manager">
+                        Jaap? Best Stam
+                    </span>
+
+                </div>
+
+            </div>
+        
+            <div class="fixture">
+
+                <div class="fixture-team loser">
+
+                    <span class="fixture-manager">
+                        Jacquet Potato
+                    </span>
+
+                    <span class="fixture-score">
+                        43
+                    </span>
+
+                </div>
+
+                <div class="fixture-vs">
+                    VS
+                </div>
+
+                <div class="fixture-team winner">
+
+                    <span class="fixture-score">
+                        59
+                    </span>
+
+                    <span class="fixture-manager">
+                        Backstreet Moyes
+                    </span>
+
+                </div>
+
+            </div>
+        
+            <div class="fixture">
+
+                <div class="fixture-team winner">
+
+                    <span class="fixture-manager">
+                        Kamararama FC
+                    </span>
+
+                    <span class="fixture-score">
+                        29
+                    </span>
+
+                </div>
+
+                <div class="fixture-vs">
+                    VS
+                </div>
+
+                <div class="fixture-team loser">
+
+                    <span class="fixture-score">
+                        26
+                    </span>
+
+                    <span class="fixture-manager">
+                        PAUer Rangers
+                    </span>
+
+                </div>
+
+            </div>
+        
+            </div>
+
+        </div>
+    
+
+
+                    <div class="results-navigation">
+
+                        <button
+                            class="results-button"
+                            id="results-prev"
+                            onclick="changeResults(-1)"
+                        >
+                            ← Previous
+                        </button>
+
+
+                        <div
+                            class="results-gw-display"
+                            id="results-gw-display"
+                        >
+                            GW1
+                        </div>
+
+
+                        <button
+                            class="results-button"
+                            id="results-next"
+                            onclick="changeResults(1)"
+                        >
+                            Next →
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- TEAM OF THE WEEK -->
+
+            <div class="card">
+
+                <h2>
+                    Team of the Week
+                </h2>
+
+
+                <div class="totw-container">
+
+                    
+        <div
+            class="totw-slide"
+            id="totw-gw-1"
+            style="display:block;"
+        >
+
+            <div class="totw-title">
+                Gameweek 1 · 4-4-2
+            </div>
+
+            
+        <div class="pitch">
+
+            <div class="row">
+                
+        <div class="chip">
+
+            <div class="chip-name">
+                João Pedro ★
+            </div>
+
+            <div class="chip-sub">
+                Backstreet Moyes · 11 pts
+            </div>
+
+        </div>
+    
+        <div class="chip">
+
+            <div class="chip-name">
+                Barry
+            </div>
+
+            <div class="chip-sub">
+                Backstreet Moyes · 8 pts
+            </div>
+
+        </div>
+    
+            </div>
+
+            <div class="row">
+                
+        <div class="chip">
+
+            <div class="chip-name">
+                Palmer ★
+            </div>
+
+            <div class="chip-sub">
+                NoRSNoRB No Chance · 13 pts
+            </div>
+
+        </div>
+    
+        <div class="chip">
+
+            <div class="chip-name">
+                Gakpo ★
+            </div>
+
+            <div class="chip-sub">
+                Jacquet Potato · 12 pts
+            </div>
+
+        </div>
+    
+        <div class="chip">
+
+            <div class="chip-name">
+                Ødegaard
+            </div>
+
+            <div class="chip-sub">
+                NoRSNoRB No Chance · 11 pts
+            </div>
+
+        </div>
+    
+        <div class="chip">
+
+            <div class="chip-name">
+                Dewsbury-Hall
+            </div>
+
+            <div class="chip-sub">
+                NoRSNoRB No Chance · 11 pts
+            </div>
+
+        </div>
+    
+            </div>
+
+            <div class="row">
+                
+        <div class="chip">
+
+            <div class="chip-name">
+                White
+            </div>
+
+            <div class="chip-sub">
+                Jacquet Potato · 11 pts
+            </div>
+
+        </div>
+    
+        <div class="chip">
+
+            <div class="chip-name">
+                Guéhi
+            </div>
+
+            <div class="chip-sub">
+                Backstreet Moyes · 10 pts
+            </div>
+
+        </div>
+    
+        <div class="chip">
+
+            <div class="chip-name">
+                Gvardiol
+            </div>
+
+            <div class="chip-sub">
+                PAUer Rangers · 9 pts
+            </div>
+
+        </div>
+    
+        <div class="chip">
+
+            <div class="chip-name">
+                Calafiori
+            </div>
+
+            <div class="chip-sub">
+                Jaap? Best Stam · 9 pts
+            </div>
+
+        </div>
+    
+            </div>
+
+            <div class="row">
+                
+        <div class="chip">
+
+            <div class="chip-name">
+                Trafford
+            </div>
+
+            <div class="chip-sub">
+                Ollie Gonna Squashya · 9 pts
+            </div>
+
+        </div>
+    
+            </div>
+
+        </div>
+    
+
+        </div>
+    
+
+
+                    <div class="totw-navigation">
+
+                        <button
+                            class="totw-button"
+                            id="totw-prev"
+                            onclick="changeTOTW(-1)"
+                        >
+                            ← Previous
+                        </button>
+
+
+                        <div
+                            class="totw-gw-display"
+                            id="totw-gw-display"
+                        >
+                            GW1
+                        </div>
+
+
+                        <button
+                            class="totw-button"
+                            id="totw-next"
+                            onclick="changeTOTW(1)"
+                        >
+                            Next →
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- WEEKLY AWARDS -->
+
+            <div class="card">
+
+                <h2>
+                    Weekly Awards
+                </h2>
+
+                
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>GW</th>
+
+                        <th>Manager of the Week</th>
+
+                        <th>Stinker</th>
+
+                        <th>Best Bench</th>
+
+                        <th>Dream Team King</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    
+            <tr>
+
+                <td>
+                    GW1
+                </td>
+
+                <td>
+                    Backstreet Moyes
+                    <span class="muted">
+                        (59)
+                    </span>
+                </td>
+
+                <td>
+                    danny’s doggy dudes
+                    <span class="muted">
+                        (18)
+                    </span>
+                </td>
+
+                <td>
+                    PAUer Rangers
+                    <span class="muted">
+                        (10)
+                    </span>
+                </td>
+
+                <td>
+                    Backstreet Moyes
+                    <span class="muted">
+                        (1)
+                    </span>
+                </td>
+
+            </tr>
+        
+
+                </tbody>
+
+            </table>
+
+        </div>
+    
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             PLAYERS
+             ================================================== -->
+
+        <section
+            class="page"
+            id="page-players"
+        >
+
+            <div class="page-heading">
+
+                <h1>
+                    Players
+                </h1>
+
+                <p>
+                    Season leaders, form and player ownership history.
+                </p>
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    Top Players
+                </h2>
+
+                <div class="top-player-grid">
+
+                    
+        <div class="top-player-card">
+
+            <div class="top-player-rank">
+                #1
+            </div>
+
+            <div class="top-player-name">
+                Palmer
+            </div>
+
+            <div class="top-player-stat">
+                13 season points
+            </div>
+
+            <div class="top-player-stat">
+                Used by 1 managers
+            </div>
+
+        </div>
+    
+        <div class="top-player-card">
+
+            <div class="top-player-rank">
+                #2
+            </div>
+
+            <div class="top-player-name">
+                Gakpo
+            </div>
+
+            <div class="top-player-stat">
+                12 season points
+            </div>
+
+            <div class="top-player-stat">
+                Used by 1 managers
+            </div>
+
+        </div>
+    
+        <div class="top-player-card">
+
+            <div class="top-player-rank">
+                #3
+            </div>
+
+            <div class="top-player-name">
+                Dewsbury-Hall
+            </div>
+
+            <div class="top-player-stat">
+                11 season points
+            </div>
+
+            <div class="top-player-stat">
+                Used by 1 managers
+            </div>
+
+        </div>
+    
+        <div class="top-player-card">
+
+            <div class="top-player-rank">
+                #4
+            </div>
+
+            <div class="top-player-name">
+                João Pedro
+            </div>
+
+            <div class="top-player-stat">
+                11 season points
+            </div>
+
+            <div class="top-player-stat">
+                Used by 1 managers
+            </div>
+
+        </div>
+    
+        <div class="top-player-card">
+
+            <div class="top-player-rank">
+                #5
+            </div>
+
+            <div class="top-player-name">
+                White
+            </div>
+
+            <div class="top-player-stat">
+                11 season points
+            </div>
+
+            <div class="top-player-stat">
+                Used by 1 managers
+            </div>
+
+        </div>
+    
+        <div class="top-player-card">
+
+            <div class="top-player-rank">
+                #6
+            </div>
+
+            <div class="top-player-name">
+                Ødegaard
+            </div>
+
+            <div class="top-player-stat">
+                11 season points
+            </div>
+
+            <div class="top-player-stat">
+                Used by 1 managers
+            </div>
+
+        </div>
+    
+        <div class="top-player-card">
+
+            <div class="top-player-rank">
+                #7
+            </div>
+
+            <div class="top-player-name">
+                Guéhi
+            </div>
+
+            <div class="top-player-stat">
+                10 season points
+            </div>
+
+            <div class="top-player-stat">
+                Used by 1 managers
+            </div>
+
+        </div>
+    
+        <div class="top-player-card">
+
+            <div class="top-player-rank">
+                #8
+            </div>
+
+            <div class="top-player-name">
+                Calafiori
+            </div>
+
+            <div class="top-player-stat">
+                9 season points
+            </div>
+
+            <div class="top-player-stat">
+                Used by 1 managers
+            </div>
+
+        </div>
+    
+        <div class="top-player-card">
+
+            <div class="top-player-rank">
+                #9
+            </div>
+
+            <div class="top-player-name">
+                Gvardiol
+            </div>
+
+            <div class="top-player-stat">
+                9 season points
+            </div>
+
+            <div class="top-player-stat">
+                Used by 1 managers
+            </div>
+
+        </div>
+    
+        <div class="top-player-card">
+
+            <div class="top-player-rank">
+                #10
+            </div>
+
+            <div class="top-player-name">
+                Ndiaye
+            </div>
+
+            <div class="top-player-stat">
+                9 season points
+            </div>
+
+            <div class="top-player-stat">
+                Used by 1 managers
+            </div>
+
+        </div>
+    
+
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    Top Players By Season Points
+                </h2>
+
+                
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Player</th>
+
+                        <th>Season Pts</th>
+
+                        <th>5 GW Avg</th>
+
+                        <th>10 GW Avg</th>
+
+                        <th>Trend</th>
+
+                        <th>Managers Used By</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    
+            <tr>
+
+                <td>
+                    1
+                </td>
+
+                <td class="manager-name">
+                    Palmer
+                </td>
+
+                <td>
+                    13
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    2
+                </td>
+
+                <td class="manager-name">
+                    Gakpo
+                </td>
+
+                <td>
+                    12
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    3
+                </td>
+
+                <td class="manager-name">
+                    Dewsbury-Hall
+                </td>
+
+                <td>
+                    11
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    4
+                </td>
+
+                <td class="manager-name">
+                    João Pedro
+                </td>
+
+                <td>
+                    11
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    5
+                </td>
+
+                <td class="manager-name">
+                    White
+                </td>
+
+                <td>
+                    11
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    6
+                </td>
+
+                <td class="manager-name">
+                    Ødegaard
+                </td>
+
+                <td>
+                    11
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    7
+                </td>
+
+                <td class="manager-name">
+                    Guéhi
+                </td>
+
+                <td>
+                    10
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    8
+                </td>
+
+                <td class="manager-name">
+                    Calafiori
+                </td>
+
+                <td>
+                    9
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    9
+                </td>
+
+                <td class="manager-name">
+                    Gvardiol
+                </td>
+
+                <td>
+                    9
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    10
+                </td>
+
+                <td class="manager-name">
+                    Ndiaye
+                </td>
+
+                <td>
+                    9
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    11
+                </td>
+
+                <td class="manager-name">
+                    Saka
+                </td>
+
+                <td>
+                    9
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    12
+                </td>
+
+                <td class="manager-name">
+                    Trafford
+                </td>
+
+                <td>
+                    9
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    13
+                </td>
+
+                <td class="manager-name">
+                    Barry
+                </td>
+
+                <td>
+                    8
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    14
+                </td>
+
+                <td class="manager-name">
+                    Cherki
+                </td>
+
+                <td>
+                    8
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    15
+                </td>
+
+                <td class="manager-name">
+                    Rogers
+                </td>
+
+                <td>
+                    8
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    16
+                </td>
+
+                <td class="manager-name">
+                    Szoboszlai
+                </td>
+
+                <td>
+                    8
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    17
+                </td>
+
+                <td class="manager-name">
+                    Kelleher
+                </td>
+
+                <td>
+                    7
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    18
+                </td>
+
+                <td class="manager-name">
+                    Pickford
+                </td>
+
+                <td>
+                    7
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    19
+                </td>
+
+                <td class="manager-name">
+                    Branthwaite
+                </td>
+
+                <td>
+                    6
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    20
+                </td>
+
+                <td class="manager-name">
+                    Collins
+                </td>
+
+                <td>
+                    6
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td>
+                    —
+                </td>
+
+                <td class="">
+                    —
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+
+                </tbody>
+
+            </table>
+
+        </div>
+    
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    Player Form
+                </h2>
+
+                
+            <div class="notice">
+                5-gameweek form will appear once
+                Gameweek 5 has been completed.
+            </div>
+        
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    Player History
+                </h2>
+
+
+                <input
+                    type="text"
+                    id="player-search"
+                    class="player-search-box"
+                    placeholder="Search for a player..."
+                    oninput="searchPlayers()"
+                />
+
+
+                <div
+                    id="player-search-results"
+                    class="player-search-results"
+                ></div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             TRANSFERS
+             ================================================== -->
+
+        <section
+            class="page"
+            id="page-transfers"
+        >
+
+            <div class="page-heading">
+
+                <h1>
+                    Transfers
+                </h1>
+
+                <p>
+                    Ownership changes, manager hopping and transfer disasters.
+                </p>
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    Most Transferred Players
+                </h2>
+
+                <div style="height:550px; width:100%;">                            <div id="c656f255-05e2-433e-926f-a937bd109204" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("c656f255-05e2-433e-926f-a937bd109204")) {                    Plotly.newPlot(                        "c656f255-05e2-433e-926f-a937bd109204",                        [{"orientation":"h","x":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"y":["A.Becker","Anderson","Awoniyi","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey","Bruno G.","Buend\u00eda","Burn","Caicedo"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"font":{"color":"#e5e7eb"},"margin":{"l":60,"r":30,"t":60,"b":50},"legend":{"orientation":"h","yanchor":"bottom","y":1.02,"xanchor":"left","x":0},"title":{"text":"Most Transferred Players"},"xaxis":{"title":{"text":"Ownership Changes"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true}                    )                };            </script>        </div>
+
+                
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Player</th>
+
+                        <th>Ownership Changes</th>
+
+                        <th>Managers Used By</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    
+            <tr>
+
+                <td>
+                    1
+                </td>
+
+                <td class="manager-name">
+                    A.Becker
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    2
+                </td>
+
+                <td class="manager-name">
+                    Anderson
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    3
+                </td>
+
+                <td class="manager-name">
+                    Awoniyi
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    4
+                </td>
+
+                <td class="manager-name">
+                    Aït-Nouri
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    5
+                </td>
+
+                <td class="manager-name">
+                    B.Fernandes
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    6
+                </td>
+
+                <td class="manager-name">
+                    Ballard
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    7
+                </td>
+
+                <td class="manager-name">
+                    Barnes
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    8
+                </td>
+
+                <td class="manager-name">
+                    Barry
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    9
+                </td>
+
+                <td class="manager-name">
+                    Beto
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    10
+                </td>
+
+                <td class="manager-name">
+                    Branthwaite
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    11
+                </td>
+
+                <td class="manager-name">
+                    Brobbey
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    12
+                </td>
+
+                <td class="manager-name">
+                    Bruno G.
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    13
+                </td>
+
+                <td class="manager-name">
+                    Buendía
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    14
+                </td>
+
+                <td class="manager-name">
+                    Burn
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+            <tr>
+
+                <td>
+                    15
+                </td>
+
+                <td class="manager-name">
+                    Caicedo
+                </td>
+
+                <td>
+                    1
+                </td>
+
+                <td>
+                    1
+                </td>
+
+            </tr>
+        
+
+                </tbody>
+
+            </table>
+
+        </div>
+    
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    Players Used By The Most Managers
+                </h2>
+
+                <div style="height:550px; width:100%;">                            <div id="66c0c2da-b812-45ba-ad57-878eef62ca79" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("66c0c2da-b812-45ba-ad57-878eef62ca79")) {                    Plotly.newPlot(                        "66c0c2da-b812-45ba-ad57-878eef62ca79",                        [{"orientation":"h","x":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"y":["A.Becker","Anderson","Awoniyi","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey","Bruno G.","Buend\u00eda","Burn","Caicedo"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"font":{"color":"#e5e7eb"},"margin":{"l":60,"r":30,"t":60,"b":50},"legend":{"orientation":"h","yanchor":"bottom","y":1.02,"xanchor":"left","x":0},"title":{"text":"Players Used By The Most Managers"},"xaxis":{"title":{"text":"Different Managers"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true}                    )                };            </script>        </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    Transfer Hall of Shame
+                </h2>
+
+                <p class="card-description">
+                    Players who were dropped and subsequently
+                    scored points for the rest of the captured period.
+                </p>
+
+                
+            <div class="notice">
+                No abandoned assets found yet.
+            </div>
+        
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             STATS
+             ================================================== -->
+
+        <section
+            class="page"
+            id="page-stats"
+        >
+
+            <div class="page-heading">
+
+                <h1>
+                    League Stats
+                </h1>
+
+                <p>
+                    The numbers nobody asked for but everybody needs.
+                </p>
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    Fun Stats
+                </h2>
+
+                
+    <div class="stats-grid">
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Most Consistent Manager
+            </div>
+
+            <div class="stat-value">
+                Ollie Gonna Squashya
+            </div>
+
+            <div class="stat-description">
+                Lowest weekly score variance
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Biggest Bench Hoarder
+            </div>
+
+            <div class="stat-value">
+                PAUer Rangers
+            </div>
+
+            <div class="stat-description">
+                15 pts left on the bench
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Most Dream Team Appearances
+            </div>
+
+            <div class="stat-value">
+                Backstreet Moyes
+            </div>
+
+            <div class="stat-description">
+                4 appearances
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Highest Average Score
+            </div>
+
+            <div class="stat-value">
+                Backstreet Moyes
+            </div>
+
+            <div class="stat-description">
+                56.0 pts per GW
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Most Transferred Player
+            </div>
+
+            <div class="stat-value">
+                A.Becker
+            </div>
+
+            <div class="stat-description">
+                1
+                ownership changes
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Biggest Team Hopper
+            </div>
+
+            <div class="stat-value">
+                A.Becker
+            </div>
+
+            <div class="stat-description">
+                Used by 1
+                different managers
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Current Best 5GW Form
+            </div>
+
+            <div class="stat-value">
+                N/A
+            </div>
+
+            <div class="stat-description">
+                N/A pts per GW
+            </div>
+
+        </div>
+
+    </div>
+
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    League Summary
+                </h2>
+
+
+                <div class="stats-grid">
+
+                    <div class="stat-card">
+
+                        <div class="stat-label">
+                            Managers
+                        </div>
+
+                        <div class="stat-value">
+                            10
+                        </div>
+
+                        <div class="stat-description">
+                            Active league managers
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat-card">
+
+                        <div class="stat-label">
+                            Completed Gameweeks
+                        </div>
+
+                        <div class="stat-value">
+                            1
+                        </div>
+
+                        <div class="stat-description">
+                            Gameweeks captured
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat-card">
+
+                        <div class="stat-label">
+                            Players Analysed
+                        </div>
+
+                        <div class="stat-value">
+                            150
+                        </div>
+
+                        <div class="stat-description">
+                            Players appearing in the draft
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat-card">
+
+                        <div class="stat-label">
+                            Fixtures
+                        </div>
+
+                        <div class="stat-value">
+                            5
+                        </div>
+
+                        <div class="stat-description">
+                            Completed H2H fixtures
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+</div>
+
+
+<script>
+
+
+/* ============================================================
+   PAGE NAVIGATION
+   ============================================================ */
+
+const navButtons =
+    document.querySelectorAll(
+        ".nav-button"
+    );
+
+const pages =
+    document.querySelectorAll(
+        ".page"
+    );
+
+
+function showPage(
+    pageName
+) {
+
+    pages.forEach(
+        function(page) {
+
+            page.classList.remove(
+                "active"
+            );
+
+        }
+    );
+
+
+    navButtons.forEach(
+        function(button) {
+
+            button.classList.remove(
+                "active"
+            );
+
+        }
+    );
+
+
+    const selectedPage =
+        document.getElementById(
+            "page-" + pageName
+        );
+
+
+    const selectedButton =
+        document.querySelector(
+            '[data-page="' +
+            pageName +
+            '"]'
+        );
+
+
+    if (selectedPage) {
+
+        selectedPage.classList.add(
+            "active"
+        );
+
+    }
+
+
+    if (selectedButton) {
+
+        selectedButton.classList.add(
+            "active"
+        );
+
+    }
+
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
+}
+
+
+/* ============================================================
+   TEAM OF THE WEEK
+   ============================================================ */
+
+const totwGameweeks =
+    [1];
+
+
+let totwIndex =
+    totwGameweeks.length - 1;
+
+
+function updateTOTW() {
+
+    if (
+        totwGameweeks.length === 0
+    ) {
+
+        return;
+
+    }
+
+
+    totwGameweeks.forEach(
+        function(gw) {
+
+            const slide =
+                document.getElementById(
+                    "totw-gw-" + gw
+                );
+
+
+            if (slide) {
+
+                slide.style.display =
+                    "none";
+
+            }
+
+        }
+    );
+
+
+    const selectedGW =
+        totwGameweeks[
+            totwIndex
+        ];
+
+
+    const selectedSlide =
+        document.getElementById(
+            "totw-gw-" + selectedGW
+        );
+
+
+    if (selectedSlide) {
+
+        selectedSlide.style.display =
+            "block";
+
+    }
+
+
+    const display =
+        document.getElementById(
+            "totw-gw-display"
+        );
+
+
+    if (display) {
+
+        display.innerText =
+            "GW" + selectedGW;
+
+    }
+
+
+    const prev =
+        document.getElementById(
+            "totw-prev"
+        );
+
+
+    const next =
+        document.getElementById(
+            "totw-next"
+        );
+
+
+    if (prev) {
+
+        prev.disabled =
+            totwIndex === 0;
+
+    }
+
+
+    if (next) {
+
+        next.disabled =
+            totwIndex ===
+            totwGameweeks.length - 1;
+
+    }
+
+}
+
+
+function changeTOTW(
+    direction
+) {
+
+    const newIndex =
+        totwIndex +
+        direction;
+
+
+    if (
+        newIndex < 0 ||
+        newIndex >=
+            totwGameweeks.length
+    ) {
+
+        return;
+
+    }
+
+
+    totwIndex =
+        newIndex;
+
+
+    updateTOTW();
+
+}
+
+
+/* ============================================================
+   RESULTS
+   ============================================================ */
+
+const resultsGameweeks =
+    [1];
+
+
+let resultsIndex =
+    resultsGameweeks.length - 1;
+
+
+function updateResults() {
+
+    if (
+        resultsGameweeks.length === 0
+    ) {
+
+        return;
+
+    }
+
+
+    resultsGameweeks.forEach(
+        function(gw) {
+
+            const slide =
+                document.getElementById(
+                    "results-gw-" + gw
+                );
+
+
+            if (slide) {
+
+                slide.style.display =
+                    "none";
+
+            }
+
+        }
+    );
+
+
+    const selectedGW =
+        resultsGameweeks[
+            resultsIndex
+        ];
+
+
+    const selectedSlide =
+        document.getElementById(
+            "results-gw-" + selectedGW
+        );
+
+
+    if (selectedSlide) {
+
+        selectedSlide.style.display =
+            "block";
+
+    }
+
+
+    const display =
+        document.getElementById(
+            "results-gw-display"
+        );
+
+
+    if (display) {
+
+        display.innerText =
+            "GW" + selectedGW;
+
+    }
+
+
+    const prev =
+        document.getElementById(
+            "results-prev"
+        );
+
+
+    const next =
+        document.getElementById(
+            "results-next"
+        );
+
+
+    if (prev) {
+
+        prev.disabled =
+            resultsIndex === 0;
+
+    }
+
+
+    if (next) {
+
+        next.disabled =
+            resultsIndex ===
+            resultsGameweeks.length - 1;
+
+    }
+
+}
+
+
+function changeResults(
+    direction
+) {
+
+    const newIndex =
+        resultsIndex +
+        direction;
+
+
+    if (
+        newIndex < 0 ||
+        newIndex >=
+            resultsGameweeks.length
+    ) {
+
+        return;
+
+    }
+
+
+    resultsIndex =
+        newIndex;
+
+
+    updateResults();
+
+}
+
+
+/* ============================================================
+   PLAYER SEARCH
+   ============================================================ */
+
+const playerSearchData =
+    [{"id": 226, "name": "Pickford", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 7}]}, {"id": 149, "name": "Colwill", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 0}]}, {"id": 423, "name": "Shaw", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 1}]}, {"id": 393, "name": "Khusanov", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 2}]}, {"id": 358, "name": "Kerkez", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 0}]}, {"id": 542, "name": "E.Le Fée", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 2}]}, {"id": 12, "name": "Saka", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 9}]}, {"id": 371, "name": "Gravenberch", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 5}]}, {"id": 14, "name": "Eze", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 1}]}, {"id": 439, "name": "Šeško", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 1}]}, {"id": 526, "name": "Solanke", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 1}]}, {"id": 250, "name": "Leno", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 2}]}, {"id": 492, "name": "Awoniyi", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 1}]}, {"id": 512, "name": "Kudus", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 0}]}, {"id": 5, "name": "J.Timber", "owners": ["No Weimann No Cry"], "transfers": 1, "history": [{"gw": 1, "owners": ["No Weimann No Cry"], "points": 0}]}, {"id": 1, "name": "Raya", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 6}]}, {"id": 387, "name": "O'Reilly", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 2}]}, {"id": 498, "name": "Senesi", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 3}]}, {"id": 357, "name": "Frimpong", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 0}]}, {"id": 40, "name": "Rogers", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 8}]}, {"id": 67, "name": "Rayan", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 2}]}, {"id": 43, "name": "Tielemans", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 2}]}, {"id": 515, "name": "Maddison", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 1}]}, {"id": 222, "name": "Strand Larsen", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 1}]}, {"id": 379, "name": "Isak", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 2}]}, {"id": 491, "name": "Igor Jesus", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 2}]}, {"id": 442, "name": "Pope", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 0}]}, {"id": 159, "name": "Caicedo", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 0}]}, {"id": 580, "name": "Charles", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 1}]}, {"id": 449, "name": "Hall", "owners": ["Kamararama FC"], "transfers": 1, "history": [{"gw": 1, "owners": ["Kamararama FC"], "points": 3}]}, {"id": 496, "name": "Kinsky", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 2}]}, {"id": 391, "name": "Gvardiol", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 9}]}, {"id": 229, "name": "Tarkowski", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 6}]}, {"id": 389, "name": "Matheus N.", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 1}]}, {"id": 469, "name": "N.Williams", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 2}]}, {"id": 532, "name": "Ballard", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 0}]}, {"id": 397, "name": "Semenyo", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 2}]}, {"id": 366, "name": "Wirtz", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 2}]}, {"id": 415, "name": "Dorgu", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 0}]}, {"id": 106, "name": "Thiago", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 0}]}, {"id": 552, "name": "Brobbey", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 2}]}, {"id": 57, "name": "Petrović", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 2}]}, {"id": 208, "name": "Sarr", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 0}]}, {"id": 377, "name": "Munoz", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 4}]}, {"id": 465, "name": "Osula", "owners": ["PAUer Rangers"], "transfers": 1, "history": [{"gw": 1, "owners": ["PAUer Rangers"], "points": 4}]}, {"id": 140, "name": "Sánchez", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 2}]}, {"id": 388, "name": "Guéhi", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 10}]}, {"id": 112, "name": "Van Hecke", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 1}]}, {"id": 230, "name": "Branthwaite", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 6}]}, {"id": 417, "name": "Dalot", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 1}]}, {"id": 399, "name": "Cherki", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 8}]}, {"id": 237, "name": "Ndiaye", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 9}]}, {"id": 69, "name": "Scott", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 2}]}, {"id": 490, "name": "Wood", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 1}]}, {"id": 165, "name": "João Pedro", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 11}]}, {"id": 249, "name": "Barry", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 8}]}, {"id": 529, "name": "Roefs", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 1}]}, {"id": 453, "name": "Barnes", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 2}]}, {"id": 238, "name": "Grealish", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 1}]}, {"id": 204, "name": "Mitchell", "owners": ["Backstreet Moyes"], "transfers": 1, "history": [{"gw": 1, "owners": ["Backstreet Moyes"], "points": 1}]}, {"id": 82, "name": "Kelleher", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 7}]}, {"id": 8, "name": "Calafiori", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 9}]}, {"id": 201, "name": "Muñoz", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 0}]}, {"id": 504, "name": "Vuskovic", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 6}]}, {"id": 480, "name": "Gibbs-White", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 2}]}, {"id": 398, "name": "Foden", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 1}]}, {"id": 95, "name": "O.Dango", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 3}]}, {"id": 369, "name": "Ngumoha", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 2}]}, {"id": 569, "name": "Gonzalo", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 6}]}, {"id": 411, "name": "Haaland", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 2}]}, {"id": 79, "name": "Evanilson", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 4}]}, {"id": 198, "name": "Henderson", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 2}]}, {"id": 445, "name": "Thiaw", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 3}]}, {"id": 60, "name": "Hill", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 1}]}, {"id": 403, "name": "Sávio", "owners": ["Jaap? Best Stam"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jaap? Best Stam"], "points": 0}]}, {"id": 385, "name": "Trafford", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 9}]}, {"id": 4, "name": "Gabriel", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 5}]}, {"id": 84, "name": "Collins", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 6}]}, {"id": 471, "name": "Milenković", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 2}]}, {"id": 426, "name": "B.Fernandes", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 2}]}, {"id": 13, "name": "Rice", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 3}]}, {"id": 155, "name": "Enzo", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 1}]}, {"id": 481, "name": "Anderson", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 2}]}, {"id": 16, "name": "Madueke", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 1}]}, {"id": 125, "name": "Georginio", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 5}]}, {"id": 248, "name": "Beto", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 1}]}, {"id": 28, "name": "Martinez", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 0}]}, {"id": 463, "name": "Woltemade", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 0}]}, {"id": 392, "name": "Aït-Nouri", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 0}]}, {"id": 533, "name": "Mukiele", "owners": ["Ollie Gonna Squashya"], "transfers": 1, "history": [{"gw": 1, "owners": ["Ollie Gonna Squashya"], "points": 0}]}, {"id": 467, "name": "Sels", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 2}]}, {"id": 9, "name": "Hincapie", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 1}]}, {"id": 202, "name": "Richards", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 3}]}, {"id": 233, "name": "Mykolenko", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 6}]}, {"id": 154, "name": "Palmer", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 13}]}, {"id": 427, "name": "Mbeumo", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 2}]}, {"id": 15, "name": "Ødegaard", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 11}]}, {"id": 236, "name": "Dewsbury-Hall", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 11}]}, {"id": 210, "name": "Wharton", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 4}]}, {"id": 166, "name": "N.Jackson", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 0}]}, {"id": 27, "name": "G.Jesus", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 0}]}, {"id": 110, "name": "Rushworth", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 1}]}, {"id": 401, "name": "Marmoush", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 0}]}, {"id": 6, "name": "Saliba", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 0}]}, {"id": 232, "name": "O'Brien", "owners": ["NoRSNoRB No Chance"], "transfers": 1, "history": [{"gw": 1, "owners": ["NoRSNoRB No Chance"], "points": 0}]}, {"id": 384, "name": "Donnarumma", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 3}]}, {"id": 142, "name": "James", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 0}]}, {"id": 144, "name": "Gusto", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 1}]}, {"id": 61, "name": "Truffert", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 1}]}, {"id": 428, "name": "Cunha", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 2}]}, {"id": 554, "name": "Van Oevelen", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 0}]}, {"id": 94, "name": "Schade", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 3}]}, {"id": 525, "name": "Fernandes", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 1}]}, {"id": 239, "name": "Garner", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 1}]}, {"id": 464, "name": "Wissa", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 4}]}, {"id": 527, "name": "Richarlison", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 2}]}, {"id": 566, "name": "Silva", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 2}]}, {"id": 503, "name": "Van de Ven", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 0}]}, {"id": 113, "name": "F.Kadıoğlu", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 0}]}, {"id": 25, "name": "Gyökeres", "owners": ["danny’s doggy dudes"], "transfers": 1, "history": [{"gw": 1, "owners": ["danny’s doggy dudes"], "points": 0}]}, {"id": 412, "name": "Lammens", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 1}]}, {"id": 356, "name": "Virgil", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 2}]}, {"id": 390, "name": "Rúben", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 2}]}, {"id": 472, "name": "Murillo", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 4}]}, {"id": 36, "name": "Maatsen", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 0}]}, {"id": 368, "name": "Szoboszlai", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 8}]}, {"id": 452, "name": "Bruno G.", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 0}]}, {"id": 429, "name": "Rashford", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 1}]}, {"id": 156, "name": "Neto", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 1}]}, {"id": 55, "name": "Watkins", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 0}]}, {"id": 26, "name": "Havertz", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 6}]}, {"id": 109, "name": "Verbruggen", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 6}]}, {"id": 136, "name": "Welbeck", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 0}]}, {"id": 152, "name": "Palestra", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 0}]}, {"id": 53, "name": "Manzambi", "owners": ["Buendophilia"], "transfers": 1, "history": [{"gw": 1, "owners": ["Buendophilia"], "points": 0}]}, {"id": 350, "name": "A.Becker", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 2}]}, {"id": 200, "name": "Lacroix", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 6}]}, {"id": 10, "name": "White", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 11}]}, {"id": 31, "name": "Konsa", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 0}]}, {"id": 367, "name": "Gakpo", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 12}]}, {"id": 260, "name": "Wilson", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 3}]}, {"id": 41, "name": "Buendía", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 2}]}, {"id": 70, "name": "Kluivert", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 3}]}, {"id": 271, "name": "Muniz", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 1}]}, {"id": 223, "name": "Mateta", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 2}]}, {"id": 346, "name": "Calvert-Lewin", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 1}]}, {"id": 351, "name": "Mamardashvili", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 0}]}, {"id": 499, "name": "Pedro Porro", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 0}]}, {"id": 574, "name": "Hjertø-Dahl", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 0}]}, {"id": 448, "name": "Burn", "owners": ["Jacquet Potato"], "transfers": 1, "history": [{"gw": 1, "owners": ["Jacquet Potato"], "points": 0}]}];
+
+
+function escapePlayerHTML(
+    value
+) {
+
+    return String(value)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+function searchPlayers() {
+
+    const input =
+        document.getElementById(
+            "player-search"
+        );
+
+
+    const results =
+        document.getElementById(
+            "player-search-results"
+        );
+
+
+    const query =
+        input.value
+            .trim()
+            .toLowerCase();
+
+
+    if (
+        query.length < 2
+    ) {
+
+        results.style.display =
+            "none";
+
+        results.innerHTML =
+            "";
+
+        return;
+
+    }
+
+
+    const matches =
+        playerSearchData
+            .filter(
+                function(player) {
+
+                    return player.name
+                        .toLowerCase()
+                        .includes(query);
+
+                }
+            )
+            .slice(
+                0,
+                10
+            );
+
+
+    if (
+        matches.length === 0
+    ) {
+
+        results.style.display =
+            "block";
+
+        results.innerHTML =
+            "<div class='notice'>No players found.</div>";
+
+        return;
+
+    }
+
+
+    results.style.display =
+        "block";
+
+
+    let searchHtml = "";
+
+
+    matches.forEach(
+        function(player) {
+
+            searchHtml +=
+                '<div class="player-history-card">';
+
+
+            searchHtml +=
+                '<div class="player-history-title">' +
+                escapePlayerHTML(
+                    player.name
+                ) +
+                '</div>';
+
+
+            searchHtml +=
+                '<div class="player-meta">' +
+                'Used by ' +
+                player.owners.length +
+                ' different managers' +
+                ' · ' +
+                player.transfers +
+                ' ownership changes' +
+                '</div>';
+
+
+            searchHtml +=
+                '<div class="player-gw-table">' +
+                '<table>' +
+                '<thead>' +
+                '<tr>' +
+                '<th>GW</th>' +
+                '<th>Manager(s)</th>' +
+                '<th>Points</th>' +
+                '</tr>' +
+                '</thead>' +
+                '<tbody>';
+
+
+            player.history.forEach(
+                function(row) {
+
+                    const ownerNames =
+                        row.owners.length
+                        ? row.owners
+                            .map(
+                                escapePlayerHTML
+                            )
+                            .join(
+                                ", "
+                            )
+                        : "Not owned";
+
+
+                    searchHtml +=
+                        '<tr>' +
+                        '<td>GW' +
+                        row.gw +
+                        '</td>' +
+                        '<td>' +
+                        ownerNames +
+                        '</td>' +
+                        '<td>' +
+                        row.points +
+                        '</td>' +
+                        '</tr>';
+
+                }
+            );
+
+
+            searchHtml +=
+                '</tbody>' +
+                '</table>' +
+                '</div>' +
+                '</div>';
+
+        }
+    );
+
+
+    results.innerHTML =
+        searchHtml;
+
+}
+
+
+/* ============================================================
+   INITIALISE
+   ============================================================ */
+
+updateTOTW();
+
+updateResults();
+
+showPage(
+    "overview"
+);
+
+
+</script>
+
+
+</body>
+
+</html>
