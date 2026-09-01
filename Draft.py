@@ -1014,37 +1014,44 @@ for player_id, info in player_ownership.items():
             current_owners
         )
 
-        for manager in joined:
+        # A genuine transfer requires BOTH a manager picking the
+        # player up AND a manager dropping them in the same
+        # gameweek transition - i.e. an actual hand-off between two
+        # rosters. If only one side happened (e.g. a pure free-agent
+        # pickup with nobody dropping them, or a pure drop with
+        # nobody claiming them), that is not a transfer, so it isn't
+        # counted. When it is a genuine transfer, it counts once -
+        # not once for the incoming manager and again for the
+        # outgoing manager.
+        if joined and left:
 
-            player_transfer_details[
-                player_id
-            ].append({
+            for manager in joined:
 
-                "gw": gw,
+                player_transfer_details[
+                    player_id
+                ].append({
 
-                "type": "IN",
+                    "gw": gw,
 
-                "manager": manager
+                    "type": "IN",
 
-            })
+                    "manager": manager
 
-            player_transfer_counts[
-                player_id
-            ] += 1
+                })
 
-        for manager in left:
+            for manager in left:
 
-            player_transfer_details[
-                player_id
-            ].append({
+                player_transfer_details[
+                    player_id
+                ].append({
 
-                "gw": gw,
+                    "gw": gw,
 
-                "type": "OUT",
+                    "type": "OUT",
 
-                "manager": manager
+                    "manager": manager
 
-            })
+                })
 
             player_transfer_counts[
                 player_id
@@ -1401,6 +1408,86 @@ most_owned_managers = sorted(
         x["name"]
     )
 )
+
+
+# ============================================================
+# KEY PLAYER PER MANAGER
+#
+# For each manager, this is the highest season-points player who
+# is on their CURRENT roster (as of the most recently captured
+# gameweek) - not just anyone they've ever owned this season. A
+# player who racked up points earlier but has since been dropped
+# or traded away doesn't qualify.
+# ============================================================
+
+season_points_by_player = {
+    p["id"]: p["season_points"]
+    for p in player_form_stats
+}
+
+player_name_by_id = {
+    p["id"]: p["name"]
+    for p in player_form_stats
+}
+
+_all_captured_gws = sorted(
+    int(gw)
+    for gw in history.get("gameweeks", {}).keys()
+)
+
+most_recent_gw = (
+    _all_captured_gws[-1]
+    if _all_captured_gws
+    else None
+)
+
+roster_by_manager_most_recent_gw = defaultdict(list)
+
+if most_recent_gw is not None:
+
+    for player_id, info in player_ownership.items():
+
+        owners_now = info["ownership_by_gw"].get(
+            most_recent_gw,
+            set()
+        )
+
+        for manager in owners_now:
+
+            roster_by_manager_most_recent_gw[
+                manager
+            ].append(player_id)
+
+key_player_by_manager = {}
+
+for manager, roster in (
+    roster_by_manager_most_recent_gw.items()
+):
+
+    if not roster:
+        continue
+
+    best_player_id = max(
+        roster,
+        key=lambda pid: (
+            season_points_by_player.get(pid, 0),
+            player_name_by_id.get(pid, "")
+        )
+    )
+
+    key_player_by_manager[manager] = {
+
+        "name": player_name_by_id.get(
+            best_player_id,
+            "Unknown"
+        ),
+
+        "points": season_points_by_player.get(
+            best_player_id,
+            0
+        ),
+
+    }
 
 
 # ============================================================
@@ -2867,6 +2954,11 @@ for player_id, info in (
     player_ownership.items()
 ):
 
+    player_meta = elements.get(
+        player_id,
+        {}
+    )
+
     history_entry = {
 
         "id":
@@ -2886,6 +2978,78 @@ for player_id, info in (
             player_transfer_counts[
                 player_id
             ],
+
+        "position":
+            positions_lookup.get(
+                player_meta.get("element_type"),
+                "—"
+            ),
+
+        "team":
+            teams_lookup.get(
+                player_meta.get("team"),
+                "—"
+            ),
+
+        "goals":
+            player_meta.get(
+                "goals_scored",
+                0
+            ),
+
+        "assists":
+            player_meta.get(
+                "assists",
+                0
+            ),
+
+        "clean_sheets":
+            player_meta.get(
+                "clean_sheets",
+                0
+            ),
+
+        "defensive_contributions":
+            player_meta.get(
+                "defensive_contribution",
+                0
+            ),
+
+        "goals_conceded":
+            player_meta.get(
+                "goals_conceded",
+                0
+            ),
+
+        "saves":
+            player_meta.get(
+                "saves",
+                0
+            ),
+
+        "bonus":
+            player_meta.get(
+                "bonus",
+                0
+            ),
+
+        "yellow_cards":
+            player_meta.get(
+                "yellow_cards",
+                0
+            ),
+
+        "red_cards":
+            player_meta.get(
+                "red_cards",
+                0
+            ),
+
+        "minutes":
+            player_meta.get(
+                "minutes",
+                0
+            ),
 
         "history":
             []
@@ -3979,6 +4143,15 @@ def manager_profile_cards():
 
         selection = manager_selection.get(manager, {})
 
+        key_player = key_player_by_manager.get(manager)
+
+        key_player_html = (
+            f'<span class="key-player-name">{escape_html(key_player["name"])}</span> '
+            f'<span class="key-player-points">{key_player["points"]} pts</span>'
+            if key_player
+            else '<span class="muted">—</span>'
+        )
+
         cards += f'''
             <div class="manager-profile-card">
                 <div class="manager-profile-top">
@@ -3997,6 +4170,11 @@ def manager_profile_cards():
                     <span><b>{matches_won[manager]}</b> wins</span>
                     <span><b>{manager_transfer_in.get(manager, 0) + manager_transfer_out.get(manager, 0)}</b> transfers</span>
                     <span><b>{selection.get("efficiency", 0):.1f}%</b> XI efficiency</span>
+                </div>
+
+                <div class="key-player-row">
+                    <span class="key-player-label">Key Player</span>
+                    {key_player_html}
                 </div>
             </div>
         '''
@@ -5001,6 +5179,35 @@ tbody tr:hover {
 .manager-profile-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; color: var(--muted); font-size: 11px; }
 .manager-profile-stats b { color: white; }
 
+.key-player-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+}
+
+.key-player-label {
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-size: 10px;
+}
+
+.key-player-name {
+    color: white;
+    font-weight: 700;
+}
+
+.key-player-points {
+    color: var(--accent);
+    font-weight: 700;
+}
+
 .records-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -5519,6 +5726,27 @@ tbody tr:hover {
     color: var(--muted);
     font-size: 13px;
     margin-bottom: 14px;
+}
+
+.player-stat-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.player-stat-chip {
+    background: #0f1626;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.player-stat-chip b {
+    color: white;
+    margin-right: 4px;
 }
 
 
@@ -6779,12 +7007,30 @@ function searchPlayers() {
 
             searchHtml +=
                 '<div class="player-meta">' +
-                'Used by ' +
+                escapePlayerHTML(player.position) +
+                ' · ' +
+                escapePlayerHTML(player.team) +
+                ' · Used by ' +
                 player.owners.length +
                 ' different managers' +
                 ' · ' +
                 player.transfers +
-                ' ownership changes' +
+                ' transfers' +
+                '</div>';
+
+
+            searchHtml +=
+                '<div class="player-stat-chips">' +
+                '<span class="player-stat-chip"><b>' + player.goals + '</b> Goals</span>' +
+                '<span class="player-stat-chip"><b>' + player.assists + '</b> Assists</span>' +
+                '<span class="player-stat-chip"><b>' + player.clean_sheets + '</b> Clean Sheets</span>' +
+                '<span class="player-stat-chip"><b>' + player.defensive_contributions + '</b> Def. Contributions</span>' +
+                '<span class="player-stat-chip"><b>' + player.bonus + '</b> Bonus</span>' +
+                '<span class="player-stat-chip"><b>' + player.saves + '</b> Saves</span>' +
+                '<span class="player-stat-chip"><b>' + player.goals_conceded + '</b> Conceded</span>' +
+                '<span class="player-stat-chip"><b>' + player.minutes + '</b> Mins</span>' +
+                '<span class="player-stat-chip"><b>' + player.yellow_cards + '</b> Yellow</span>' +
+                '<span class="player-stat-chip"><b>' + player.red_cards + '</b> Red</span>' +
                 '</div>';
 
 
