@@ -2699,7 +2699,7 @@
               "web_name": "Rice",
               "team": "Arsenal",
               "position": "MID",
-              "points": 3,
+              "points": 5,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
@@ -2807,7 +2807,7 @@
               "minutes": 90
             }
           ],
-          "gw_points": 51,
+          "gw_points": 53,
           "bench_points": 9,
           "dreamteam_starters": 1
         },
@@ -3514,7 +3514,7 @@
       }
     }
   },
-  "last_updated": "2026-08-31T21:12:43.838210+00:00",
+  "last_updated": "2026-09-01T07:06:09.018537+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",

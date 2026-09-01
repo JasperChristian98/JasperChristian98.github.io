@@ -409,6 +409,376 @@ tbody tr:hover {
 
 
 /* ============================================================
+   PHASE 1 COMPONENTS
+   ============================================================ */
+
+.rank-up { color: var(--green); font-weight: 800; }
+.rank-down { color: var(--red); font-weight: 800; }
+.rank-flat { color: var(--muted-dark); font-weight: 700; }
+
+.form-badges {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.form-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 800;
+    border: 1px solid var(--border-light);
+}
+
+.form-w { background: rgba(74,222,128,.16); color: var(--green); }
+.form-d { background: rgba(250,204,21,.16); color: var(--gold); }
+.form-l { background: rgba(248,113,113,.16); color: var(--red); }
+
+.my-team-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+    gap: 18px;
+}
+
+.my-team-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+}
+
+.eyebrow {
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .8px;
+}
+
+.my-team-name {
+    color: white;
+    font-size: 28px;
+    font-weight: 800;
+    margin: 4px 0 10px;
+}
+
+.my-team-rank { text-align: right; }
+.my-team-rank span { display: block; font-size: 30px; font-weight: 850; color: white; }
+.my-team-rank small { color: var(--muted); }
+
+.compact-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.compact-stats .stat-card { min-height: 105px; padding: 14px; }
+.compact-stats .stat-value { font-size: 20px; }
+
+.squad-card {
+    background: #172033;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.squad-card h3 { margin-bottom: 12px; }
+.squad-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.squad-heading { color: var(--accent); font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; }
+.squad-row { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.squad-row b { color: white; }
+.bench-row { color: var(--muted); }
+
+.gw-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.summary-stat {
+    background: #172033;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px;
+    min-width: 0;
+}
+
+.summary-stat span { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+.summary-stat strong { display: block; color: white; font-size: 14px; margin: 6px 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.summary-stat b { color: var(--accent); font-size: 17px; }
+
+.manager-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+    gap: 14px;
+}
+
+.manager-profile-card {
+    background: #172033;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.manager-profile-top { display: flex; justify-content: space-between; gap: 12px; }
+.manager-profile-rank { color: var(--accent); font-size: 11px; font-weight: 800; }
+.manager-profile-name { color: white; font-size: 17px; font-weight: 750; margin: 3px 0 8px; }
+.manager-profile-points { color: white; font-size: 22px; font-weight: 850; text-align: right; }
+.manager-profile-points small { display: block; color: var(--muted); font-size: 10px; font-weight: 500; }
+
+.mini-chart {
+    height: 65px;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    margin: 14px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.mini-bar {
+    flex: 1;
+    min-width: 3px;
+    max-width: 12px;
+    background: var(--accent);
+    border-radius: 3px 3px 0 0;
+    opacity: .75;
+}
+
+.manager-profile-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; color: var(--muted); font-size: 11px; }
+.manager-profile-stats b { color: white; }
+
+.records-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.record-card { background: #172033; border: 1px solid var(--border); border-radius: 11px; padding: 15px; }
+.record-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+.record-value { color: white; font-size: 17px; font-weight: 800; margin: 7px 0 4px; }
+.record-detail { color: var(--muted-dark); font-size: 12px; }
+
+/* ============================================================
+   MY TEAM SELECTOR
+   ============================================================ */
+.my-team-selector-row { display:flex; justify-content:space-between; align-items:flex-end; gap:18px; margin-bottom:18px; }
+.my-team-selector-row h2 { margin-bottom:4px; }
+.my-team-selector-row .card-description { margin-bottom:0; }
+.my-team-select-wrap { display:flex; flex-direction:column; gap:6px; min-width:230px; }
+.my-team-select-wrap span { color:var(--muted); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; }
+#my-team-select { background:#172033; color:white; border:1px solid var(--border-light); border-radius:8px; padding:10px 12px; font-size:14px; min-width:230px; cursor:pointer; }
+#my-team-select:focus { outline:2px solid var(--accent); outline-offset:2px; }
+
+/* ============================================================
+   MOBILE TREND CHARTS (H2H points / rank / gw scores)
+   ============================================================ */
+
+.trend-chart-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.chip-row {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.chip-row::-webkit-scrollbar {
+    height: 5px;
+}
+
+.chip-row::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 4px;
+}
+
+.chart-chip-action {
+    flex: none;
+    background: #0b1120;
+    color: var(--muted);
+    border: 1px solid var(--border-light);
+    border-radius: 999px;
+    padding: 7px 13px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.chart-chip-action:hover {
+    color: white;
+    border-color: var(--accent);
+}
+
+.chart-chip-action.active {
+    background: rgba(56, 189, 248, 0.16);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.chart-chip {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: #172033;
+    color: var(--muted);
+    border: 1px solid var(--border-light);
+    border-radius: 999px;
+    padding: 7px 13px 7px 10px;
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0.55;
+    transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.chart-chip::before {
+    content: "";
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--chip-color, var(--accent));
+    flex: none;
+}
+
+.chart-chip.active {
+    opacity: 1;
+    color: white;
+    border-color: var(--chip-color, var(--accent));
+}
+
+.trend-chart-svg-wrap {
+    width: 100%;
+    touch-action: pan-y;
+}
+
+.trend-chart-svg-wrap svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+}
+
+.trend-chart-line {
+    fill: none;
+    stroke-width: 3.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    transition: opacity 0.15s ease;
+}
+
+.trend-chart-dot {
+    transition: opacity 0.15s ease;
+}
+
+.trend-chart-hit {
+    fill: transparent;
+    cursor: pointer;
+}
+
+.trend-chart-hit-band {
+    fill: var(--accent);
+    opacity: 0;
+}
+
+.trend-chart-hit-band.selected {
+    opacity: 0.08;
+}
+
+.trend-chart-gridline {
+    stroke: var(--border);
+    stroke-width: 1;
+}
+
+.trend-chart-axis-label {
+    fill: var(--muted-dark);
+    font-size: 11px;
+}
+
+.trend-chart-end-label {
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.trend-chart-empty {
+    color: var(--muted);
+    font-size: 13px;
+    padding: 20px 0;
+    text-align: center;
+}
+
+.trend-readout {
+    background: #172033;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+
+.trend-readout-heading {
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 10px;
+}
+
+.trend-readout-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.trend-readout-row:last-child {
+    border-bottom: none;
+}
+
+.trend-readout-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex: none;
+}
+
+.trend-readout-name {
+    flex: 1;
+    color: var(--text);
+    font-weight: 650;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.trend-readout-value {
+    color: white;
+    font-weight: 800;
+    font-size: 14px;
+    min-width: 30px;
+    text-align: right;
+}
+
+.trend-readout-delta {
+    min-width: 42px;
+    text-align: right;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.trend-readout-delta.up { color: var(--green); }
+.trend-readout-delta.down { color: var(--red); }
+.trend-readout-delta.flat { color: var(--muted-dark); }
+
+/* ============================================================
    RESULTS
    ============================================================ */
 
@@ -727,6 +1097,9 @@ tbody tr:hover {
 @media (
     max-width: 900px
 ) {
+    .my-team-selector-row { flex-direction:column; align-items:stretch; }
+    .my-team-select-wrap, #my-team-select { width:100%; min-width:0; box-sizing:border-box; }
+
 
     .dashboard-grid {
         grid-template-columns: 1fr;
@@ -766,6 +1139,16 @@ tbody tr:hover {
 @media (
     max-width: 600px
 ) {
+
+    .my-team-grid { grid-template-columns: 1fr; }
+    .compact-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .my-team-name { font-size: 22px; }
+    .my-team-rank span { font-size: 24px; }
+    .squad-columns { grid-template-columns: 1fr; }
+    .gw-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .summary-stat:last-child { grid-column: 1 / -1; }
+    .manager-profile-grid { grid-template-columns: 1fr; }
+
 
     body {
         overflow-x: hidden;
@@ -830,6 +1213,14 @@ tbody tr:hover {
     .card h2 {
         font-size: 16px;
         margin-bottom: 12px;
+    }
+
+    .trend-readout-row {
+        font-size: 12px;
+    }
+
+    .trend-readout-value {
+        font-size: 13px;
     }
 
     /* Plotly needs explicit mobile dimensions because charts on hidden
@@ -1017,7 +1408,7 @@ tbody tr:hover {
             <div class="header-meta">
 
                 Last updated:
-                2026-08-31T21:12:43.838210+00:00
+                2026-09-01T07:06:09.018537+00:00
 
                 <br>
 
@@ -1107,383 +1498,405 @@ tbody tr:hover {
 
 
             <div class="card">
-
-                <h2>
-                    Current Standings
-                </h2>
-
-                
-        <div class="table-wrap">
-
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th>#</th>
-
-                        <th>Manager</th>
-
-                        <th>League Pts</th>
-
-                        <th>W-D-L</th>
-
-                        <th>Pts For</th>
-
-                        <th>Pts Against</th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    
-            <tr>
-
-                <td class="rank-cell">
-                    1
-                </td>
-
-                <td class="manager-name">
-                    Backstreet Moyes
-                </td>
-
-                <td>
-                    3
-                </td>
-
-                <td>
-                    1-
-                    0-
-                    0
-                </td>
-
-                <td>
-                    59
-                </td>
-
-                <td>
-                    43
-                </td>
-
-            </tr>
-        
-            <tr>
-
-                <td class="rank-cell">
-                    2
-                </td>
-
-                <td class="manager-name">
-                    NoRSNoRB No Chance
-                </td>
-
-                <td>
-                    3
-                </td>
-
-                <td>
-                    1-
-                    0-
-                    0
-                </td>
-
-                <td>
-                    53
-                </td>
-
-                <td>
-                    29
-                </td>
-
-            </tr>
-        
-            <tr>
-
-                <td class="rank-cell">
-                    3
-                </td>
-
-                <td class="manager-name">
-                    Jaap? Best Stam
-                </td>
-
-                <td>
-                    3
-                </td>
-
-                <td>
-                    1-
-                    0-
-                    0
-                </td>
-
-                <td>
-                    42
-                </td>
-
-                <td>
-                    25
-                </td>
-
-            </tr>
-        
-            <tr>
-
-                <td class="rank-cell">
-                    4
-                </td>
-
-                <td class="manager-name">
-                    Ollie Gonna Squashya
-                </td>
-
-                <td>
-                    3
-                </td>
-
-                <td>
-                    1-
-                    0-
-                    0
-                </td>
-
-                <td>
-                    37
-                </td>
-
-                <td>
-                    24
-                </td>
-
-            </tr>
-        
-            <tr>
-
-                <td class="rank-cell">
-                    5
-                </td>
-
-                <td class="manager-name">
-                    Kamararama FC
-                </td>
-
-                <td>
-                    3
-                </td>
-
-                <td>
-                    1-
-                    0-
-                    0
-                </td>
-
-                <td>
-                    29
-                </td>
-
-                <td>
-                    26
-                </td>
-
-            </tr>
-        
-            <tr>
-
-                <td class="rank-cell">
-                    6
-                </td>
-
-                <td class="manager-name">
-                    Jacquet Potato
-                </td>
-
-                <td>
-                    0
-                </td>
-
-                <td>
-                    0-
-                    0-
-                    1
-                </td>
-
-                <td>
-                    43
-                </td>
-
-                <td>
-                    59
-                </td>
-
-            </tr>
-        
-            <tr>
-
-                <td class="rank-cell">
-                    7
-                </td>
-
-                <td class="manager-name">
-                    No Weimann No Cry
-                </td>
-
-                <td>
-                    0
-                </td>
-
-                <td>
-                    0-
-                    0-
-                    1
-                </td>
-
-                <td>
-                    29
-                </td>
-
-                <td>
-                    53
-                </td>
-
-            </tr>
-        
-            <tr>
-
-                <td class="rank-cell">
-                    8
-                </td>
-
-                <td class="manager-name">
-                    PAUer Rangers
-                </td>
-
-                <td>
-                    0
-                </td>
-
-                <td>
-                    0-
-                    0-
-                    1
-                </td>
-
-                <td>
-                    26
-                </td>
-
-                <td>
-                    29
-                </td>
-
-            </tr>
-        
-            <tr>
-
-                <td class="rank-cell">
-                    9
-                </td>
-
-                <td class="manager-name">
-                    Buendophilia
-                </td>
-
-                <td>
-                    0
-                </td>
-
-                <td>
-                    0-
-                    0-
-                    1
-                </td>
-
-                <td>
-                    25
-                </td>
-
-                <td>
-                    42
-                </td>
-
-            </tr>
-        
-            <tr>
-
-                <td class="rank-cell">
-                    10
-                </td>
-
-                <td class="manager-name">
-                    danny’s doggy dudes
-                </td>
-
-                <td>
-                    0
-                </td>
-
-                <td>
-                    0-
-                    0-
-                    1
-                </td>
-
-                <td>
-                    24
-                </td>
-
-                <td>
-                    37
-                </td>
-
-            </tr>
-        
-
-                </tbody>
-
-            </table>
-
+                <div class="my-team-selector-row">
+                    <div><h2>My Team</h2><p class="card-description">Choose your team to see your squad and personal league stats.</p></div>
+                    <label class="my-team-select-wrap" for="my-team-select"><span>Selected team</span><select id="my-team-select" onchange="changeMyTeam()"><option value="0" >Backstreet Moyes</option><option value="1" >NoRSNoRB No Chance</option><option value="2" >Jaap? Best Stam</option><option value="3" >Ollie Gonna Squashya</option><option value="4" selected>Kamararama FC</option><option value="5" >Jacquet Potato</option><option value="6" >No Weimann No Cry</option><option value="7" >PAUer Rangers</option><option value="8" >Buendophilia</option><option value="9" >danny’s doggy dudes</option></select></label>
+                </div>
+                <div id="my-team-cards">
+        <div class="my-team-card" data-manager-index="0" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW1</div>
+                            <div class="my-team-name">Backstreet Moyes</div>
+                            <div class="form-badges"><span class="form-badge form-w">W</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#1</span><small>3 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">59</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">56.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">98.3%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">1</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>João Pedro</span><b>11</b></div><div class="squad-row"><span>Guéhi</span><b>10</b></div><div class="squad-row"><span>Ndiaye</span><b>9</b></div><div class="squad-row"><span>Cherki</span><b>8</b></div><div class="squad-row"><span>Barry</span><b>8</b></div><div class="squad-row"><span>Branthwaite</span><b>6</b></div><div class="squad-row"><span>Sánchez</span><b>2</b></div><div class="squad-row"><span>Scott</span><b>2</b></div><div class="squad-row"><span>Van Hecke</span><b>1</b></div><div class="squad-row"><span>Dalot</span><b>1</b></div><div class="squad-row"><span>Wood</span><b>1</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Barnes</span><b>2</b></div><div class="squad-row bench-row"><span>Roefs</span><b>1</b></div><div class="squad-row bench-row"><span>Grealish</span><b>1</b></div><div class="squad-row bench-row"><span>Mitchell</span><b>1</b></div></div></div></div>
+            </div>
         </div>
     
+        <div class="my-team-card" data-manager-index="1" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW1</div>
+                            <div class="my-team-name">NoRSNoRB No Chance</div>
+                            <div class="form-badges"><span class="form-badge form-w">W</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#2</span><small>3 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">53</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">46.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">0</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Palmer</span><b>13</b></div><div class="squad-row"><span>Ødegaard</span><b>11</b></div><div class="squad-row"><span>Dewsbury-Hall</span><b>11</b></div><div class="squad-row"><span>Mykolenko</span><b>6</b></div><div class="squad-row"><span>Wharton</span><b>4</b></div><div class="squad-row"><span>Richards</span><b>3</b></div><div class="squad-row"><span>Sels</span><b>2</b></div><div class="squad-row"><span>Mbeumo</span><b>2</b></div><div class="squad-row"><span>Hincapie</span><b>1</b></div><div class="squad-row"><span>N.Jackson</span><b>0</b></div><div class="squad-row"><span>G.Jesus</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Rushworth</span><b>1</b></div><div class="squad-row bench-row"><span>Marmoush</span><b>0</b></div><div class="squad-row bench-row"><span>Saliba</span><b>0</b></div><div class="squad-row bench-row"><span>O&#39;Brien</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="2" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW1</div>
+                            <div class="my-team-name">Jaap? Best Stam</div>
+                            <div class="form-badges"><span class="form-badge form-w">W</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#3</span><small>3 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">42</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">54.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">93.3%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">3</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Calafiori</span><b>9</b></div><div class="squad-row"><span>Kelleher</span><b>7</b></div><div class="squad-row"><span>Vuskovic</span><b>6</b></div><div class="squad-row"><span>Gonzalo</span><b>6</b></div><div class="squad-row"><span>Evanilson</span><b>4</b></div><div class="squad-row"><span>O.Dango</span><b>3</b></div><div class="squad-row"><span>Gibbs-White</span><b>2</b></div><div class="squad-row"><span>Ngumoha</span><b>2</b></div><div class="squad-row"><span>Haaland</span><b>2</b></div><div class="squad-row"><span>Foden</span><b>1</b></div><div class="squad-row"><span>Muñoz</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Thiaw</span><b>3</b></div><div class="squad-row bench-row"><span>Henderson</span><b>2</b></div><div class="squad-row bench-row"><span>Hill</span><b>1</b></div><div class="squad-row bench-row"><span>Sávio</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="3" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW1</div>
+                            <div class="my-team-name">Ollie Gonna Squashya</div>
+                            <div class="form-badges"><span class="form-badge form-w">W</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#4</span><small>3 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">37</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">45.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">0</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Trafford</span><b>9</b></div><div class="squad-row"><span>Collins</span><b>6</b></div><div class="squad-row"><span>Gabriel</span><b>5</b></div><div class="squad-row"><span>Georginio</span><b>5</b></div><div class="squad-row"><span>Rice</span><b>3</b></div><div class="squad-row"><span>Milenković</span><b>2</b></div><div class="squad-row"><span>B.Fernandes</span><b>2</b></div><div class="squad-row"><span>Anderson</span><b>2</b></div><div class="squad-row"><span>Enzo</span><b>1</b></div><div class="squad-row"><span>Madueke</span><b>1</b></div><div class="squad-row"><span>Beto</span><b>1</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Martinez</span><b>0</b></div><div class="squad-row bench-row"><span>Woltemade</span><b>0</b></div><div class="squad-row bench-row"><span>Aït-Nouri</span><b>0</b></div><div class="squad-row bench-row"><span>Mukiele</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="4" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW1</div>
+                            <div class="my-team-name">Kamararama FC</div>
+                            <div class="form-badges"><span class="form-badge form-w">W</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#5</span><small>3 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">29</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">36.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">90.6%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">3</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Rogers</span><b>8</b></div><div class="squad-row"><span>Raya</span><b>6</b></div><div class="squad-row"><span>Senesi</span><b>3</b></div><div class="squad-row"><span>O&#39;Reilly</span><b>2</b></div><div class="squad-row"><span>Rayan</span><b>2</b></div><div class="squad-row"><span>Tielemans</span><b>2</b></div><div class="squad-row"><span>Isak</span><b>2</b></div><div class="squad-row"><span>Igor Jesus</span><b>2</b></div><div class="squad-row"><span>Maddison</span><b>1</b></div><div class="squad-row"><span>Strand Larsen</span><b>1</b></div><div class="squad-row"><span>Frimpong</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Hall</span><b>3</b></div><div class="squad-row bench-row"><span>Charles</span><b>1</b></div><div class="squad-row bench-row"><span>Pope</span><b>0</b></div><div class="squad-row bench-row"><span>Caicedo</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="5" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW1</div>
+                            <div class="my-team-name">Jacquet Potato</div>
+                            <div class="form-badges"><span class="form-badge form-l">L</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#6</span><small>0 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">43</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">35.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">0</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Gakpo</span><b>12</b></div><div class="squad-row"><span>White</span><b>11</b></div><div class="squad-row"><span>Lacroix</span><b>6</b></div><div class="squad-row"><span>Wilson</span><b>3</b></div><div class="squad-row"><span>Kluivert</span><b>3</b></div><div class="squad-row"><span>A.Becker</span><b>2</b></div><div class="squad-row"><span>Buendía</span><b>2</b></div><div class="squad-row"><span>Mateta</span><b>2</b></div><div class="squad-row"><span>Muniz</span><b>1</b></div><div class="squad-row"><span>Calvert-Lewin</span><b>1</b></div><div class="squad-row"><span>Konsa</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Mamardashvili</span><b>0</b></div><div class="squad-row bench-row"><span>Pedro Porro</span><b>0</b></div><div class="squad-row bench-row"><span>Hjertø-Dahl</span><b>0</b></div><div class="squad-row bench-row"><span>Burn</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="6" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW1</div>
+                            <div class="my-team-name">No Weimann No Cry</div>
+                            <div class="form-badges"><span class="form-badge form-l">L</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#7</span><small>0 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">29</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">28.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">96.7%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">1</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Saka</span><b>9</b></div><div class="squad-row"><span>Pickford</span><b>7</b></div><div class="squad-row"><span>Gravenberch</span><b>5</b></div><div class="squad-row"><span>Khusanov</span><b>2</b></div><div class="squad-row"><span>E.Le Fée</span><b>2</b></div><div class="squad-row"><span>Shaw</span><b>1</b></div><div class="squad-row"><span>Eze</span><b>1</b></div><div class="squad-row"><span>Šeško</span><b>1</b></div><div class="squad-row"><span>Solanke</span><b>1</b></div><div class="squad-row"><span>Colwill</span><b>0</b></div><div class="squad-row"><span>Kerkez</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Leno</span><b>2</b></div><div class="squad-row bench-row"><span>Awoniyi</span><b>1</b></div><div class="squad-row bench-row"><span>Kudus</span><b>0</b></div><div class="squad-row bench-row"><span>J.Timber</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="7" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW1</div>
+                            <div class="my-team-name">PAUer Rangers</div>
+                            <div class="form-badges"><span class="form-badge form-l">L</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#8</span><small>0 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">26</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">42.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">76.5%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">8</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Gvardiol</span><b>9</b></div><div class="squad-row"><span>Tarkowski</span><b>6</b></div><div class="squad-row"><span>Kinsky</span><b>2</b></div><div class="squad-row"><span>N.Williams</span><b>2</b></div><div class="squad-row"><span>Semenyo</span><b>2</b></div><div class="squad-row"><span>Wirtz</span><b>2</b></div><div class="squad-row"><span>Brobbey</span><b>2</b></div><div class="squad-row"><span>Matheus N.</span><b>1</b></div><div class="squad-row"><span>Ballard</span><b>0</b></div><div class="squad-row"><span>Dorgu</span><b>0</b></div><div class="squad-row"><span>Thiago</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Munoz</span><b>4</b></div><div class="squad-row bench-row"><span>Osula</span><b>4</b></div><div class="squad-row bench-row"><span>Petrović</span><b>2</b></div><div class="squad-row bench-row"><span>Sarr</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="8" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW1</div>
+                            <div class="my-team-name">Buendophilia</div>
+                            <div class="form-badges"><span class="form-badge form-l">L</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#9</span><small>0 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">25</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">29.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">83.3%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">5</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Szoboszlai</span><b>8</b></div><div class="squad-row"><span>Havertz</span><b>6</b></div><div class="squad-row"><span>Murillo</span><b>4</b></div><div class="squad-row"><span>Virgil</span><b>2</b></div><div class="squad-row"><span>Rúben</span><b>2</b></div><div class="squad-row"><span>Lammens</span><b>1</b></div><div class="squad-row"><span>Rashford</span><b>1</b></div><div class="squad-row"><span>Neto</span><b>1</b></div><div class="squad-row"><span>Maatsen</span><b>0</b></div><div class="squad-row"><span>Bruno G.</span><b>0</b></div><div class="squad-row"><span>Watkins</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Verbruggen</span><b>6</b></div><div class="squad-row bench-row"><span>Welbeck</span><b>0</b></div><div class="squad-row bench-row"><span>Palestra</span><b>0</b></div><div class="squad-row bench-row"><span>Manzambi</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="9" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW1</div>
+                            <div class="my-team-name">danny’s doggy dudes</div>
+                            <div class="form-badges"><span class="form-badge form-l">L</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#10</span><small>0 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">18</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">25.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">90.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">2</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Wissa</span><b>4</b></div><div class="squad-row"><span>Donnarumma</span><b>3</b></div><div class="squad-row"><span>Schade</span><b>3</b></div><div class="squad-row"><span>Cunha</span><b>2</b></div><div class="squad-row"><span>Richarlison</span><b>2</b></div><div class="squad-row"><span>Gusto</span><b>1</b></div><div class="squad-row"><span>Truffert</span><b>1</b></div><div class="squad-row"><span>Fernandes</span><b>1</b></div><div class="squad-row"><span>Garner</span><b>1</b></div><div class="squad-row"><span>James</span><b>0</b></div><div class="squad-row"><span>Van Oevelen</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Silva</span><b>2</b></div><div class="squad-row bench-row"><span>Van de Ven</span><b>0</b></div><div class="squad-row bench-row"><span>F.Kadıoğlu</span><b>0</b></div><div class="squad-row bench-row"><span>Gyökeres</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    </div>
+            </div>
 
+            <div class="card">
+                <h2>Current Standings</h2>
+                
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Manager</th>
+                        <th>Move</th>
+                        <th>Form</th>
+                        <th>League Pts</th>
+                        <th>W-D-L</th>
+                        <th>Pts For</th>
+                        <th>Pts Against</th>
+                    </tr>
+                </thead>
+                <tbody>
+            <tr>
+                <td class="rank-cell">1</td>
+                <td class="manager-name">Backstreet Moyes</td>
+                <td><span class="rank-flat">—</span></td>
+                <td><div class="form-badges"><span class="form-badge form-w">W</span></div></td>
+                <td>3</td>
+                <td>1-0-0</td>
+                <td>59</td>
+                <td>43</td>
+            </tr>
+        
+            <tr>
+                <td class="rank-cell">2</td>
+                <td class="manager-name">NoRSNoRB No Chance</td>
+                <td><span class="rank-flat">—</span></td>
+                <td><div class="form-badges"><span class="form-badge form-w">W</span></div></td>
+                <td>3</td>
+                <td>1-0-0</td>
+                <td>53</td>
+                <td>29</td>
+            </tr>
+        
+            <tr>
+                <td class="rank-cell">3</td>
+                <td class="manager-name">Jaap? Best Stam</td>
+                <td><span class="rank-flat">—</span></td>
+                <td><div class="form-badges"><span class="form-badge form-w">W</span></div></td>
+                <td>3</td>
+                <td>1-0-0</td>
+                <td>42</td>
+                <td>25</td>
+            </tr>
+        
+            <tr>
+                <td class="rank-cell">4</td>
+                <td class="manager-name">Ollie Gonna Squashya</td>
+                <td><span class="rank-flat">—</span></td>
+                <td><div class="form-badges"><span class="form-badge form-w">W</span></div></td>
+                <td>3</td>
+                <td>1-0-0</td>
+                <td>37</td>
+                <td>24</td>
+            </tr>
+        
+            <tr>
+                <td class="rank-cell">5</td>
+                <td class="manager-name">Kamararama FC</td>
+                <td><span class="rank-flat">—</span></td>
+                <td><div class="form-badges"><span class="form-badge form-w">W</span></div></td>
+                <td>3</td>
+                <td>1-0-0</td>
+                <td>29</td>
+                <td>26</td>
+            </tr>
+        
+            <tr>
+                <td class="rank-cell">6</td>
+                <td class="manager-name">Jacquet Potato</td>
+                <td><span class="rank-flat">—</span></td>
+                <td><div class="form-badges"><span class="form-badge form-l">L</span></div></td>
+                <td>0</td>
+                <td>0-0-1</td>
+                <td>43</td>
+                <td>59</td>
+            </tr>
+        
+            <tr>
+                <td class="rank-cell">7</td>
+                <td class="manager-name">No Weimann No Cry</td>
+                <td><span class="rank-flat">—</span></td>
+                <td><div class="form-badges"><span class="form-badge form-l">L</span></div></td>
+                <td>0</td>
+                <td>0-0-1</td>
+                <td>29</td>
+                <td>53</td>
+            </tr>
+        
+            <tr>
+                <td class="rank-cell">8</td>
+                <td class="manager-name">PAUer Rangers</td>
+                <td><span class="rank-flat">—</span></td>
+                <td><div class="form-badges"><span class="form-badge form-l">L</span></div></td>
+                <td>0</td>
+                <td>0-0-1</td>
+                <td>26</td>
+                <td>29</td>
+            </tr>
+        
+            <tr>
+                <td class="rank-cell">9</td>
+                <td class="manager-name">Buendophilia</td>
+                <td><span class="rank-flat">—</span></td>
+                <td><div class="form-badges"><span class="form-badge form-l">L</span></div></td>
+                <td>0</td>
+                <td>0-0-1</td>
+                <td>25</td>
+                <td>42</td>
+            </tr>
+        
+            <tr>
+                <td class="rank-cell">10</td>
+                <td class="manager-name">danny’s doggy dudes</td>
+                <td><span class="rank-flat">—</span></td>
+                <td><div class="form-badges"><span class="form-badge form-l">L</span></div></td>
+                <td>0</td>
+                <td>0-0-1</td>
+                <td>24</td>
+                <td>37</td>
+            </tr>
+        </tbody>
+            </table>
+        </div>
+    
             </div>
 
 
             <div class="dashboard-grid">
 
 
-                <div class="card">
+                <div class="card trend-chart-card">
 
                     <h2>
                         H2H League Points
                     </h2>
 
-                    <div style="height:430px; width:100%;">                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
-        <script charset="utf-8" src="https://cdn.plot.ly/plotly-4.0.0.min.js" integrity="sha256-FEYfO0yRyLtZCpnW0Dw/0DHKQO7Afrq3ml4+rBB818o=" crossorigin="anonymous"></script>                <div id="373333ff-7bae-483d-8904-627cee131174" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("373333ff-7bae-483d-8904-627cee131174")) {                    Plotly.newPlot(                        "373333ff-7bae-483d-8904-627cee131174",                        [{"mode":"lines+markers","name":"No Weimann No Cry","x":[1],"y":[0],"type":"scatter"},{"mode":"lines+markers","name":"Kamararama FC","x":[1],"y":[3],"type":"scatter"},{"mode":"lines+markers","name":"PAUer Rangers","x":[1],"y":[0],"type":"scatter"},{"mode":"lines+markers","name":"Backstreet Moyes","x":[1],"y":[3],"type":"scatter"},{"mode":"lines+markers","name":"Jaap? Best Stam","x":[1],"y":[3],"type":"scatter"},{"mode":"lines+markers","name":"Ollie Gonna Squashya","x":[1],"y":[3],"type":"scatter"},{"mode":"lines+markers","name":"NoRSNoRB No Chance","x":[1],"y":[3],"type":"scatter"},{"mode":"lines+markers","name":"danny\u2019s doggy dudes","x":[1],"y":[0],"type":"scatter"},{"mode":"lines+markers","name":"Buendophilia","x":[1],"y":[0],"type":"scatter"},{"mode":"lines+markers","name":"Jacquet Potato","x":[1],"y":[0],"type":"scatter"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"H2H League Points Over Time","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Gameweek"}},"yaxis":{"title":{"text":"Cumulative League Points"}},"autosize":true,"height":430,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
+                    <div class="chip-row" id="chips-h2h"></div>
+                    <div class="trend-chart-svg-wrap" id="chart-h2h"></div>
+                    <div id="legend-h2h"></div>
 
                 </div>
 
 
-                <div class="card">
+                <div class="card trend-chart-card">
 
                     <h2>
                         League Position
                     </h2>
 
-                    <div style="height:430px; width:100%;">                            <div id="3231c8dc-9c49-42a6-96b7-fb3a21aa06f9" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("3231c8dc-9c49-42a6-96b7-fb3a21aa06f9")) {                    Plotly.newPlot(                        "3231c8dc-9c49-42a6-96b7-fb3a21aa06f9",                        [{"mode":"lines+markers","name":"No Weimann No Cry","x":[1],"y":[7],"type":"scatter"},{"mode":"lines+markers","name":"Kamararama FC","x":[1],"y":[5],"type":"scatter"},{"mode":"lines+markers","name":"PAUer Rangers","x":[1],"y":[8],"type":"scatter"},{"mode":"lines+markers","name":"Backstreet Moyes","x":[1],"y":[1],"type":"scatter"},{"mode":"lines+markers","name":"Jaap? Best Stam","x":[1],"y":[3],"type":"scatter"},{"mode":"lines+markers","name":"Ollie Gonna Squashya","x":[1],"y":[4],"type":"scatter"},{"mode":"lines+markers","name":"NoRSNoRB No Chance","x":[1],"y":[2],"type":"scatter"},{"mode":"lines+markers","name":"danny\u2019s doggy dudes","x":[1],"y":[10],"type":"scatter"},{"mode":"lines+markers","name":"Buendophilia","x":[1],"y":[9],"type":"scatter"},{"mode":"lines+markers","name":"Jacquet Potato","x":[1],"y":[6],"type":"scatter"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"League Position Over Time","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Gameweek"}},"yaxis":{"title":{"text":"Position"},"autorange":"reversed","dtick":1},"autosize":true,"height":430,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
+                    <div class="chip-row" id="chips-rank"></div>
+                    <div class="trend-chart-svg-wrap" id="chart-rank"></div>
+                    <div id="legend-rank"></div>
 
                 </div>
 
 
-                <div class="card full">
+                <div class="card trend-chart-card full">
 
                     <h2>
                         Points Per Gameweek
                     </h2>
 
-                    <div style="height:430px; width:100%;">                            <div id="938aeb98-76c5-47d7-8d43-9337110d10b1" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("938aeb98-76c5-47d7-8d43-9337110d10b1")) {                    Plotly.newPlot(                        "938aeb98-76c5-47d7-8d43-9337110d10b1",                        [{"mode":"lines+markers","name":"No Weimann No Cry","x":[1],"y":[29],"type":"scatter"},{"mode":"lines+markers","name":"Kamararama FC","x":[1],"y":[29],"type":"scatter"},{"mode":"lines+markers","name":"PAUer Rangers","x":[1],"y":[26],"type":"scatter"},{"mode":"lines+markers","name":"Backstreet Moyes","x":[1],"y":[59],"type":"scatter"},{"mode":"lines+markers","name":"Jaap? Best Stam","x":[1],"y":[42],"type":"scatter"},{"mode":"lines+markers","name":"Ollie Gonna Squashya","x":[1],"y":[37],"type":"scatter"},{"mode":"lines+markers","name":"NoRSNoRB No Chance","x":[1],"y":[53],"type":"scatter"},{"mode":"lines+markers","name":"danny\u2019s doggy dudes","x":[1],"y":[24],"type":"scatter"},{"mode":"lines+markers","name":"Buendophilia","x":[1],"y":[25],"type":"scatter"},{"mode":"lines+markers","name":"Jacquet Potato","x":[1],"y":[43],"type":"scatter"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Points Scored Per Gameweek","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Gameweek"}},"yaxis":{"title":{"text":"Points Scored"}},"autosize":true,"height":430,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
+                    <div class="chip-row" id="chips-scores"></div>
+                    <div class="trend-chart-svg-wrap" id="chart-scores"></div>
+                    <div id="legend-scores"></div>
 
                 </div>
 
@@ -1514,6 +1927,25 @@ tbody tr:hover {
 
             </div>
 
+
+            <!-- GAMEWEEK SUMMARY -->
+
+            <div class="card">
+                <h2>Gameweek Summary</h2>
+                <div class="results-container">
+                    
+            <div class="gw-summary-slide" id="summary-gw-1" style="display:block;">
+                <div class="gw-summary-grid">
+                    <div class="summary-stat"><span>Highest Score</span><strong>Backstreet Moyes</strong><b>59</b></div>
+                    <div class="summary-stat"><span>Lowest Score</span><strong>danny’s doggy dudes</strong><b>18</b></div>
+                    <div class="summary-stat"><span>League Average</span><strong>36.1</strong><b>pts</b></div>
+                    <div class="summary-stat"><span>Biggest Win</span><strong>24</strong><b>point margin</b></div>
+                    <div class="summary-stat"><span>Closest Game</span><strong>3</strong><b>point margin</b></div>
+                </div>
+            </div>
+        
+                </div>
+            </div>
 
             <!-- RESULTS -->
 
@@ -3034,7 +3466,8 @@ tbody tr:hover {
                     Most Transferred Players
                 </h2>
 
-                <div style="height:550px; width:100%;">                            <div id="13ba5bc7-b4f3-409a-899f-2ad041ff72cf" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("13ba5bc7-b4f3-409a-899f-2ad041ff72cf")) {                    Plotly.newPlot(                        "13ba5bc7-b4f3-409a-899f-2ad041ff72cf",                        [{"orientation":"h","x":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"y":["A.Becker","Anderson","Awoniyi","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey","Bruno G.","Buend\u00eda","Burn","Caicedo"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Most Transferred Players","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Ownership Changes"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
+                <div style="height:550px; width:100%;">                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-4.0.0.min.js" integrity="sha256-FEYfO0yRyLtZCpnW0Dw/0DHKQO7Afrq3ml4+rBB818o=" crossorigin="anonymous"></script>                <div id="0ad67905-c6fb-4a03-956c-f89da61130e2" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("0ad67905-c6fb-4a03-956c-f89da61130e2")) {                    Plotly.newPlot(                        "0ad67905-c6fb-4a03-956c-f89da61130e2",                        [{"orientation":"h","x":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"y":["A.Becker","Anderson","Awoniyi","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey","Bruno G.","Buend\u00eda","Burn","Caicedo"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Most Transferred Players","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Ownership Changes"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
 
                 
         <div class="table-wrap">
@@ -3377,7 +3810,7 @@ tbody tr:hover {
                     Players Used By The Most Managers
                 </h2>
 
-                <div style="height:550px; width:100%;">                            <div id="07b2d6ea-ad33-4d21-82ef-96176ea258cd" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("07b2d6ea-ad33-4d21-82ef-96176ea258cd")) {                    Plotly.newPlot(                        "07b2d6ea-ad33-4d21-82ef-96176ea258cd",                        [{"orientation":"h","x":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"y":["A.Becker","Anderson","Awoniyi","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey","Bruno G.","Buend\u00eda","Burn","Caicedo"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Players Used By The Most Managers","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Different Managers"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
+                <div style="height:550px; width:100%;">                            <div id="eaf37eac-2fb5-4687-bcc1-b8da7cb501d1" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("eaf37eac-2fb5-4687-bcc1-b8da7cb501d1")) {                    Plotly.newPlot(                        "eaf37eac-2fb5-4687-bcc1-b8da7cb501d1",                        [{"orientation":"h","x":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"y":["A.Becker","Anderson","Awoniyi","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey","Bruno G.","Buend\u00eda","Burn","Caicedo"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Players Used By The Most Managers","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Different Managers"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
 
             </div>
 
@@ -3562,6 +3995,223 @@ tbody tr:hover {
 
 
             <div class="card">
+                <h2>Manager Profiles</h2>
+                <div class="manager-profile-grid">
+                    
+            <div class="manager-profile-card">
+                <div class="manager-profile-top">
+                    <div>
+                        <div class="manager-profile-rank">#1</div>
+                        <div class="manager-profile-name">Backstreet Moyes</div>
+                        <div class="form-badges"><span class="form-badge form-w">W</span></div>
+                    </div>
+                    <div class="manager-profile-points">3<small>league pts</small></div>
+                </div>
+
+                <div class="mini-chart"><span class="mini-bar" style="height:100%" title="GW1: 59 pts"></span></div>
+
+                <div class="manager-profile-stats">
+                    <span><b>56.0</b> avg</span>
+                    <span><b>1</b> wins</span>
+                    <span><b>15</b> transfers</span>
+                    <span><b>98.3%</b> XI efficiency</span>
+                </div>
+            </div>
+        
+            <div class="manager-profile-card">
+                <div class="manager-profile-top">
+                    <div>
+                        <div class="manager-profile-rank">#2</div>
+                        <div class="manager-profile-name">NoRSNoRB No Chance</div>
+                        <div class="form-badges"><span class="form-badge form-w">W</span></div>
+                    </div>
+                    <div class="manager-profile-points">3<small>league pts</small></div>
+                </div>
+
+                <div class="mini-chart"><span class="mini-bar" style="height:100%" title="GW1: 53 pts"></span></div>
+
+                <div class="manager-profile-stats">
+                    <span><b>46.0</b> avg</span>
+                    <span><b>1</b> wins</span>
+                    <span><b>15</b> transfers</span>
+                    <span><b>100.0%</b> XI efficiency</span>
+                </div>
+            </div>
+        
+            <div class="manager-profile-card">
+                <div class="manager-profile-top">
+                    <div>
+                        <div class="manager-profile-rank">#3</div>
+                        <div class="manager-profile-name">Jaap? Best Stam</div>
+                        <div class="form-badges"><span class="form-badge form-w">W</span></div>
+                    </div>
+                    <div class="manager-profile-points">3<small>league pts</small></div>
+                </div>
+
+                <div class="mini-chart"><span class="mini-bar" style="height:100%" title="GW1: 42 pts"></span></div>
+
+                <div class="manager-profile-stats">
+                    <span><b>54.0</b> avg</span>
+                    <span><b>1</b> wins</span>
+                    <span><b>15</b> transfers</span>
+                    <span><b>93.3%</b> XI efficiency</span>
+                </div>
+            </div>
+        
+            <div class="manager-profile-card">
+                <div class="manager-profile-top">
+                    <div>
+                        <div class="manager-profile-rank">#4</div>
+                        <div class="manager-profile-name">Ollie Gonna Squashya</div>
+                        <div class="form-badges"><span class="form-badge form-w">W</span></div>
+                    </div>
+                    <div class="manager-profile-points">3<small>league pts</small></div>
+                </div>
+
+                <div class="mini-chart"><span class="mini-bar" style="height:100%" title="GW1: 37 pts"></span></div>
+
+                <div class="manager-profile-stats">
+                    <span><b>45.0</b> avg</span>
+                    <span><b>1</b> wins</span>
+                    <span><b>15</b> transfers</span>
+                    <span><b>100.0%</b> XI efficiency</span>
+                </div>
+            </div>
+        
+            <div class="manager-profile-card">
+                <div class="manager-profile-top">
+                    <div>
+                        <div class="manager-profile-rank">#5</div>
+                        <div class="manager-profile-name">Kamararama FC</div>
+                        <div class="form-badges"><span class="form-badge form-w">W</span></div>
+                    </div>
+                    <div class="manager-profile-points">3<small>league pts</small></div>
+                </div>
+
+                <div class="mini-chart"><span class="mini-bar" style="height:100%" title="GW1: 29 pts"></span></div>
+
+                <div class="manager-profile-stats">
+                    <span><b>36.0</b> avg</span>
+                    <span><b>1</b> wins</span>
+                    <span><b>15</b> transfers</span>
+                    <span><b>90.6%</b> XI efficiency</span>
+                </div>
+            </div>
+        
+            <div class="manager-profile-card">
+                <div class="manager-profile-top">
+                    <div>
+                        <div class="manager-profile-rank">#6</div>
+                        <div class="manager-profile-name">Jacquet Potato</div>
+                        <div class="form-badges"><span class="form-badge form-l">L</span></div>
+                    </div>
+                    <div class="manager-profile-points">0<small>league pts</small></div>
+                </div>
+
+                <div class="mini-chart"><span class="mini-bar" style="height:100%" title="GW1: 43 pts"></span></div>
+
+                <div class="manager-profile-stats">
+                    <span><b>35.0</b> avg</span>
+                    <span><b>0</b> wins</span>
+                    <span><b>15</b> transfers</span>
+                    <span><b>100.0%</b> XI efficiency</span>
+                </div>
+            </div>
+        
+            <div class="manager-profile-card">
+                <div class="manager-profile-top">
+                    <div>
+                        <div class="manager-profile-rank">#7</div>
+                        <div class="manager-profile-name">No Weimann No Cry</div>
+                        <div class="form-badges"><span class="form-badge form-l">L</span></div>
+                    </div>
+                    <div class="manager-profile-points">0<small>league pts</small></div>
+                </div>
+
+                <div class="mini-chart"><span class="mini-bar" style="height:100%" title="GW1: 29 pts"></span></div>
+
+                <div class="manager-profile-stats">
+                    <span><b>28.0</b> avg</span>
+                    <span><b>0</b> wins</span>
+                    <span><b>15</b> transfers</span>
+                    <span><b>96.7%</b> XI efficiency</span>
+                </div>
+            </div>
+        
+            <div class="manager-profile-card">
+                <div class="manager-profile-top">
+                    <div>
+                        <div class="manager-profile-rank">#8</div>
+                        <div class="manager-profile-name">PAUer Rangers</div>
+                        <div class="form-badges"><span class="form-badge form-l">L</span></div>
+                    </div>
+                    <div class="manager-profile-points">0<small>league pts</small></div>
+                </div>
+
+                <div class="mini-chart"><span class="mini-bar" style="height:100%" title="GW1: 26 pts"></span></div>
+
+                <div class="manager-profile-stats">
+                    <span><b>42.0</b> avg</span>
+                    <span><b>0</b> wins</span>
+                    <span><b>15</b> transfers</span>
+                    <span><b>76.5%</b> XI efficiency</span>
+                </div>
+            </div>
+        
+            <div class="manager-profile-card">
+                <div class="manager-profile-top">
+                    <div>
+                        <div class="manager-profile-rank">#9</div>
+                        <div class="manager-profile-name">Buendophilia</div>
+                        <div class="form-badges"><span class="form-badge form-l">L</span></div>
+                    </div>
+                    <div class="manager-profile-points">0<small>league pts</small></div>
+                </div>
+
+                <div class="mini-chart"><span class="mini-bar" style="height:100%" title="GW1: 25 pts"></span></div>
+
+                <div class="manager-profile-stats">
+                    <span><b>29.0</b> avg</span>
+                    <span><b>0</b> wins</span>
+                    <span><b>15</b> transfers</span>
+                    <span><b>83.3%</b> XI efficiency</span>
+                </div>
+            </div>
+        
+            <div class="manager-profile-card">
+                <div class="manager-profile-top">
+                    <div>
+                        <div class="manager-profile-rank">#10</div>
+                        <div class="manager-profile-name">danny’s doggy dudes</div>
+                        <div class="form-badges"><span class="form-badge form-l">L</span></div>
+                    </div>
+                    <div class="manager-profile-points">0<small>league pts</small></div>
+                </div>
+
+                <div class="mini-chart"><span class="mini-bar" style="height:100%" title="GW1: 18 pts"></span></div>
+
+                <div class="manager-profile-stats">
+                    <span><b>25.0</b> avg</span>
+                    <span><b>0</b> wins</span>
+                    <span><b>15</b> transfers</span>
+                    <span><b>90.0%</b> XI efficiency</span>
+                </div>
+            </div>
+        
+                </div>
+            </div>
+
+            <div class="card">
+
+                <h2>
+                    League Records
+                </h2>
+                <div class="records-grid">
+                    <div class="record-card"><div class="record-label">Highest GW score</div><div class="record-value">Backstreet Moyes</div><div class="record-detail">59 pts · GW1</div></div><div class="record-card"><div class="record-label">Lowest GW score</div><div class="record-value">danny’s doggy dudes</div><div class="record-detail">18 pts · GW1</div></div><div class="record-card"><div class="record-label">Biggest victory</div><div class="record-value">NoRSNoRB No Chance 53–29 No Weimann No Cry</div><div class="record-detail">GW1 · 24 pt margin</div></div><div class="record-card"><div class="record-label">Closest match</div><div class="record-value">Kamararama FC 29–26 PAUer Rangers</div><div class="record-detail">GW1 · 3 pt margin</div></div><div class="record-card"><div class="record-label">Longest winning streak</div><div class="record-value">Kamararama FC</div><div class="record-detail">1 consecutive wins</div></div><div class="record-card"><div class="record-label">Best XI selector</div><div class="record-value">Ollie Gonna Squashya</div><div class="record-detail">100.0% average efficiency</div></div><div class="record-card"><div class="record-label">Most points left behind</div><div class="record-value">PAUer Rangers</div><div class="record-detail">8 points against optimal XIs</div></div>
+                </div>
+            </div>
+
+            <div class="card">
 
                 <h2>
                     League Summary
@@ -3651,6 +4301,53 @@ tbody tr:hover {
 
 <script>
 
+
+/* ============================================================
+   MY TEAM SELECTOR
+   ============================================================ */
+
+const defaultMyTeamIndex = 4;
+const myTeamStorageKey = "fpl-draft-my-team";
+
+function changeMyTeam() {
+    const select = document.getElementById("my-team-select");
+    if (!select) return;
+
+    const selectedIndex = Number(select.value);
+
+    document.querySelectorAll(".my-team-card").forEach(function(card) {
+        const cardIndex = Number(card.dataset.managerIndex);
+        card.style.display = cardIndex === selectedIndex ? "block" : "none";
+    });
+
+    try {
+        localStorage.setItem(myTeamStorageKey, String(selectedIndex));
+    } catch (e) {
+        // localStorage may be unavailable in private/restricted browsers.
+    }
+}
+
+function initialiseMyTeam() {
+    const select = document.getElementById("my-team-select");
+    if (!select) return;
+
+    let selectedIndex = defaultMyTeamIndex;
+
+    try {
+        const saved = localStorage.getItem(myTeamStorageKey);
+        if (saved !== null && Number.isInteger(Number(saved))) {
+            const candidate = Number(saved);
+            if (candidate >= 0 && candidate < select.options.length) {
+                selectedIndex = candidate;
+            }
+        }
+    } catch (e) {
+        // Fall back to the default team.
+    }
+
+    select.value = String(selectedIndex);
+    changeMyTeam();
+}
 
 /* ============================================================
    PAGE NAVIGATION
@@ -3758,6 +4455,366 @@ function showPage(
         50
     );
 
+}
+
+
+/* ============================================================
+   MOBILE TREND CHARTS
+   (H2H League Points / League Position / Points Per Gameweek)
+
+   These replace what used to be three dense Plotly line charts.
+   Everything here is plain SVG + DOM, built to be legible and
+   tappable on a phone: a manager chip picker instead of a tiny
+   legend, thick lines, and a tap-a-gameweek readout panel instead
+   of a hover-only tooltip.
+   ============================================================ */
+
+const TREND_DATA = {
+    h2h: {"No Weimann No Cry": [[1, 0]], "Kamararama FC": [[1, 3]], "PAUer Rangers": [[1, 0]], "Backstreet Moyes": [[1, 3]], "Jaap? Best Stam": [[1, 3]], "Ollie Gonna Squashya": [[1, 3]], "NoRSNoRB No Chance": [[1, 3]], "danny’s doggy dudes": [[1, 0]], "Buendophilia": [[1, 0]], "Jacquet Potato": [[1, 0]]},
+    rank: {"Backstreet Moyes": [[1, 1]], "NoRSNoRB No Chance": [[1, 2]], "Jaap? Best Stam": [[1, 3]], "Ollie Gonna Squashya": [[1, 4]], "Kamararama FC": [[1, 5]], "Jacquet Potato": [[1, 6]], "No Weimann No Cry": [[1, 7]], "PAUer Rangers": [[1, 8]], "Buendophilia": [[1, 9]], "danny’s doggy dudes": [[1, 10]]},
+    scores: {"NoRSNoRB No Chance": [[1, 53]], "No Weimann No Cry": [[1, 29]], "danny’s doggy dudes": [[1, 24]], "Ollie Gonna Squashya": [[1, 37]], "Buendophilia": [[1, 25]], "Jaap? Best Stam": [[1, 42]], "Jacquet Potato": [[1, 43]], "Backstreet Moyes": [[1, 59]], "Kamararama FC": [[1, 29]], "PAUer Rangers": [[1, 26]]}
+};
+
+const TREND_CONFIG = {
+    h2h: { invert: true, fixedRange: null, deltaGood: "up" },
+    rank: { invert: false, fixedRange: null, deltaGood: "down" },
+    scores: { invert: true, fixedRange: null, deltaGood: "up" }
+};
+
+const MANAGER_ORDER = ["Backstreet Moyes", "NoRSNoRB No Chance", "Jaap? Best Stam", "Ollie Gonna Squashya", "Kamararama FC", "Jacquet Potato", "No Weimann No Cry", "PAUer Rangers", "Buendophilia", "danny’s doggy dudes"];
+
+const TREND_PALETTE = [
+    "#38bdf8", "#f472b6", "#4ade80", "#facc15",
+    "#a78bfa", "#fb923c", "#2dd4bf", "#f87171",
+    "#818cf8", "#e879f9", "#84cc16", "#22d3ee",
+    "#fbbf24", "#c084fc", "#34d399", "#fca5a5"
+];
+
+const MANAGER_COLORS = {};
+MANAGER_ORDER.forEach(function(manager, index) {
+    MANAGER_COLORS[manager] = TREND_PALETTE[index % TREND_PALETTE.length];
+});
+
+const trendState = {};
+
+function initTrendChart(key) {
+    const defaultCount = Math.min(5, MANAGER_ORDER.length);
+    trendState[key] = {
+        visible: new Set(MANAGER_ORDER.slice(0, defaultCount)),
+        selectedGw: null
+    };
+    renderTrendChips(key);
+    renderTrendChart(key);
+}
+
+function setTrendPreset(key, preset) {
+    const state = trendState[key];
+    if (!state) return;
+
+    if (preset === "top5") {
+        state.visible = new Set(MANAGER_ORDER.slice(0, Math.min(5, MANAGER_ORDER.length)));
+    } else if (preset === "all") {
+        state.visible = new Set(MANAGER_ORDER);
+    } else if (preset === "none") {
+        state.visible = new Set();
+    }
+
+    renderTrendChips(key);
+    renderTrendChart(key);
+}
+
+function toggleTrendManager(key, manager) {
+    const state = trendState[key];
+    if (!state) return;
+
+    if (state.visible.has(manager)) {
+        state.visible.delete(manager);
+    } else {
+        state.visible.add(manager);
+    }
+
+    renderTrendChips(key);
+    renderTrendChart(key);
+}
+
+function renderTrendChips(key) {
+    const container = document.getElementById("chips-" + key);
+    if (!container) return;
+
+    const state = trendState[key];
+    container.innerHTML = "";
+
+    const presets = [
+        ["Top 5", "top5"],
+        ["All", "all"],
+        ["None", "none"]
+    ];
+
+    presets.forEach(function(pair) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chart-chip-action";
+        button.textContent = pair[0];
+        button.addEventListener("click", function() {
+            setTrendPreset(key, pair[1]);
+        });
+        container.appendChild(button);
+    });
+
+    MANAGER_ORDER.forEach(function(manager) {
+        const active = state.visible.has(manager);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chart-chip" + (active ? " active" : "");
+        button.style.setProperty("--chip-color", MANAGER_COLORS[manager]);
+        button.textContent = manager;
+        button.addEventListener("click", function() {
+            toggleTrendManager(key, manager);
+        });
+        container.appendChild(button);
+    });
+}
+
+function trendAllGameweeks(data) {
+    const gwSet = new Set();
+    Object.keys(data).forEach(function(manager) {
+        data[manager].forEach(function(point) {
+            gwSet.add(point[0]);
+        });
+    });
+    return Array.from(gwSet).sort(function(a, b) { return a - b; });
+}
+
+function renderTrendChart(key) {
+    const wrap = document.getElementById("chart-" + key);
+    if (!wrap) return;
+
+    const state = trendState[key];
+    const config = TREND_CONFIG[key];
+    const data = TREND_DATA[key];
+    const gws = trendAllGameweeks(data);
+
+    if (gws.length === 0) {
+        wrap.innerHTML = '<div class="trend-chart-empty">No gameweeks completed yet.</div>';
+        return;
+    }
+
+    const visibleManagers = MANAGER_ORDER.filter(function(manager) {
+        return state.visible.has(manager) && data[manager] && data[manager].length;
+    });
+
+    if (state.selectedGw === null || gws.indexOf(state.selectedGw) === -1) {
+        state.selectedGw = gws[gws.length - 1];
+    }
+
+    const width = 700;
+    const height = 300;
+    const padL = 34;
+    const padR = 12;
+    const padT = 12;
+    const padB = 26;
+    const plotW = width - padL - padR;
+    const plotH = height - padT - padB;
+
+    let yMin;
+    let yMax;
+
+    if (key === "rank") {
+        yMin = 0.5;
+        yMax = MANAGER_ORDER.length + 0.5;
+    } else {
+        let values = [];
+        visibleManagers.forEach(function(manager) {
+            data[manager].forEach(function(point) { values.push(point[1]); });
+        });
+        if (values.length === 0) values = [0, 1];
+        yMin = Math.min.apply(null, values);
+        yMax = Math.max.apply(null, values);
+        if (yMin === yMax) { yMin -= 1; yMax += 1; }
+        const yPad = (yMax - yMin) * 0.1;
+        yMin -= yPad;
+        yMax += yPad;
+    }
+
+    const xMin = gws[0];
+    const xMax = gws[gws.length - 1];
+
+    function xScale(gw) {
+        if (xMax === xMin) return padL + plotW / 2;
+        return padL + ((gw - xMin) / (xMax - xMin)) * plotW;
+    }
+
+    function yScale(value) {
+        const t = (value - yMin) / (yMax - yMin);
+        return config.invert ? padT + (1 - t) * plotH : padT + t * plotH;
+    }
+
+    // Gridlines: 4 horizontal reference lines.
+    const gridCount = 4;
+    let gridlines = "";
+    for (let i = 0; i <= gridCount; i++) {
+        const value = yMin + ((yMax - yMin) * i) / gridCount;
+        const y = yScale(value).toFixed(1);
+        const label = key === "rank" ? Math.round(value) : Math.round(value);
+        gridlines += '<line class="trend-chart-gridline" x1="' + padL + '" x2="' + (width - padR) + '" y1="' + y + '" y2="' + y + '" />';
+        gridlines += '<text class="trend-chart-axis-label" x="4" y="' + (Number(y) + 3.5) + '">' + label + '</text>';
+    }
+
+    // X-axis labels: sparse, always include first/last.
+    const maxLabels = 6;
+    const step = Math.max(1, Math.ceil(gws.length / maxLabels));
+    let xLabels = "";
+    gws.forEach(function(gw, index) {
+        const isEdge = index === 0 || index === gws.length - 1;
+        if (index % step === 0 || isEdge) {
+            const x = xScale(gw).toFixed(1);
+            xLabels += '<text class="trend-chart-axis-label" x="' + x + '" y="' + (height - 6) + '" text-anchor="middle">GW' + gw + '</text>';
+        }
+    });
+
+    // Tap targets: one invisible band per gameweek covering the full
+    // chart height, wide enough to comfortably hit with a thumb.
+    let hitBands = "";
+    const bandWidth = gws.length > 1 ? plotW / (gws.length - 1) : plotW;
+    gws.forEach(function(gw) {
+        const x = xScale(gw);
+        const selected = gw === state.selectedGw;
+        hitBands += '<rect class="trend-chart-hit-band' + (selected ? ' selected' : '') + '" data-gw="' + gw + '" x="' + (x - bandWidth / 2).toFixed(1) + '" y="' + padT + '" width="' + Math.max(bandWidth, 18).toFixed(1) + '" height="' + plotH + '" />';
+        hitBands += '<rect class="trend-chart-hit" data-gw="' + gw + '" x="' + (x - bandWidth / 2).toFixed(1) + '" y="0" width="' + Math.max(bandWidth, 18).toFixed(1) + '" height="' + height + '" />';
+    });
+
+    // Lines + dots per visible manager.
+    let lines = "";
+    let endLabels = "";
+    const showEndLabels = visibleManagers.length > 0 && visibleManagers.length <= 6;
+
+    visibleManagers.forEach(function(manager) {
+        const points = data[manager];
+        const color = MANAGER_COLORS[manager];
+
+        let d = "";
+        points.forEach(function(point, index) {
+            const x = xScale(point[0]).toFixed(1);
+            const y = yScale(point[1]).toFixed(1);
+            d += (index === 0 ? "M" : "L") + x + "," + y + " ";
+        });
+
+        lines += '<path class="trend-chart-line" d="' + d.trim() + '" stroke="' + color + '" />';
+
+        points.forEach(function(point) {
+            const isSelected = point[0] === state.selectedGw;
+            const radius = isSelected ? 5.5 : 3;
+            lines += '<circle class="trend-chart-dot" cx="' + xScale(point[0]).toFixed(1) + '" cy="' + yScale(point[1]).toFixed(1) + '" r="' + radius + '" fill="' + color + '" stroke="#111827" stroke-width="' + (isSelected ? 2 : 1) + '" />';
+        });
+
+        if (showEndLabels) {
+            const last = points[points.length - 1];
+            const lx = xScale(last[0]) + 6;
+            const ly = yScale(last[1]) + 3.5;
+            endLabels += '<text class="trend-chart-end-label" x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" fill="' + color + '">' + manager.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</text>';
+        }
+    });
+
+    const svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="xMidYMid meet">' +
+        gridlines +
+        hitBands +
+        lines +
+        endLabels +
+        '</svg>';
+
+    wrap.innerHTML = visibleManagers.length
+        ? svg
+        : '<div class="trend-chart-empty">No managers selected — tap a chip above to show a line.</div>' + svg;
+
+    wrap.querySelectorAll(".trend-chart-hit").forEach(function(hit) {
+        hit.addEventListener("click", function() {
+            const gw = Number(hit.dataset.gw);
+            state.selectedGw = gw;
+            renderTrendChart(key);
+            renderTrendReadout(key);
+        });
+    });
+
+    renderTrendReadout(key);
+}
+
+function renderTrendReadout(key) {
+    const container = document.getElementById("legend-" + key);
+    if (!container) return;
+
+    const state = trendState[key];
+    const config = TREND_CONFIG[key];
+    const data = TREND_DATA[key];
+    const gw = state.selectedGw;
+
+    const visibleManagers = MANAGER_ORDER.filter(function(manager) {
+        return state.visible.has(manager) && data[manager] && data[manager].length;
+    });
+
+    if (gw === null || visibleManagers.length === 0) {
+        container.innerHTML = '<div class="trend-readout"><div class="trend-readout-heading">No managers selected</div></div>';
+        return;
+    }
+
+    const rows = [];
+
+    visibleManagers.forEach(function(manager) {
+        const points = data[manager];
+        let current = null;
+        let previous = null;
+
+        for (let i = 0; i < points.length; i++) {
+            if (points[i][0] === gw) {
+                current = points[i][1];
+                previous = i > 0 ? points[i - 1][1] : null;
+                break;
+            }
+        }
+
+        if (current === null) return;
+
+        rows.push({ manager: manager, value: current, previous: previous });
+    });
+
+    rows.sort(function(a, b) {
+        return key === "rank" ? a.value - b.value : b.value - a.value;
+    });
+
+    let html = '<div class="trend-readout">';
+    html += '<div class="trend-readout-heading">Gameweek ' + gw + '</div>';
+
+    rows.forEach(function(row) {
+        const color = MANAGER_COLORS[row.manager];
+        const safeName = row.manager.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        let deltaHtml = '<span class="trend-readout-delta flat">—</span>';
+
+        if (row.previous !== null && row.previous !== row.value) {
+            const diff = row.value - row.previous;
+            const improved = config.deltaGood === "up" ? diff > 0 : diff < 0;
+            const arrow = (config.deltaGood === "up" ? diff > 0 : diff < 0) ? "▲" : "▼";
+            const magnitude = Math.abs(diff);
+            deltaHtml = '<span class="trend-readout-delta ' + (improved ? "up" : "down") + '">' + arrow + ' ' + magnitude + '</span>';
+        }
+
+        html += '<div class="trend-readout-row">' +
+            '<span class="trend-readout-dot" style="background:' + color + '"></span>' +
+            '<span class="trend-readout-name">' + safeName + '</span>' +
+            deltaHtml +
+            '<span class="trend-readout-value">' + row.value + '</span>' +
+            '</div>';
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function initAllTrendCharts() {
+    ["h2h", "rank", "scores"].forEach(initTrendChart);
+
+    window.addEventListener("resize", function() {
+        // SVG scales via viewBox automatically; nothing to recompute.
+    });
 }
 
 
@@ -3945,6 +5002,27 @@ function updateResults() {
         resultsGameweeks[
             resultsIndex
         ];
+
+
+    const summarySlides =
+        document.querySelectorAll(
+            ".gw-summary-slide"
+        );
+
+    summarySlides.forEach(
+        function(slide) {
+            slide.style.display = "none";
+        }
+    );
+
+    const selectedSummary =
+        document.getElementById(
+            "summary-gw-" + selectedGW
+        );
+
+    if (selectedSummary) {
+        selectedSummary.style.display = "block";
+    }
 
 
     const selectedSlide =
@@ -4237,9 +5315,15 @@ function searchPlayers() {
    INITIALISE
    ============================================================ */
 
+initialiseMyTeam();
+
 updateTOTW();
 
 updateResults();
+
+changeMyTeam();
+
+initAllTrendCharts();
 
 showPage(
     "overview"
