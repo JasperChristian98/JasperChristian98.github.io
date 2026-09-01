@@ -1065,6 +1065,40 @@ print(
 )
 
 
+# ============================================================
+# PIN PER-GAMEWEEK PLAYER STATS ONCE FINISHED
+#
+# element-summary/{id}/ is queried by CURRENT element_id and returns
+# that id's whole-season history in one shot - the same "only ever
+# answers what does this ID mean right now" problem the picks data
+# had. If an id gets reassigned to a different real player mid-
+# season, a later fetch would silently return the new player's
+# historical stats for gameweeks that already happened under the
+# old player. So once a real-world gameweek is finished, its
+# per-player record is pinned into history["player_scores"] and
+# never re-fetched again; only the still-in-progress gameweek keeps
+# refreshing live (points/minutes genuinely change as it's played).
+# ============================================================
+
+player_scores = history.setdefault(
+    "player_scores",
+    {}
+)
+
+
+def get_pinned_player_gw_record(player_id, gw):
+
+    if gw not in finished_gws:
+        return None
+
+    return player_scores.get(
+        str(player_id),
+        {}
+    ).get(
+        str(gw)
+    )
+
+
 player_form = {}
 
 player_history = {}
@@ -1104,31 +1138,59 @@ for index, player_id in enumerate(
             round_number
         )
 
-        points_by_gw[gw] = row.get(
-            "total_points",
-            0
+        pinned = get_pinned_player_gw_record(
+            player_id,
+            gw
         )
 
-        minutes_by_gw[gw] = row.get(
-            "minutes",
-            0
-        )
+        if pinned is not None:
 
-        opponent_team_id = row.get(
-            "opponent_team"
-        )
+            points_by_gw[gw] = pinned["points"]
+            minutes_by_gw[gw] = pinned["minutes"]
+            opponent_by_gw[gw] = pinned["opponent"]
+            was_home_by_gw[gw] = pinned["was_home"]
 
-        opponent_by_gw[gw] = (
-            teams_lookup.get(
-                opponent_team_id,
-                ""
+        else:
+
+            points_by_gw[gw] = row.get(
+                "total_points",
+                0
             )
-        )
 
-        was_home_by_gw[gw] = row.get(
-            "was_home",
-            False
-        )
+            minutes_by_gw[gw] = row.get(
+                "minutes",
+                0
+            )
+
+            opponent_team_id = row.get(
+                "opponent_team"
+            )
+
+            opponent_by_gw[gw] = (
+                teams_lookup.get(
+                    opponent_team_id,
+                    ""
+                )
+            )
+
+            was_home_by_gw[gw] = row.get(
+                "was_home",
+                False
+            )
+
+        # Persist this gameweek's record so it's available to pin
+        # against on future runs once it's finished. Harmless to
+        # re-write while still in progress - it'll keep being
+        # refreshed until finished_gws locks it in above.
+        player_scores.setdefault(
+            str(player_id),
+            {}
+        )[str(gw)] = {
+            "points": points_by_gw[gw],
+            "minutes": minutes_by_gw[gw],
+            "opponent": opponent_by_gw[gw],
+            "was_home": was_home_by_gw[gw],
+        }
 
     player_form[player_id] = (
         points_by_gw
@@ -1152,6 +1214,25 @@ for index, player_id in enumerate(
 print(
     "Player history loaded."
 )
+
+
+# Persist the newly-pinned player_scores back to disk. The scraper
+# section above already wrote and saved history once before this
+# section re-loaded it from disk, so this section's copy needs its
+# own save now that player_scores has been populated - otherwise
+# every pin computed here would be discarded at the end of the run.
+with open(
+    HISTORY_FILE,
+    "w",
+    encoding="utf-8"
+) as f:
+
+    json.dump(
+        history,
+        f,
+        indent=2,
+        ensure_ascii=False
+    )
 
 
 # ============================================================
