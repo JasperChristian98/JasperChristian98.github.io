@@ -3534,7 +3534,7 @@
       }
     }
   },
-  "last_updated": "2026-09-01T15:02:43.213270+00:00",
+  "last_updated": "2026-09-01T16:57:57.972161+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -3762,5 +3762,2331 @@
       "entry_2_name": "NoRSNoRB No Chance",
       "entry_2_points": 39
     }
-  ]
+  ],
+  "player_scores": {
+    "226": {
+      "1": {
+        "points": 7,
+        "minutes": 90,
+        "opponent": "Crystal Palace",
+        "was_home": true
+      },
+      "2": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": false
+      }
+    },
+    "149": {
+      "1": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 71,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "423": {
+      "1": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Hull City",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 72,
+        "opponent": "Ipswich Town",
+        "was_home": true
+      }
+    },
+    "393": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 88,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "358": {
+      "1": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 70,
+        "opponent": "Nott'm Forest",
+        "was_home": true
+      }
+    },
+    "542": {
+      "1": {
+        "points": 2,
+        "minutes": 79,
+        "opponent": "Ipswich Town",
+        "was_home": false
+      },
+      "2": {
+        "points": 3,
+        "minutes": 89,
+        "opponent": "Fulham",
+        "was_home": true
+      }
+    },
+    "12": {
+      "1": {
+        "points": 9,
+        "minutes": 67,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 11,
+        "minutes": 90,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "371": {
+      "1": {
+        "points": 5,
+        "minutes": 77,
+        "opponent": "Newcastle",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 19,
+        "opponent": "Nott'm Forest",
+        "was_home": true
+      }
+    },
+    "14": {
+      "1": {
+        "points": 1,
+        "minutes": 14,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 1,
+        "minutes": 45,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "439": {
+      "1": {
+        "points": 1,
+        "minutes": 23,
+        "opponent": "Hull City",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 10,
+        "opponent": "Ipswich Town",
+        "was_home": true
+      }
+    },
+    "526": {
+      "1": {
+        "points": 1,
+        "minutes": 22,
+        "opponent": "Brentford",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 15,
+        "opponent": "Newcastle",
+        "was_home": true
+      }
+    },
+    "250": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Chelsea",
+        "was_home": true
+      },
+      "2": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Sunderland",
+        "was_home": false
+      }
+    },
+    "492": {
+      "1": {
+        "points": 1,
+        "minutes": 20,
+        "opponent": "Arsenal",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Hull City",
+        "was_home": true
+      }
+    },
+    "512": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Brentford",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 22,
+        "opponent": "Newcastle",
+        "was_home": true
+      }
+    },
+    "5": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "1": {
+      "1": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "387": {
+      "1": {
+        "points": 2,
+        "minutes": 62,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 88,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "498": {
+      "1": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Brentford",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Newcastle",
+        "was_home": true
+      }
+    },
+    "357": {
+      "1": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 70,
+        "opponent": "Nott'm Forest",
+        "was_home": true
+      }
+    },
+    "40": {
+      "1": {
+        "points": 8,
+        "minutes": 81,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 5,
+        "minutes": 90,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "67": {
+      "1": {
+        "points": 2,
+        "minutes": 88,
+        "opponent": "Man City",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Everton",
+        "was_home": true
+      }
+    },
+    "43": {
+      "1": {
+        "points": 2,
+        "minutes": 66,
+        "opponent": "Hull City",
+        "was_home": false
+      },
+      "2": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Ipswich Town",
+        "was_home": true
+      }
+    },
+    "515": {
+      "1": {
+        "points": 1,
+        "minutes": 22,
+        "opponent": "Brentford",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Newcastle",
+        "was_home": true
+      }
+    },
+    "222": {
+      "1": {
+        "points": 1,
+        "minutes": 27,
+        "opponent": "Everton",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 62,
+        "opponent": "Man City",
+        "was_home": true
+      }
+    },
+    "379": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": false
+      },
+      "2": {
+        "points": 8,
+        "minutes": 90,
+        "opponent": "Nott'm Forest",
+        "was_home": true
+      }
+    },
+    "491": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Leeds",
+        "was_home": true
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Liverpool",
+        "was_home": false
+      }
+    },
+    "442": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Liverpool",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Spurs",
+        "was_home": false
+      }
+    },
+    "159": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 13,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "580": {
+      "1": {
+        "points": 1,
+        "minutes": 23,
+        "opponent": "Chelsea",
+        "was_home": true
+      },
+      "2": {
+        "points": 1,
+        "minutes": 22,
+        "opponent": "Sunderland",
+        "was_home": false
+      }
+    },
+    "449": {
+      "1": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Liverpool",
+        "was_home": true
+      },
+      "2": {
+        "points": 11,
+        "minutes": 90,
+        "opponent": "Spurs",
+        "was_home": false
+      }
+    },
+    "496": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Brentford",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": true
+      }
+    },
+    "391": {
+      "1": {
+        "points": 9,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 5,
+        "minutes": 74,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "229": {
+      "1": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Crystal Palace",
+        "was_home": true
+      },
+      "2": {
+        "points": 12,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": false
+      }
+    },
+    "389": {
+      "1": {
+        "points": 1,
+        "minutes": 33,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "469": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Leeds",
+        "was_home": true
+      },
+      "2": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Liverpool",
+        "was_home": false
+      }
+    },
+    "532": {
+      "1": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Ipswich Town",
+        "was_home": false
+      },
+      "2": {
+        "points": 8,
+        "minutes": 90,
+        "opponent": "Fulham",
+        "was_home": true
+      }
+    },
+    "397": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 5,
+        "minutes": 90,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "366": {
+      "1": {
+        "points": 2,
+        "minutes": 62,
+        "opponent": "Newcastle",
+        "was_home": false
+      },
+      "2": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Nott'm Forest",
+        "was_home": true
+      }
+    },
+    "415": {
+      "1": {
+        "points": 0,
+        "minutes": 45,
+        "opponent": "Hull City",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 10,
+        "opponent": "Ipswich Town",
+        "was_home": true
+      }
+    },
+    "106": {
+      "1": {
+        "points": 0,
+        "minutes": 82,
+        "opponent": "Spurs",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Leeds",
+        "was_home": false
+      }
+    },
+    "552": {
+      "1": {
+        "points": 2,
+        "minutes": 66,
+        "opponent": "Ipswich Town",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 63,
+        "opponent": "Fulham",
+        "was_home": true
+      }
+    },
+    "57": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Man City",
+        "was_home": false
+      },
+      "2": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Everton",
+        "was_home": true
+      }
+    },
+    "208": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Everton",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Man City",
+        "was_home": true
+      }
+    },
+    "377": {
+      "1": {
+        "points": 4,
+        "minutes": 27,
+        "opponent": "Newcastle",
+        "was_home": false
+      },
+      "2": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Nott'm Forest",
+        "was_home": true
+      }
+    },
+    "465": {
+      "1": {
+        "points": 4,
+        "minutes": 55,
+        "opponent": "Liverpool",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Spurs",
+        "was_home": false
+      }
+    },
+    "140": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "388": {
+      "1": {
+        "points": 10,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "112": {
+      "1": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Brentford",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": true
+      }
+    },
+    "230": {
+      "1": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Crystal Palace",
+        "was_home": true
+      },
+      "2": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": false
+      }
+    },
+    "417": {
+      "1": {
+        "points": 1,
+        "minutes": 10,
+        "opponent": "Hull City",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 73,
+        "opponent": "Ipswich Town",
+        "was_home": true
+      }
+    },
+    "399": {
+      "1": {
+        "points": 8,
+        "minutes": 27,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 14,
+        "minutes": 81,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "237": {
+      "1": {
+        "points": 9,
+        "minutes": 90,
+        "opponent": "Crystal Palace",
+        "was_home": true
+      },
+      "2": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": false
+      }
+    },
+    "69": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Man City",
+        "was_home": false
+      },
+      "2": {
+        "points": 12,
+        "minutes": 86,
+        "opponent": "Everton",
+        "was_home": true
+      }
+    },
+    "490": {
+      "1": {
+        "points": 1,
+        "minutes": 28,
+        "opponent": "Leeds",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Liverpool",
+        "was_home": false
+      }
+    },
+    "165": {
+      "1": {
+        "points": 11,
+        "minutes": 90,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 9,
+        "minutes": 90,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "249": {
+      "1": {
+        "points": 8,
+        "minutes": 78,
+        "opponent": "Crystal Palace",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 69,
+        "opponent": "Bournemouth",
+        "was_home": false
+      }
+    },
+    "529": {
+      "1": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Ipswich Town",
+        "was_home": false
+      },
+      "2": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Fulham",
+        "was_home": true
+      }
+    },
+    "453": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Liverpool",
+        "was_home": true
+      },
+      "2": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Spurs",
+        "was_home": false
+      }
+    },
+    "238": {
+      "1": {
+        "points": 1,
+        "minutes": 8,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "204": {
+      "1": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Everton",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Man City",
+        "was_home": true
+      }
+    },
+    "82": {
+      "1": {
+        "points": 7,
+        "minutes": 90,
+        "opponent": "Spurs",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Leeds",
+        "was_home": false
+      }
+    },
+    "8": {
+      "1": {
+        "points": 9,
+        "minutes": 80,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 11,
+        "minutes": 90,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "201": {
+      "1": {
+        "points": 0,
+        "minutes": 54,
+        "opponent": "Everton",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Man City",
+        "was_home": true
+      }
+    },
+    "504": {
+      "1": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Aston Villa",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Chelsea",
+        "was_home": false
+      }
+    },
+    "480": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Leeds",
+        "was_home": true
+      },
+      "2": {
+        "points": 13,
+        "minutes": 90,
+        "opponent": "Liverpool",
+        "was_home": false
+      }
+    },
+    "398": {
+      "1": {
+        "points": 1,
+        "minutes": 81,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 9,
+        "minutes": 90,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "95": {
+      "1": {
+        "points": 3,
+        "minutes": 66,
+        "opponent": "Spurs",
+        "was_home": true
+      },
+      "2": {
+        "points": 1,
+        "minutes": 29,
+        "opponent": "Leeds",
+        "was_home": false
+      }
+    },
+    "369": {
+      "1": {
+        "points": 2,
+        "minutes": 62,
+        "opponent": "Newcastle",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 19,
+        "opponent": "Nott'm Forest",
+        "was_home": true
+      }
+    },
+    "569": {
+      "1": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Chelsea",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Sunderland",
+        "was_home": false
+      }
+    },
+    "411": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 13,
+        "minutes": 90,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "79": {
+      "1": {
+        "points": 4,
+        "minutes": 74,
+        "opponent": "Man City",
+        "was_home": false
+      },
+      "2": {
+        "points": 5,
+        "minutes": 80,
+        "opponent": "Everton",
+        "was_home": true
+      }
+    },
+    "198": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Everton",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Man City",
+        "was_home": true
+      }
+    },
+    "445": {
+      "1": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Liverpool",
+        "was_home": true
+      },
+      "2": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Spurs",
+        "was_home": false
+      }
+    },
+    "60": {
+      "1": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Man City",
+        "was_home": false
+      },
+      "2": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Everton",
+        "was_home": true
+      }
+    },
+    "403": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Newcastle",
+        "was_home": true
+      }
+    },
+    "385": {
+      "1": {
+        "points": 9,
+        "minutes": 90,
+        "opponent": "Nott'm Forest",
+        "was_home": false
+      },
+      "2": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Brentford",
+        "was_home": true
+      }
+    },
+    "4": {
+      "1": {
+        "points": 5,
+        "minutes": 90,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 8,
+        "minutes": 90,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "84": {
+      "1": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Spurs",
+        "was_home": true
+      },
+      "2": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Leeds",
+        "was_home": false
+      }
+    },
+    "471": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Leeds",
+        "was_home": true
+      },
+      "2": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Liverpool",
+        "was_home": false
+      }
+    },
+    "426": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Hull City",
+        "was_home": false
+      },
+      "2": {
+        "points": 23,
+        "minutes": 90,
+        "opponent": "Ipswich Town",
+        "was_home": true
+      }
+    },
+    "13": {
+      "1": {
+        "points": 3,
+        "minutes": 67,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 5,
+        "minutes": 84,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "155": {
+      "1": {
+        "points": 1,
+        "minutes": 25,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "481": {
+      "1": {
+        "points": 2,
+        "minutes": 62,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 3,
+        "minutes": 81,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "16": {
+      "1": {
+        "points": 1,
+        "minutes": 22,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "125": {
+      "1": {
+        "points": 5,
+        "minutes": 90,
+        "opponent": "Aston Villa",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Chelsea",
+        "was_home": false
+      }
+    },
+    "248": {
+      "1": {
+        "points": 1,
+        "minutes": 11,
+        "opponent": "Crystal Palace",
+        "was_home": true
+      },
+      "2": {
+        "points": 1,
+        "minutes": 20,
+        "opponent": "Bournemouth",
+        "was_home": false
+      }
+    },
+    "28": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Brighton",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "463": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Liverpool",
+        "was_home": true
+      },
+      "2": {
+        "points": 4,
+        "minutes": 19,
+        "opponent": "Spurs",
+        "was_home": false
+      }
+    },
+    "392": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "533": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Ipswich Town",
+        "was_home": false
+      },
+      "2": {
+        "points": 9,
+        "minutes": 90,
+        "opponent": "Fulham",
+        "was_home": true
+      }
+    },
+    "467": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Leeds",
+        "was_home": true
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Liverpool",
+        "was_home": false
+      }
+    },
+    "9": {
+      "1": {
+        "points": 1,
+        "minutes": 9,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "202": {
+      "1": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Everton",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Man City",
+        "was_home": true
+      }
+    },
+    "233": {
+      "1": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Crystal Palace",
+        "was_home": true
+      },
+      "2": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": false
+      }
+    },
+    "154": {
+      "1": {
+        "points": 13,
+        "minutes": 82,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 7,
+        "minutes": 90,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "427": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Hull City",
+        "was_home": false
+      },
+      "2": {
+        "points": 11,
+        "minutes": 90,
+        "opponent": "Ipswich Town",
+        "was_home": true
+      }
+    },
+    "15": {
+      "1": {
+        "points": 11,
+        "minutes": 75,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 3,
+        "minutes": 70,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "236": {
+      "1": {
+        "points": 11,
+        "minutes": 90,
+        "opponent": "Crystal Palace",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": false
+      }
+    },
+    "210": {
+      "1": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Everton",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Man City",
+        "was_home": true
+      }
+    },
+    "166": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 70,
+        "opponent": "Arsenal",
+        "was_home": true
+      }
+    },
+    "27": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "110": {
+      "1": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Arsenal",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Hull City",
+        "was_home": true
+      }
+    },
+    "401": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": true
+      }
+    },
+    "6": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "232": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Crystal Palace",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Bournemouth",
+        "was_home": false
+      }
+    },
+    "384": {
+      "1": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "142": {
+      "1": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 22,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "144": {
+      "1": {
+        "points": 1,
+        "minutes": 75,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "61": {
+      "1": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Man City",
+        "was_home": false
+      },
+      "2": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Everton",
+        "was_home": true
+      }
+    },
+    "428": {
+      "1": {
+        "points": 2,
+        "minutes": 79,
+        "opponent": "Hull City",
+        "was_home": false
+      },
+      "2": {
+        "points": 9,
+        "minutes": 79,
+        "opponent": "Ipswich Town",
+        "was_home": true
+      }
+    },
+    "554": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Sunderland",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Man Utd",
+        "was_home": false
+      }
+    },
+    "94": {
+      "1": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Spurs",
+        "was_home": true
+      },
+      "2": {
+        "points": 10,
+        "minutes": 87,
+        "opponent": "Leeds",
+        "was_home": false
+      }
+    },
+    "525": {
+      "1": {
+        "points": 1,
+        "minutes": 45,
+        "opponent": "Brentford",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": true
+      }
+    },
+    "239": {
+      "1": {
+        "points": 1,
+        "minutes": 11,
+        "opponent": "Crystal Palace",
+        "was_home": true
+      },
+      "2": {
+        "points": 1,
+        "minutes": 61,
+        "opponent": "Bournemouth",
+        "was_home": false
+      }
+    },
+    "464": {
+      "1": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Liverpool",
+        "was_home": true
+      },
+      "2": {
+        "points": 8,
+        "minutes": 81,
+        "opponent": "Spurs",
+        "was_home": false
+      }
+    },
+    "527": {
+      "1": {
+        "points": 2,
+        "minutes": 67,
+        "opponent": "Brentford",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Newcastle",
+        "was_home": true
+      }
+    },
+    "566": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Man City",
+        "was_home": false
+      },
+      "2": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Everton",
+        "was_home": true
+      }
+    },
+    "503": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Brentford",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": true
+      }
+    },
+    "113": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Aston Villa",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Chelsea",
+        "was_home": false
+      }
+    },
+    "25": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "412": {
+      "1": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Hull City",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Ipswich Town",
+        "was_home": true
+      }
+    },
+    "356": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Nott'm Forest",
+        "was_home": true
+      }
+    },
+    "390": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "472": {
+      "1": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Leeds",
+        "was_home": true
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Liverpool",
+        "was_home": false
+      }
+    },
+    "36": {
+      "1": {
+        "points": 0,
+        "minutes": 81,
+        "opponent": "Brighton",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Arsenal",
+        "was_home": true
+      }
+    },
+    "368": {
+      "1": {
+        "points": 8,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": false
+      },
+      "2": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Nott'm Forest",
+        "was_home": true
+      }
+    },
+    "452": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 1,
+        "minutes": 19,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "429": {
+      "1": {
+        "points": 1,
+        "minutes": 45,
+        "opponent": "Hull City",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 79,
+        "opponent": "Ipswich Town",
+        "was_home": true
+      }
+    },
+    "156": {
+      "1": {
+        "points": 1,
+        "minutes": 14,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 7,
+        "minutes": 67,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "55": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Brighton",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Arsenal",
+        "was_home": true
+      }
+    },
+    "26": {
+      "1": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "109": {
+      "1": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Aston Villa",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Chelsea",
+        "was_home": false
+      }
+    },
+    "136": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "152": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "53": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Brighton",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Arsenal",
+        "was_home": true
+      }
+    },
+    "350": {
+      "1": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Nott'm Forest",
+        "was_home": true
+      }
+    },
+    "200": {
+      "1": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Brighton",
+        "was_home": true
+      }
+    },
+    "10": {
+      "1": {
+        "points": 11,
+        "minutes": 90,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 7,
+        "minutes": 90,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "31": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 1,
+        "minutes": 11,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "367": {
+      "1": {
+        "points": 12,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": false
+      },
+      "2": {
+        "points": 5,
+        "minutes": 70,
+        "opponent": "Nott'm Forest",
+        "was_home": true
+      }
+    },
+    "260": {
+      "1": {
+        "points": 3,
+        "minutes": 65,
+        "opponent": "Nott'm Forest",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 45,
+        "opponent": "Brentford",
+        "was_home": true
+      }
+    },
+    "41": {
+      "1": {
+        "points": 2,
+        "minutes": 85,
+        "opponent": "Brighton",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Arsenal",
+        "was_home": true
+      }
+    },
+    "70": {
+      "1": {
+        "points": 3,
+        "minutes": 74,
+        "opponent": "Man City",
+        "was_home": false
+      },
+      "2": {
+        "points": 3,
+        "minutes": 80,
+        "opponent": "Everton",
+        "was_home": true
+      }
+    },
+    "271": {
+      "1": {
+        "points": 1,
+        "minutes": 8,
+        "opponent": "Chelsea",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Sunderland",
+        "was_home": false
+      }
+    },
+    "223": {
+      "1": {
+        "points": 2,
+        "minutes": 62,
+        "opponent": "Everton",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Man City",
+        "was_home": true
+      }
+    },
+    "346": {
+      "1": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Nott'm Forest",
+        "was_home": false
+      },
+      "2": {
+        "points": 8,
+        "minutes": 90,
+        "opponent": "Brentford",
+        "was_home": true
+      }
+    },
+    "351": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Newcastle",
+        "was_home": false
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Nott'm Forest",
+        "was_home": true
+      }
+    },
+    "499": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Brentford",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Newcastle",
+        "was_home": true
+      }
+    },
+    "574": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Man Utd",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Coventry City",
+        "was_home": false
+      }
+    },
+    "448": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Liverpool",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Spurs",
+        "was_home": false
+      }
+    },
+    "268": {
+      "1": {
+        "points": 7,
+        "minutes": 90,
+        "opponent": "Chelsea",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Sunderland",
+        "was_home": false
+      }
+    },
+    "115": {
+      "1": {
+        "points": 17,
+        "minutes": 77,
+        "opponent": "Aston Villa",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 90,
+        "opponent": "Chelsea",
+        "was_home": false
+      }
+    },
+    "7": {
+      "1": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 3,
+        "minutes": 70,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "597": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Brighton",
+        "was_home": false
+      },
+      "2": {
+        "points": 2,
+        "minutes": 90,
+        "opponent": "Arsenal",
+        "was_home": true
+      }
+    },
+    "87": {
+      "1": {
+        "points": 8,
+        "minutes": 90,
+        "opponent": "Spurs",
+        "was_home": true
+      },
+      "2": {
+        "points": 3,
+        "minutes": 90,
+        "opponent": "Leeds",
+        "was_home": false
+      }
+    },
+    "454": {
+      "1": {
+        "points": 9,
+        "minutes": 75,
+        "opponent": "Liverpool",
+        "was_home": true
+      },
+      "2": {
+        "points": 8,
+        "minutes": 81,
+        "opponent": "Spurs",
+        "was_home": false
+      }
+    },
+    "335": {
+      "1": {
+        "points": 13,
+        "minutes": 90,
+        "opponent": "Nott'm Forest",
+        "was_home": false
+      },
+      "2": {
+        "points": 4,
+        "minutes": 90,
+        "opponent": "Brentford",
+        "was_home": true
+      }
+    },
+    "400": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Bournemouth",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Crystal Palace",
+        "was_home": false
+      }
+    },
+    "571": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Sunderland",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Man Utd",
+        "was_home": false
+      }
+    },
+    "11": {
+      "1": {
+        "points": 6,
+        "minutes": 90,
+        "opponent": "Coventry City",
+        "was_home": true
+      },
+      "2": {
+        "points": 6,
+        "minutes": 78,
+        "opponent": "Aston Villa",
+        "was_home": false
+      }
+    },
+    "295": {
+      "1": {
+        "points": 5,
+        "minutes": 90,
+        "opponent": "Man Utd",
+        "was_home": true
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Coventry City",
+        "was_home": false
+      }
+    },
+    "88": {
+      "1": {
+        "points": 13,
+        "minutes": 75,
+        "opponent": "Spurs",
+        "was_home": true
+      },
+      "2": {
+        "points": 2,
+        "minutes": 87,
+        "opponent": "Leeds",
+        "was_home": false
+      }
+    },
+    "556": {
+      "1": {
+        "points": 1,
+        "minutes": 5,
+        "opponent": "Man Utd",
+        "was_home": true
+      },
+      "2": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Coventry City",
+        "was_home": false
+      }
+    },
+    "167": {
+      "1": {
+        "points": 0,
+        "minutes": 0,
+        "opponent": "Fulham",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 24,
+        "opponent": "Liverpool",
+        "was_home": false
+      }
+    },
+    "593": {
+      "1": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Liverpool",
+        "was_home": true
+      },
+      "2": {
+        "points": 11,
+        "minutes": 90,
+        "opponent": "Spurs",
+        "was_home": false
+      }
+    },
+    "68": {
+      "1": {
+        "points": 10,
+        "minutes": 90,
+        "opponent": "Man City",
+        "was_home": false
+      },
+      "2": {
+        "points": 1,
+        "minutes": 90,
+        "opponent": "Everton",
+        "was_home": true
+      }
+    }
+  }
 }
