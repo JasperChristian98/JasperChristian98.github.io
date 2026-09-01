@@ -178,6 +178,7 @@
             }
           ],
           "gw_points": 29,
+          "live_points": 29,
           "bench_points": 3,
           "dreamteam_starters": 0
         },
@@ -353,6 +354,7 @@
             }
           ],
           "gw_points": 29,
+          "live_points": 29,
           "bench_points": 4,
           "dreamteam_starters": 0
         },
@@ -528,6 +530,7 @@
             }
           ],
           "gw_points": 26,
+          "live_points": 26,
           "bench_points": 10,
           "dreamteam_starters": 0
         },
@@ -703,6 +706,7 @@
             }
           ],
           "gw_points": 59,
+          "live_points": 59,
           "bench_points": 5,
           "dreamteam_starters": 1
         },
@@ -878,6 +882,7 @@
             }
           ],
           "gw_points": 42,
+          "live_points": 42,
           "bench_points": 6,
           "dreamteam_starters": 0
         },
@@ -1053,6 +1058,7 @@
             }
           ],
           "gw_points": 37,
+          "live_points": 37,
           "bench_points": 0,
           "dreamteam_starters": 0
         },
@@ -1228,6 +1234,7 @@
             }
           ],
           "gw_points": 53,
+          "live_points": 53,
           "bench_points": 1,
           "dreamteam_starters": 1
         },
@@ -1403,6 +1410,7 @@
             }
           ],
           "gw_points": 18,
+          "live_points": 24,
           "bench_points": 2,
           "dreamteam_starters": 0
         },
@@ -1578,6 +1586,7 @@
             }
           ],
           "gw_points": 25,
+          "live_points": 25,
           "bench_points": 6,
           "dreamteam_starters": 0
         },
@@ -1753,6 +1762,7 @@
             }
           ],
           "gw_points": 43,
+          "live_points": 43,
           "bench_points": 0,
           "dreamteam_starters": 1
         }
@@ -1933,6 +1943,7 @@
             }
           ],
           "gw_points": 27,
+          "live_points": 27,
           "bench_points": 4,
           "dreamteam_starters": 0
         },
@@ -2108,6 +2119,7 @@
             }
           ],
           "gw_points": 44,
+          "live_points": 44,
           "bench_points": 3,
           "dreamteam_starters": 1
         },
@@ -2283,6 +2295,7 @@
             }
           ],
           "gw_points": 58,
+          "live_points": 58,
           "bench_points": 5,
           "dreamteam_starters": 1
         },
@@ -2458,6 +2471,7 @@
             }
           ],
           "gw_points": 59,
+          "live_points": 59,
           "bench_points": 0,
           "dreamteam_starters": 2
         },
@@ -2633,6 +2647,7 @@
             }
           ],
           "gw_points": 66,
+          "live_points": 66,
           "bench_points": 1,
           "dreamteam_starters": 3
         },
@@ -2808,6 +2823,7 @@
             }
           ],
           "gw_points": 62,
+          "live_points": 62,
           "bench_points": 0,
           "dreamteam_starters": 1
         },
@@ -2983,6 +2999,7 @@
             }
           ],
           "gw_points": 39,
+          "live_points": 39,
           "bench_points": 4,
           "dreamteam_starters": 0
         },
@@ -3158,6 +3175,7 @@
             }
           ],
           "gw_points": 32,
+          "live_points": 36,
           "bench_points": 8,
           "dreamteam_starters": 0
         },
@@ -3333,6 +3351,7 @@
             }
           ],
           "gw_points": 34,
+          "live_points": 24,
           "bench_points": 1,
           "dreamteam_starters": 1
         },
@@ -3508,13 +3527,14 @@
             }
           ],
           "gw_points": 27,
+          "live_points": 30,
           "bench_points": 0,
           "dreamteam_starters": 0
         }
       }
     }
   },
-  "last_updated": "2026-09-01T13:38:06.010274+00:00",
+  "last_updated": "2026-09-01T13:52:23.354381+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
