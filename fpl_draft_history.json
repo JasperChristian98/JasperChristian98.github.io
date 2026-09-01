@@ -734,7 +734,7 @@
             {
               "element_id": 201,
               "web_name": "Muñoz",
-              "team": "Crystal Palace",
+              "team": "Nott'm Forest",
               "position": "DEF",
               "points": 0,
               "in_dreamteam": false,
@@ -1759,7 +1759,7 @@
       }
     },
     "2": {
-      "finished": false,
+      "finished": true,
       "teams": {
         "87664": {
           "manager": "No Weimann No Cry",
@@ -1962,17 +1962,6 @@
               "minutes": 88
             },
             {
-              "element_id": 498,
-              "web_name": "Senesi",
-              "team": "Spurs",
-              "position": "DEF",
-              "points": 0,
-              "in_dreamteam": false,
-              "is_captain": false,
-              "is_vice_captain": false,
-              "minutes": 0
-            },
-            {
               "element_id": 357,
               "web_name": "Frimpong",
               "team": "Liverpool",
@@ -1995,11 +1984,33 @@
               "minutes": 90
             },
             {
+              "element_id": 14,
+              "web_name": "Eze",
+              "team": "Arsenal",
+              "position": "MID",
+              "points": 1,
+              "in_dreamteam": false,
+              "is_captain": false,
+              "is_vice_captain": false,
+              "minutes": 45
+            },
+            {
               "element_id": 40,
               "web_name": "Rogers",
               "team": "Chelsea",
               "position": "MID",
               "points": 5,
+              "in_dreamteam": false,
+              "is_captain": false,
+              "is_vice_captain": false,
+              "minutes": 90
+            },
+            {
+              "element_id": 43,
+              "web_name": "Tielemans",
+              "team": "Man Utd",
+              "position": "MID",
+              "points": 4,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
@@ -2015,28 +2026,6 @@
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 70
-            },
-            {
-              "element_id": 43,
-              "web_name": "Tielemans",
-              "team": "Man Utd",
-              "position": "MID",
-              "points": 4,
-              "in_dreamteam": false,
-              "is_captain": false,
-              "is_vice_captain": false,
-              "minutes": 90
-            },
-            {
-              "element_id": 492,
-              "web_name": "Awoniyi",
-              "team": "Coventry City",
-              "position": "FWD",
-              "points": 2,
-              "in_dreamteam": false,
-              "is_captain": false,
-              "is_vice_captain": false,
-              "minutes": 90
             },
             {
               "element_id": 379,
@@ -2059,6 +2048,17 @@
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 90
+            },
+            {
+              "element_id": 492,
+              "web_name": "Awoniyi",
+              "team": "Coventry City",
+              "position": "FWD",
+              "points": 2,
+              "in_dreamteam": false,
+              "is_captain": false,
+              "is_vice_captain": false,
+              "minutes": 90
             }
           ],
           "bench": [
@@ -2074,15 +2074,15 @@
               "minutes": 90
             },
             {
-              "element_id": 14,
-              "web_name": "Eze",
-              "team": "Arsenal",
-              "position": "MID",
-              "points": 1,
+              "element_id": 498,
+              "web_name": "Senesi",
+              "team": "Spurs",
+              "position": "DEF",
+              "points": 0,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 0
             },
             {
               "element_id": 580,
@@ -2107,8 +2107,8 @@
               "minutes": 0
             }
           ],
-          "gw_points": 43,
-          "bench_points": 4,
+          "gw_points": 44,
+          "bench_points": 3,
           "dreamteam_starters": 1
         },
         "87907": {
@@ -2290,15 +2290,15 @@
           "manager": "Backstreet Moyes",
           "starters": [
             {
-              "element_id": 140,
-              "web_name": "Sánchez",
-              "team": "Chelsea",
+              "element_id": 529,
+              "web_name": "Roefs",
+              "team": "Sunderland",
               "position": "GKP",
-              "points": 0,
+              "points": 6,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 388,
@@ -2367,17 +2367,6 @@
               "minutes": 90
             },
             {
-              "element_id": 69,
-              "web_name": "Scott",
-              "team": "Bournemouth",
-              "position": "MID",
-              "points": 12,
-              "in_dreamteam": true,
-              "is_captain": false,
-              "is_vice_captain": false,
-              "minutes": 86
-            },
-            {
               "element_id": 453,
               "web_name": "Barnes",
               "team": "Newcastle",
@@ -2387,6 +2376,17 @@
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 90
+            },
+            {
+              "element_id": 69,
+              "web_name": "Scott",
+              "team": "Bournemouth",
+              "position": "MID",
+              "points": 12,
+              "in_dreamteam": true,
+              "is_captain": false,
+              "is_vice_captain": false,
+              "minutes": 86
             },
             {
               "element_id": 165,
@@ -2413,15 +2413,15 @@
           ],
           "bench": [
             {
-              "element_id": 529,
-              "web_name": "Roefs",
-              "team": "Sunderland",
+              "element_id": 140,
+              "web_name": "Sánchez",
+              "team": "Chelsea",
               "position": "GKP",
-              "points": 6,
+              "points": 0,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 90
+              "minutes": 0
             },
             {
               "element_id": 490,
@@ -2457,8 +2457,8 @@
               "minutes": 90
             }
           ],
-          "gw_points": 53,
-          "bench_points": 6,
+          "gw_points": 59,
+          "bench_points": 0,
           "dreamteam_starters": 2
         },
         "89446": {
@@ -2509,15 +2509,15 @@
               "minutes": 90
             },
             {
-              "element_id": 403,
-              "web_name": "Sávio",
-              "team": "Spurs",
-              "position": "MID",
+              "element_id": 504,
+              "web_name": "Vuskovic",
+              "team": "Brighton",
+              "position": "DEF",
               "points": 0,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 480,
@@ -2553,17 +2553,6 @@
               "minutes": 29
             },
             {
-              "element_id": 569,
-              "web_name": "Gonzalo",
-              "team": "Fulham",
-              "position": "FWD",
-              "points": 2,
-              "in_dreamteam": false,
-              "is_captain": false,
-              "is_vice_captain": false,
-              "minutes": 90
-            },
-            {
               "element_id": 411,
               "web_name": "Haaland",
               "team": "Man City",
@@ -2584,6 +2573,17 @@
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 80
+            },
+            {
+              "element_id": 569,
+              "web_name": "Gonzalo",
+              "team": "Fulham",
+              "position": "FWD",
+              "points": 2,
+              "in_dreamteam": false,
+              "is_captain": false,
+              "is_vice_captain": false,
+              "minutes": 90
             }
           ],
           "bench": [
@@ -2599,15 +2599,15 @@
               "minutes": 90
             },
             {
-              "element_id": 504,
-              "web_name": "Vuskovic",
-              "team": "Brighton",
-              "position": "DEF",
+              "element_id": 403,
+              "web_name": "Sávio",
+              "team": "Spurs",
+              "position": "MID",
               "points": 0,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 90
+              "minutes": 0
             },
             {
               "element_id": 400,
@@ -2623,7 +2623,7 @@
             {
               "element_id": 201,
               "web_name": "Muñoz",
-              "team": "Crystal Palace",
+              "team": "Nott'm Forest",
               "position": "DEF",
               "points": 0,
               "in_dreamteam": false,
@@ -2684,6 +2684,17 @@
               "minutes": 90
             },
             {
+              "element_id": 533,
+              "web_name": "Mukiele",
+              "team": "Sunderland",
+              "position": "DEF",
+              "points": 9,
+              "in_dreamteam": false,
+              "is_captain": false,
+              "is_vice_captain": false,
+              "minutes": 90
+            },
+            {
               "element_id": 426,
               "web_name": "B.Fernandes",
               "team": "Man Utd",
@@ -2704,17 +2715,6 @@
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 84
-            },
-            {
-              "element_id": 155,
-              "web_name": "Enzo",
-              "team": "Chelsea",
-              "position": "MID",
-              "points": 0,
-              "in_dreamteam": false,
-              "is_captain": false,
-              "is_vice_captain": false,
-              "minutes": 0
             },
             {
               "element_id": 481,
@@ -2796,19 +2796,19 @@
               "minutes": 0
             },
             {
-              "element_id": 533,
-              "web_name": "Mukiele",
-              "team": "Sunderland",
-              "position": "DEF",
-              "points": 9,
+              "element_id": 155,
+              "web_name": "Enzo",
+              "team": "Chelsea",
+              "position": "MID",
+              "points": 0,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 90
+              "minutes": 0
             }
           ],
-          "gw_points": 53,
-          "bench_points": 9,
+          "gw_points": 62,
+          "bench_points": 0,
           "dreamteam_starters": 1
         },
         "204850": {
@@ -2837,6 +2837,17 @@
               "minutes": 78
             },
             {
+              "element_id": 202,
+              "web_name": "Richards",
+              "team": "Crystal Palace",
+              "position": "DEF",
+              "points": 0,
+              "in_dreamteam": false,
+              "is_captain": false,
+              "is_vice_captain": false,
+              "minutes": 90
+            },
+            {
               "element_id": 233,
               "web_name": "Mykolenko",
               "team": "Everton",
@@ -2846,17 +2857,6 @@
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 90
-            },
-            {
-              "element_id": 232,
-              "web_name": "O'Brien",
-              "team": "Everton",
-              "position": "DEF",
-              "points": 0,
-              "in_dreamteam": false,
-              "is_captain": false,
-              "is_vice_captain": false,
-              "minutes": 0
             },
             {
               "element_id": 154,
@@ -2903,17 +2903,6 @@
               "minutes": 90
             },
             {
-              "element_id": 295,
-              "web_name": "McBurnie",
-              "team": "Hull City",
-              "position": "FWD",
-              "points": 1,
-              "in_dreamteam": false,
-              "is_captain": false,
-              "is_vice_captain": false,
-              "minutes": 90
-            },
-            {
               "element_id": 401,
               "web_name": "Marmoush",
               "team": "Spurs",
@@ -2934,6 +2923,17 @@
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 70
+            },
+            {
+              "element_id": 295,
+              "web_name": "McBurnie",
+              "team": "Hull City",
+              "position": "FWD",
+              "points": 1,
+              "in_dreamteam": false,
+              "is_captain": false,
+              "is_vice_captain": false,
+              "minutes": 90
             }
           ],
           "bench": [
@@ -2971,15 +2971,15 @@
               "minutes": 0
             },
             {
-              "element_id": 202,
-              "web_name": "Richards",
-              "team": "Crystal Palace",
+              "element_id": 232,
+              "web_name": "O'Brien",
+              "team": "Everton",
               "position": "DEF",
               "points": 0,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 90
+              "minutes": 0
             }
           ],
           "gw_points": 39,
@@ -3001,17 +3001,6 @@
               "minutes": 90
             },
             {
-              "element_id": 144,
-              "web_name": "Gusto",
-              "team": "Chelsea",
-              "position": "DEF",
-              "points": 1,
-              "in_dreamteam": false,
-              "is_captain": false,
-              "is_vice_captain": false,
-              "minutes": 90
-            },
-            {
               "element_id": 142,
               "web_name": "James",
               "team": "Chelsea",
@@ -3023,6 +3012,17 @@
               "minutes": 22
             },
             {
+              "element_id": 144,
+              "web_name": "Gusto",
+              "team": "Chelsea",
+              "position": "DEF",
+              "points": 1,
+              "in_dreamteam": false,
+              "is_captain": false,
+              "is_vice_captain": false,
+              "minutes": 90
+            },
+            {
               "element_id": 88,
               "web_name": "Kayode",
               "team": "Brentford",
@@ -3032,6 +3032,17 @@
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 87
+            },
+            {
+              "element_id": 503,
+              "web_name": "Van de Ven",
+              "team": "Spurs",
+              "position": "DEF",
+              "points": 0,
+              "in_dreamteam": false,
+              "is_captain": false,
+              "is_vice_captain": false,
+              "minutes": 90
             },
             {
               "element_id": 428,
@@ -3056,6 +3067,17 @@
               "minutes": 0
             },
             {
+              "element_id": 239,
+              "web_name": "Garner",
+              "team": "Everton",
+              "position": "MID",
+              "points": 1,
+              "in_dreamteam": false,
+              "is_captain": false,
+              "is_vice_captain": false,
+              "minutes": 61
+            },
+            {
               "element_id": 94,
               "web_name": "Schade",
               "team": "Brentford",
@@ -3071,28 +3093,6 @@
               "web_name": "Targett",
               "team": "Hull City",
               "position": "DEF",
-              "points": 0,
-              "in_dreamteam": false,
-              "is_captain": false,
-              "is_vice_captain": false,
-              "minutes": 0
-            },
-            {
-              "element_id": 239,
-              "web_name": "Garner",
-              "team": "Everton",
-              "position": "MID",
-              "points": 1,
-              "in_dreamteam": false,
-              "is_captain": false,
-              "is_vice_captain": false,
-              "minutes": 61
-            },
-            {
-              "element_id": 527,
-              "web_name": "Richarlison",
-              "team": "Spurs",
-              "position": "FWD",
               "points": 0,
               "in_dreamteam": false,
               "is_captain": false,
@@ -3135,15 +3135,15 @@
               "minutes": 0
             },
             {
-              "element_id": 503,
-              "web_name": "Van de Ven",
+              "element_id": 527,
+              "web_name": "Richarlison",
               "team": "Spurs",
-              "position": "DEF",
+              "position": "FWD",
               "points": 0,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 90
+              "minutes": 0
             },
             {
               "element_id": 61,
@@ -3196,17 +3196,6 @@
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 90
-            },
-            {
-              "element_id": 152,
-              "web_name": "Palestra",
-              "team": "Chelsea",
-              "position": "DEF",
-              "points": 0,
-              "in_dreamteam": false,
-              "is_captain": false,
-              "is_vice_captain": false,
-              "minutes": 0
             },
             {
               "element_id": 36,
@@ -3264,6 +3253,17 @@
               "minutes": 67
             },
             {
+              "element_id": 167,
+              "web_name": "Delap",
+              "team": "Nott'm Forest",
+              "position": "FWD",
+              "points": 1,
+              "in_dreamteam": false,
+              "is_captain": false,
+              "is_vice_captain": false,
+              "minutes": 24
+            },
+            {
               "element_id": 593,
               "web_name": "Dedić",
               "team": "Newcastle",
@@ -3299,15 +3299,15 @@
               "minutes": 90
             },
             {
-              "element_id": 167,
-              "web_name": "Delap",
-              "team": "Nott'm Forest",
-              "position": "FWD",
-              "points": 1,
+              "element_id": 152,
+              "web_name": "Palestra",
+              "team": "Chelsea",
+              "position": "DEF",
+              "points": 0,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 24
+              "minutes": 0
             },
             {
               "element_id": 472,
@@ -3332,8 +3332,8 @@
               "minutes": 0
             }
           ],
-          "gw_points": 33,
-          "bench_points": 2,
+          "gw_points": 34,
+          "bench_points": 1,
           "dreamteam_starters": 1
         },
         "259256": {
@@ -3514,7 +3514,7 @@
       }
     }
   },
-  "last_updated": "2026-09-01T07:06:09.018537+00:00",
+  "last_updated": "2026-09-01T13:38:06.010274+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -3546,25 +3546,12 @@
       "matches_drawn": 0,
       "matches_lost": 0,
       "matches_played": 38,
-      "matches_won": 1,
-      "points_against": 43,
-      "points_for": 59,
+      "matches_won": 2,
+      "points_against": 67,
+      "points_for": 118,
       "rank": 1,
       "rank_sort": 1,
-      "total": 3
-    },
-    {
-      "last_rank": 2,
-      "league_entry": 206027,
-      "matches_drawn": 0,
-      "matches_lost": 0,
-      "matches_played": 38,
-      "matches_won": 1,
-      "points_against": 29,
-      "points_for": 53,
-      "rank": 2,
-      "rank_sort": 2,
-      "total": 3
+      "total": 6
     },
     {
       "last_rank": 3,
@@ -3572,12 +3559,12 @@
       "matches_drawn": 0,
       "matches_lost": 0,
       "matches_played": 38,
-      "matches_won": 1,
-      "points_against": 25,
-      "points_for": 42,
-      "rank": 3,
-      "rank_sort": 3,
-      "total": 3
+      "matches_won": 2,
+      "points_against": 61,
+      "points_for": 108,
+      "rank": 2,
+      "rank_sort": 2,
+      "total": 6
     },
     {
       "last_rank": 4,
@@ -3585,12 +3572,12 @@
       "matches_drawn": 0,
       "matches_lost": 0,
       "matches_played": 38,
-      "matches_won": 1,
-      "points_against": 24,
-      "points_for": 37,
-      "rank": 4,
-      "rank_sort": 4,
-      "total": 3
+      "matches_won": 2,
+      "points_against": 63,
+      "points_for": 99,
+      "rank": 3,
+      "rank_sort": 3,
+      "total": 6
     },
     {
       "last_rank": 5,
@@ -3598,38 +3585,25 @@
       "matches_drawn": 0,
       "matches_lost": 0,
       "matches_played": 38,
+      "matches_won": 2,
+      "points_against": 53,
+      "points_for": 73,
+      "rank": 4,
+      "rank_sort": 4,
+      "total": 6
+    },
+    {
+      "last_rank": 2,
+      "league_entry": 206027,
+      "matches_drawn": 0,
+      "matches_lost": 1,
+      "matches_played": 38,
       "matches_won": 1,
-      "points_against": 26,
-      "points_for": 29,
+      "points_against": 91,
+      "points_for": 92,
       "rank": 5,
       "rank_sort": 5,
       "total": 3
-    },
-    {
-      "last_rank": 6,
-      "league_entry": 261504,
-      "matches_drawn": 0,
-      "matches_lost": 1,
-      "matches_played": 38,
-      "matches_won": 0,
-      "points_against": 59,
-      "points_for": 43,
-      "rank": 6,
-      "rank_sort": 6,
-      "total": 0
-    },
-    {
-      "last_rank": 7,
-      "league_entry": 87876,
-      "matches_drawn": 0,
-      "matches_lost": 1,
-      "matches_played": 38,
-      "matches_won": 0,
-      "points_against": 53,
-      "points_for": 29,
-      "rank": 7,
-      "rank_sort": 7,
-      "total": 0
     },
     {
       "last_rank": 8,
@@ -3637,35 +3611,61 @@
       "matches_drawn": 0,
       "matches_lost": 1,
       "matches_played": 38,
-      "matches_won": 0,
-      "points_against": 29,
-      "points_for": 26,
-      "rank": 8,
-      "rank_sort": 8,
-      "total": 0
+      "matches_won": 1,
+      "points_against": 59,
+      "points_for": 84,
+      "rank": 6,
+      "rank_sort": 6,
+      "total": 3
     },
     {
-      "last_rank": 9,
-      "league_entry": 210421,
+      "last_rank": 6,
+      "league_entry": 261504,
       "matches_drawn": 0,
-      "matches_lost": 1,
+      "matches_lost": 2,
       "matches_played": 38,
       "matches_won": 0,
-      "points_against": 42,
-      "points_for": 25,
-      "rank": 9,
-      "rank_sort": 9,
+      "points_against": 117,
+      "points_for": 73,
+      "rank": 7,
+      "rank_sort": 7,
       "total": 0
     },
     {
       "last_rank": 10,
       "league_entry": 206388,
       "matches_drawn": 0,
-      "matches_lost": 1,
+      "matches_lost": 2,
       "matches_played": 38,
       "matches_won": 0,
-      "points_against": 37,
-      "points_for": 24,
+      "points_against": 103,
+      "points_for": 60,
+      "rank": 8,
+      "rank_sort": 8,
+      "total": 0
+    },
+    {
+      "last_rank": 7,
+      "league_entry": 87876,
+      "matches_drawn": 0,
+      "matches_lost": 2,
+      "matches_played": 38,
+      "matches_won": 0,
+      "points_against": 97,
+      "points_for": 56,
+      "rank": 9,
+      "rank_sort": 9,
+      "total": 0
+    },
+    {
+      "last_rank": 9,
+      "league_entry": 210421,
+      "matches_drawn": 0,
+      "matches_lost": 2,
+      "matches_played": 38,
+      "matches_won": 0,
+      "points_against": 101,
+      "points_for": 49,
       "rank": 10,
       "rank_sort": 10,
       "total": 0
@@ -3706,6 +3706,41 @@
       "entry_1_points": 29,
       "entry_2_name": "PAUer Rangers",
       "entry_2_points": 26
+    },
+    {
+      "event": 2,
+      "entry_1_name": "No Weimann No Cry",
+      "entry_1_points": 27,
+      "entry_2_name": "Kamararama FC",
+      "entry_2_points": 44
+    },
+    {
+      "event": 2,
+      "entry_1_name": "PAUer Rangers",
+      "entry_1_points": 58,
+      "entry_2_name": "Jacquet Potato",
+      "entry_2_points": 30
+    },
+    {
+      "event": 2,
+      "entry_1_name": "Backstreet Moyes",
+      "entry_1_points": 59,
+      "entry_2_name": "Buendophilia",
+      "entry_2_points": 24
+    },
+    {
+      "event": 2,
+      "entry_1_name": "Jaap? Best Stam",
+      "entry_1_points": 66,
+      "entry_2_name": "danny’s doggy dudes",
+      "entry_2_points": 36
+    },
+    {
+      "event": 2,
+      "entry_1_name": "Ollie Gonna Squashya",
+      "entry_1_points": 62,
+      "entry_2_name": "NoRSNoRB No Chance",
+      "entry_2_points": 39
     }
   ]
 }
