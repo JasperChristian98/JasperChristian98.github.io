@@ -345,10 +345,94 @@ history["matches"] = enriched_matches
 
 
 # ============================================================
+# PLAYER IDENTITY PINNING
+#
+# FPL's live player database (bootstrap-static) has no concept of
+# history - it only ever answers "what does this element_id mean
+# right now." An element_id can get reassigned to a completely
+# different real player later in the season (a squad departure
+# frees an ID that a new signing then reuses), which would silently
+# rewrite a pick's name/team/position if it were re-resolved from a
+# fresh bootstrap-static fetch on every run.
+#
+# The picks themselves (which element_id was on a manager's roster
+# for a given gameweek) ARE a stable historical record - the Draft
+# API's per-gameweek entry/event endpoint always returns the same
+# answer for a past gameweek. So the fix is: the first time this
+# script ever captures a given (gameweek, element_id) pairing, pin
+# its name/team/position permanently. Every later run - even while
+# that gameweek is still in progress and its live points keep
+# updating - reuses the pinned identity instead of re-resolving it,
+# so ID churn can never retroactively relabel a pick.
+#
+# This is deliberately scoped per gameweek, not per element_id
+# globally: a real player legitimately moving clubs mid-season
+# should still show their correct historical club for each past
+# gameweek, just never have it silently swapped for a different
+# person under the same ID.
+# ============================================================
+
+def get_pinned_pick_identity(gw, entry_id, el_id):
+    """
+    Return the previously-captured {web_name, team, position} for
+    this exact (gameweek, manager, player) pick, if this gameweek has
+    already been captured at least once before (even if it's still
+    in progress). Returns None if this pick has never been seen for
+    this gameweek, in which case the caller should resolve it fresh
+    from the current bootstrap-static data and it will be pinned
+    from that point on.
+    """
+
+    existing_gw_snapshot = history.get("gameweeks", {}).get(str(gw))
+
+    if not existing_gw_snapshot:
+        return None
+
+    existing_team = existing_gw_snapshot.get("teams", {}).get(str(entry_id))
+
+    if not existing_team:
+        return None
+
+    for existing_pick in existing_team.get("starters", []) + existing_team.get("bench", []):
+        if existing_pick.get("element_id") == el_id:
+            return {
+                "web_name": existing_pick.get("web_name", "Unknown"),
+                "team": existing_pick.get("team", ""),
+                "position": existing_pick.get("position", ""),
+            }
+
+    return None
+
+
+# ============================================================
 # 6. BUILD GAMEWEEK SNAPSHOTS
 # ============================================================
 
 for gw in gws_to_capture:
+
+    # --------------------------------------------------------
+    # FREEZE ALREADY-FINISHED GAMEWEEKS
+    #
+    # Once a gameweek has been captured with "finished": true, its
+    # picks and player metadata (name/team/position) are locked in
+    # for good. FPL's live player database is not stable over the
+    # season - an element_id can get reassigned to a different real
+    # player later (e.g. a squad departure frees an ID that a new
+    # signing then reuses), so re-resolving metadata for an
+    # already-finished gameweek from a later run's fresh API data
+    # can silently rewrite history to show the wrong player. Once a
+    # gameweek is finished, it is written exactly once and never
+    # touched again, using the player database as it stood when
+    # that gameweek actually happened.
+    # --------------------------------------------------------
+
+    existing_snapshot = history.get("gameweeks", {}).get(str(gw))
+
+    if existing_snapshot and existing_snapshot.get("finished"):
+
+        print(f"\nGW{gw} already finished and frozen - skipping re-capture.")
+
+        continue
 
     print(f"\nProcessing GW{gw}...")
 
@@ -433,29 +517,49 @@ for gw in gws_to_capture:
                 }
             )
 
-            meta = elements.get(
-                el_id,
-                {}
+            pinned_identity = get_pinned_pick_identity(
+                gw,
+                entry_id,
+                el_id
             )
+
+            if pinned_identity is not None:
+
+                web_name = pinned_identity["web_name"]
+                team_name = pinned_identity["team"]
+                position_name = pinned_identity["position"]
+
+            else:
+
+                meta = elements.get(
+                    el_id,
+                    {}
+                )
+
+                web_name = meta.get(
+                    "web_name",
+                    "Unknown"
+                )
+
+                team_name = teams_lookup.get(
+                    meta.get("team"),
+                    ""
+                )
+
+                position_name = positions_lookup.get(
+                    meta.get("element_type"),
+                    ""
+                )
 
 
             pick_info = {
                 "element_id": el_id,
 
-                "web_name": meta.get(
-                    "web_name",
-                    "Unknown"
-                ),
+                "web_name": web_name,
 
-                "team": teams_lookup.get(
-                    meta.get("team"),
-                    ""
-                ),
+                "team": team_name,
 
-                "position": positions_lookup.get(
-                    meta.get("element_type"),
-                    ""
-                ),
+                "position": position_name,
 
                 "points": stats["points"],
 
