@@ -626,6 +626,36 @@ tbody tr:hover {
 }
 
 /* ============================================================
+   TRANSFER ARCHIVE FILTERS
+   ============================================================ */
+
+function filterTransfers() {
+    const playerInput = document.getElementById("transfer-player-search");
+    const teamSelect = document.getElementById("transfer-team-filter");
+    const rows = document.querySelectorAll(".transfer-archive-row");
+    const empty = document.getElementById("transfer-search-empty");
+
+    if (!rows.length) return;
+
+    const playerQuery = playerInput ? playerInput.value.trim().toLowerCase() : "";
+    const teamQuery = teamSelect ? teamSelect.value.trim().toLowerCase() : "";
+    let visible = 0;
+
+    rows.forEach(function(row) {
+        const player = (row.dataset.player || "").toLowerCase();
+        const teams = (row.dataset.team || "").toLowerCase();
+        const matchesPlayer = !playerQuery || player.includes(playerQuery);
+        const matchesTeam = !teamQuery || teams.includes(teamQuery);
+        const show = matchesPlayer && matchesTeam;
+        row.style.display = show ? "" : "none";
+        if (show) visible += 1;
+    });
+
+    if (empty) empty.style.display = visible ? "none" : "block";
+}
+
+
+/* ============================================================
    MOBILE TREND CHARTS (H2H points / rank / gw scores)
    ============================================================ */
 
@@ -1951,7 +1981,7 @@ tbody tr:hover {
             <div class="header-meta">
 
                 Last updated:
-                2026-09-02T15:43:04.767729+00:00
+                2026-09-02T16:06:57.489979+00:00
 
                 <br>
 
@@ -4637,9 +4667,735 @@ tbody tr:hover {
 
             <div class="card">
 
-                <h2>All League Trades</h2>
+                <h2>Recent Transfers · GW2</h2>
                 <p class="card-description">
-                    Every processed league trade, with a live grade based on points scored after the deal.
+                    Ownership moves effective for the latest completed gameweek. A GW2 pickup is counted as owned from GW2.
+                </p>
+                
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Player</th><th>Fantasy Team</th><th>Move</th><th>From / To</th></tr></thead>
+                <tbody>
+            <tr>
+                <td class="manager-name">Ajer</td>
+                <td>PAUer Rangers</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Awoniyi</td>
+                <td>Kamararama FC</td>
+                <td>Picked up</td>
+                <td>No Weimann No Cry</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Awoniyi</td>
+                <td>No Weimann No Cry</td>
+                <td>Dropped</td>
+                <td>Kamararama FC</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Caicedo</td>
+                <td>Kamararama FC</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">De Cuyper</td>
+                <td>No Weimann No Cry</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Dedić</td>
+                <td>Buendophilia</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Delap</td>
+                <td>Buendophilia</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Doku</td>
+                <td>Jaap? Best Stam</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Dorgu</td>
+                <td>PAUer Rangers</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">E.Le Fée</td>
+                <td>No Weimann No Cry</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Elanga</td>
+                <td>PAUer Rangers</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Eze</td>
+                <td>Kamararama FC</td>
+                <td>Picked up</td>
+                <td>No Weimann No Cry</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Eze</td>
+                <td>No Weimann No Cry</td>
+                <td>Dropped</td>
+                <td>Kamararama FC</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">F.Kadıoğlu</td>
+                <td>danny’s doggy dudes</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Fernandes</td>
+                <td>danny’s doggy dudes</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Florentino</td>
+                <td>Ollie Gonna Squashya</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">G.Jesus</td>
+                <td>NoRSNoRB No Chance</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Hincapie</td>
+                <td>NoRSNoRB No Chance</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Kayode</td>
+                <td>danny’s doggy dudes</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">King</td>
+                <td>No Weimann No Cry</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Kluivert</td>
+                <td>Jacquet Potato</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Lewis-Skelly</td>
+                <td>Kamararama FC</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Martinez</td>
+                <td>Ollie Gonna Squashya</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Matheus N.</td>
+                <td>PAUer Rangers</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">McBurnie</td>
+                <td>NoRSNoRB No Chance</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Mosquera</td>
+                <td>NoRSNoRB No Chance</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Munoz</td>
+                <td>PAUer Rangers</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Ngumoha</td>
+                <td>Jaap? Best Stam</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Pope</td>
+                <td>Kamararama FC</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Rayan</td>
+                <td>No Weimann No Cry</td>
+                <td>Picked up</td>
+                <td>Kamararama FC</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Rayan</td>
+                <td>Kamararama FC</td>
+                <td>Dropped</td>
+                <td>No Weimann No Cry</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Shaw</td>
+                <td>No Weimann No Cry</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Stach</td>
+                <td>PAUer Rangers</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Strand Larsen</td>
+                <td>No Weimann No Cry</td>
+                <td>Picked up</td>
+                <td>Kamararama FC</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Strand Larsen</td>
+                <td>Kamararama FC</td>
+                <td>Dropped</td>
+                <td>No Weimann No Cry</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Suzuki</td>
+                <td>Kamararama FC</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Targett</td>
+                <td>danny’s doggy dudes</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Tavernier</td>
+                <td>Jacquet Potato</td>
+                <td>Picked up</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Watkins</td>
+                <td>Buendophilia</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        
+            <tr>
+                <td class="manager-name">Welbeck</td>
+                <td>Buendophilia</td>
+                <td>Dropped</td>
+                <td>Free Agent</td>
+            </tr>
+        </tbody>
+            </table>
+        </div>
+    
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>Search Transfer History</h2>
+                <p class="card-description">
+                    Search every captured ownership move by player or fantasy team.
+                </p>
+                <div class="player-filter-grid transfer-filter-grid">
+                    <input id="transfer-player-search" class="player-search-box" type="search" placeholder="Search player…" oninput="filterTransfers()">
+                    <select id="transfer-team-filter" class="player-filter" onchange="filterTransfers()">
+                        <option value="">All fantasy teams</option>
+                        <option value="Backstreet Moyes">Backstreet Moyes</option><option value="Buendophilia">Buendophilia</option><option value="Jaap? Best Stam">Jaap? Best Stam</option><option value="Jacquet Potato">Jacquet Potato</option><option value="Kamararama FC">Kamararama FC</option><option value="No Weimann No Cry">No Weimann No Cry</option><option value="NoRSNoRB No Chance">NoRSNoRB No Chance</option><option value="Ollie Gonna Squashya">Ollie Gonna Squashya</option><option value="PAUer Rangers">PAUer Rangers</option><option value="danny’s doggy dudes">danny’s doggy dudes</option>
+                    </select>
+                </div>
+                
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>GW</th><th>Player</th><th>Fantasy Team</th><th>Move</th><th>Movement</th></tr></thead>
+                <tbody id="transfer-archive-body">
+            <tr class="transfer-archive-row"
+                data-player="ajer"
+                data-team="pauer rangers free agent pauer rangers">
+                <td>GW2</td>
+                <td class="manager-name">Ajer</td>
+                <td>PAUer Rangers</td>
+                <td>Picked up</td>
+                <td>Free Agent → PAUer Rangers</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="awoniyi"
+                data-team="kamararama fc no weimann no cry kamararama fc">
+                <td>GW2</td>
+                <td class="manager-name">Awoniyi</td>
+                <td>Kamararama FC</td>
+                <td>Picked up</td>
+                <td>No Weimann No Cry → Kamararama FC</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="awoniyi"
+                data-team="no weimann no cry no weimann no cry kamararama fc">
+                <td>GW2</td>
+                <td class="manager-name">Awoniyi</td>
+                <td>No Weimann No Cry</td>
+                <td>Dropped</td>
+                <td>No Weimann No Cry → Kamararama FC</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="caicedo"
+                data-team="kamararama fc kamararama fc free agent">
+                <td>GW2</td>
+                <td class="manager-name">Caicedo</td>
+                <td>Kamararama FC</td>
+                <td>Dropped</td>
+                <td>Kamararama FC → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="de cuyper"
+                data-team="no weimann no cry free agent no weimann no cry">
+                <td>GW2</td>
+                <td class="manager-name">De Cuyper</td>
+                <td>No Weimann No Cry</td>
+                <td>Picked up</td>
+                <td>Free Agent → No Weimann No Cry</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="dedić"
+                data-team="buendophilia free agent buendophilia">
+                <td>GW2</td>
+                <td class="manager-name">Dedić</td>
+                <td>Buendophilia</td>
+                <td>Picked up</td>
+                <td>Free Agent → Buendophilia</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="delap"
+                data-team="buendophilia free agent buendophilia">
+                <td>GW2</td>
+                <td class="manager-name">Delap</td>
+                <td>Buendophilia</td>
+                <td>Picked up</td>
+                <td>Free Agent → Buendophilia</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="doku"
+                data-team="jaap? best stam free agent jaap? best stam">
+                <td>GW2</td>
+                <td class="manager-name">Doku</td>
+                <td>Jaap? Best Stam</td>
+                <td>Picked up</td>
+                <td>Free Agent → Jaap? Best Stam</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="dorgu"
+                data-team="pauer rangers pauer rangers free agent">
+                <td>GW2</td>
+                <td class="manager-name">Dorgu</td>
+                <td>PAUer Rangers</td>
+                <td>Dropped</td>
+                <td>PAUer Rangers → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="e.le fée"
+                data-team="no weimann no cry no weimann no cry free agent">
+                <td>GW2</td>
+                <td class="manager-name">E.Le Fée</td>
+                <td>No Weimann No Cry</td>
+                <td>Dropped</td>
+                <td>No Weimann No Cry → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="elanga"
+                data-team="pauer rangers free agent pauer rangers">
+                <td>GW2</td>
+                <td class="manager-name">Elanga</td>
+                <td>PAUer Rangers</td>
+                <td>Picked up</td>
+                <td>Free Agent → PAUer Rangers</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="eze"
+                data-team="kamararama fc no weimann no cry kamararama fc">
+                <td>GW2</td>
+                <td class="manager-name">Eze</td>
+                <td>Kamararama FC</td>
+                <td>Picked up</td>
+                <td>No Weimann No Cry → Kamararama FC</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="eze"
+                data-team="no weimann no cry no weimann no cry kamararama fc">
+                <td>GW2</td>
+                <td class="manager-name">Eze</td>
+                <td>No Weimann No Cry</td>
+                <td>Dropped</td>
+                <td>No Weimann No Cry → Kamararama FC</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="f.kadıoğlu"
+                data-team="danny’s doggy dudes danny’s doggy dudes free agent">
+                <td>GW2</td>
+                <td class="manager-name">F.Kadıoğlu</td>
+                <td>danny’s doggy dudes</td>
+                <td>Dropped</td>
+                <td>danny’s doggy dudes → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="fernandes"
+                data-team="danny’s doggy dudes danny’s doggy dudes free agent">
+                <td>GW2</td>
+                <td class="manager-name">Fernandes</td>
+                <td>danny’s doggy dudes</td>
+                <td>Dropped</td>
+                <td>danny’s doggy dudes → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="florentino"
+                data-team="ollie gonna squashya free agent ollie gonna squashya">
+                <td>GW2</td>
+                <td class="manager-name">Florentino</td>
+                <td>Ollie Gonna Squashya</td>
+                <td>Picked up</td>
+                <td>Free Agent → Ollie Gonna Squashya</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="g.jesus"
+                data-team="norsnorb no chance norsnorb no chance free agent">
+                <td>GW2</td>
+                <td class="manager-name">G.Jesus</td>
+                <td>NoRSNoRB No Chance</td>
+                <td>Dropped</td>
+                <td>NoRSNoRB No Chance → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="hincapie"
+                data-team="norsnorb no chance norsnorb no chance free agent">
+                <td>GW2</td>
+                <td class="manager-name">Hincapie</td>
+                <td>NoRSNoRB No Chance</td>
+                <td>Dropped</td>
+                <td>NoRSNoRB No Chance → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="kayode"
+                data-team="danny’s doggy dudes free agent danny’s doggy dudes">
+                <td>GW2</td>
+                <td class="manager-name">Kayode</td>
+                <td>danny’s doggy dudes</td>
+                <td>Picked up</td>
+                <td>Free Agent → danny’s doggy dudes</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="king"
+                data-team="no weimann no cry free agent no weimann no cry">
+                <td>GW2</td>
+                <td class="manager-name">King</td>
+                <td>No Weimann No Cry</td>
+                <td>Picked up</td>
+                <td>Free Agent → No Weimann No Cry</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="kluivert"
+                data-team="jacquet potato jacquet potato free agent">
+                <td>GW2</td>
+                <td class="manager-name">Kluivert</td>
+                <td>Jacquet Potato</td>
+                <td>Dropped</td>
+                <td>Jacquet Potato → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="lewis-skelly"
+                data-team="kamararama fc free agent kamararama fc">
+                <td>GW2</td>
+                <td class="manager-name">Lewis-Skelly</td>
+                <td>Kamararama FC</td>
+                <td>Picked up</td>
+                <td>Free Agent → Kamararama FC</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="martinez"
+                data-team="ollie gonna squashya ollie gonna squashya free agent">
+                <td>GW2</td>
+                <td class="manager-name">Martinez</td>
+                <td>Ollie Gonna Squashya</td>
+                <td>Dropped</td>
+                <td>Ollie Gonna Squashya → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="matheus n."
+                data-team="pauer rangers pauer rangers free agent">
+                <td>GW2</td>
+                <td class="manager-name">Matheus N.</td>
+                <td>PAUer Rangers</td>
+                <td>Dropped</td>
+                <td>PAUer Rangers → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="mcburnie"
+                data-team="norsnorb no chance free agent norsnorb no chance">
+                <td>GW2</td>
+                <td class="manager-name">McBurnie</td>
+                <td>NoRSNoRB No Chance</td>
+                <td>Picked up</td>
+                <td>Free Agent → NoRSNoRB No Chance</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="mosquera"
+                data-team="norsnorb no chance free agent norsnorb no chance">
+                <td>GW2</td>
+                <td class="manager-name">Mosquera</td>
+                <td>NoRSNoRB No Chance</td>
+                <td>Picked up</td>
+                <td>Free Agent → NoRSNoRB No Chance</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="munoz"
+                data-team="pauer rangers pauer rangers free agent">
+                <td>GW2</td>
+                <td class="manager-name">Munoz</td>
+                <td>PAUer Rangers</td>
+                <td>Dropped</td>
+                <td>PAUer Rangers → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="ngumoha"
+                data-team="jaap? best stam jaap? best stam free agent">
+                <td>GW2</td>
+                <td class="manager-name">Ngumoha</td>
+                <td>Jaap? Best Stam</td>
+                <td>Dropped</td>
+                <td>Jaap? Best Stam → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="pope"
+                data-team="kamararama fc kamararama fc free agent">
+                <td>GW2</td>
+                <td class="manager-name">Pope</td>
+                <td>Kamararama FC</td>
+                <td>Dropped</td>
+                <td>Kamararama FC → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="rayan"
+                data-team="no weimann no cry kamararama fc no weimann no cry">
+                <td>GW2</td>
+                <td class="manager-name">Rayan</td>
+                <td>No Weimann No Cry</td>
+                <td>Picked up</td>
+                <td>Kamararama FC → No Weimann No Cry</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="rayan"
+                data-team="kamararama fc kamararama fc no weimann no cry">
+                <td>GW2</td>
+                <td class="manager-name">Rayan</td>
+                <td>Kamararama FC</td>
+                <td>Dropped</td>
+                <td>Kamararama FC → No Weimann No Cry</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="shaw"
+                data-team="no weimann no cry no weimann no cry free agent">
+                <td>GW2</td>
+                <td class="manager-name">Shaw</td>
+                <td>No Weimann No Cry</td>
+                <td>Dropped</td>
+                <td>No Weimann No Cry → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="stach"
+                data-team="pauer rangers free agent pauer rangers">
+                <td>GW2</td>
+                <td class="manager-name">Stach</td>
+                <td>PAUer Rangers</td>
+                <td>Picked up</td>
+                <td>Free Agent → PAUer Rangers</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="strand larsen"
+                data-team="no weimann no cry kamararama fc no weimann no cry">
+                <td>GW2</td>
+                <td class="manager-name">Strand Larsen</td>
+                <td>No Weimann No Cry</td>
+                <td>Picked up</td>
+                <td>Kamararama FC → No Weimann No Cry</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="strand larsen"
+                data-team="kamararama fc kamararama fc no weimann no cry">
+                <td>GW2</td>
+                <td class="manager-name">Strand Larsen</td>
+                <td>Kamararama FC</td>
+                <td>Dropped</td>
+                <td>Kamararama FC → No Weimann No Cry</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="suzuki"
+                data-team="kamararama fc free agent kamararama fc">
+                <td>GW2</td>
+                <td class="manager-name">Suzuki</td>
+                <td>Kamararama FC</td>
+                <td>Picked up</td>
+                <td>Free Agent → Kamararama FC</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="targett"
+                data-team="danny’s doggy dudes free agent danny’s doggy dudes">
+                <td>GW2</td>
+                <td class="manager-name">Targett</td>
+                <td>danny’s doggy dudes</td>
+                <td>Picked up</td>
+                <td>Free Agent → danny’s doggy dudes</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="tavernier"
+                data-team="jacquet potato free agent jacquet potato">
+                <td>GW2</td>
+                <td class="manager-name">Tavernier</td>
+                <td>Jacquet Potato</td>
+                <td>Picked up</td>
+                <td>Free Agent → Jacquet Potato</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="watkins"
+                data-team="buendophilia buendophilia free agent">
+                <td>GW2</td>
+                <td class="manager-name">Watkins</td>
+                <td>Buendophilia</td>
+                <td>Dropped</td>
+                <td>Buendophilia → Free Agent</td>
+            </tr>
+        
+            <tr class="transfer-archive-row"
+                data-player="welbeck"
+                data-team="buendophilia buendophilia free agent">
+                <td>GW2</td>
+                <td class="manager-name">Welbeck</td>
+                <td>Buendophilia</td>
+                <td>Dropped</td>
+                <td>Buendophilia → Free Agent</td>
+            </tr>
+        </tbody>
+            </table>
+        </div>
+        <div id="transfer-search-empty" class="notice" style="display:none; margin-top:12px;">
+            No transfers match those filters.
+        </div>
+    
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>Recent League Trades</h2>
+                <p class="card-description">
+                    Negotiated trades processed for GW2, with running grades counting points from that GW onward.
                 </p>
                 <div class="trades-list">
             <div class="trade-card">
@@ -4679,11 +5435,11 @@ tbody tr:hover {
 
                 
             <div class="trade-grade">
-                <div class="trade-grade-title">Running Trade Grade <span>· points from GW3 onward</span></div>
+                <div class="trade-grade-title">Running Trade Grade <span>· points from GW2 onward</span></div>
                 <div class="trade-grade-grid">
-                    <div><strong>No Weimann No Cry</strong><b>—</b><span>0 pts received</span></div>
-                    <div class="trade-grade-verdict"><strong>Too early to call</strong><span>0 completed GWs measured</span></div>
-                    <div><strong>Kamararama FC</strong><b>—</b><span>0 pts received</span></div>
+                    <div><strong>No Weimann No Cry</strong><b>B+</b><span>4 pts received</span></div>
+                    <div class="trade-grade-verdict"><strong>Dead even</strong><span>1 completed GW measured</span></div>
+                    <div><strong>Kamararama FC</strong><b>B+</b><span>3 pts received</span></div>
                 </div>
             </div>
         
@@ -4700,7 +5456,7 @@ tbody tr:hover {
                 </h2>
 
                 <div style="height:550px; width:100%;">                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
-        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.7.0.min.js" integrity="sha256-jvTGqxNp8AGWEcvNLVuKr+8j5dGe9Yw51LQkmDH+IYA=" crossorigin="anonymous"></script>                <div id="1473088f-95af-42c9-8b1b-fb8d8b63e3ac" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("1473088f-95af-42c9-8b1b-fb8d8b63e3ac")) {                    Plotly.newPlot(                        "1473088f-95af-42c9-8b1b-fb8d8b63e3ac",                        [{"orientation":"h","x":[1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],"y":["Awoniyi","Eze","Rayan","Strand Larsen","A.Becker","Ajer","Anderson","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Most Transferred Players","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Ownership Changes"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.7.0.min.js" integrity="sha256-jvTGqxNp8AGWEcvNLVuKr+8j5dGe9Yw51LQkmDH+IYA=" crossorigin="anonymous"></script>                <div id="1ab60f43-6f14-4fdc-9fff-5eb8042672c1" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("1ab60f43-6f14-4fdc-9fff-5eb8042672c1")) {                    Plotly.newPlot(                        "1ab60f43-6f14-4fdc-9fff-5eb8042672c1",                        [{"orientation":"h","x":[1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],"y":["Awoniyi","Eze","Rayan","Strand Larsen","A.Becker","Ajer","Anderson","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Most Transferred Players","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Ownership Changes"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
 
                 
         <div class="table-wrap">
@@ -5043,7 +5799,7 @@ tbody tr:hover {
                     Players Used By The Most Managers
                 </h2>
 
-                <div style="height:550px; width:100%;">                            <div id="2c95e9ef-da80-4e1c-8d70-3fa1820c8aa0" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("2c95e9ef-da80-4e1c-8d70-3fa1820c8aa0")) {                    Plotly.newPlot(                        "2c95e9ef-da80-4e1c-8d70-3fa1820c8aa0",                        [{"orientation":"h","x":[2,2,2,2,1,1,1,1,1,1,1,1,1,1,1],"y":["Awoniyi","Eze","Rayan","Strand Larsen","A.Becker","Ajer","Anderson","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Players Used By The Most Managers","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Different Managers"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
+                <div style="height:550px; width:100%;">                            <div id="c736c313-f049-48cc-b85a-5e735bfbd138" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("c736c313-f049-48cc-b85a-5e735bfbd138")) {                    Plotly.newPlot(                        "c736c313-f049-48cc-b85a-5e735bfbd138",                        [{"orientation":"h","x":[2,2,2,2,1,1,1,1,1,1,1,1,1,1,1],"y":["Awoniyi","Eze","Rayan","Strand Larsen","A.Becker","Ajer","Anderson","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Players Used By The Most Managers","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Different Managers"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
 
             </div>
 
@@ -5734,6 +6490,160 @@ tbody tr:hover {
 
             </table>
 
+        </div>
+    
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>Best Historical Transfers</h2>
+                <p class="card-description">
+                    The best post-draft pickups so far, ranked by points delivered while the player was actually on that fantasy roster.
+                    Acquisition-gameweek points are included.
+                </p>
+                
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>#</th><th>Player</th><th>Fantasy Team</th><th>Owned</th><th>GWs</th><th>Points Delivered</th></tr></thead>
+                <tbody>
+            <tr>
+                <td>1</td>
+                <td class="manager-name">Dedić</td>
+                <td>Buendophilia</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">11</td>
+            </tr>
+        
+            <tr>
+                <td>2</td>
+                <td class="manager-name">Elanga</td>
+                <td>PAUer Rangers</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">8</td>
+            </tr>
+        
+            <tr>
+                <td>3</td>
+                <td class="manager-name">Mosquera</td>
+                <td>NoRSNoRB No Chance</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">6</td>
+            </tr>
+        
+            <tr>
+                <td>4</td>
+                <td class="manager-name">Stach</td>
+                <td>PAUer Rangers</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">4</td>
+            </tr>
+        
+            <tr>
+                <td>5</td>
+                <td class="manager-name">Ajer</td>
+                <td>PAUer Rangers</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">3</td>
+            </tr>
+        
+            <tr>
+                <td>6</td>
+                <td class="manager-name">Lewis-Skelly</td>
+                <td>Kamararama FC</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">3</td>
+            </tr>
+        
+            <tr>
+                <td>7</td>
+                <td class="manager-name">Awoniyi</td>
+                <td>Kamararama FC</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">2</td>
+            </tr>
+        
+            <tr>
+                <td>8</td>
+                <td class="manager-name">Kayode</td>
+                <td>danny’s doggy dudes</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">2</td>
+            </tr>
+        
+            <tr>
+                <td>9</td>
+                <td class="manager-name">King</td>
+                <td>No Weimann No Cry</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">2</td>
+            </tr>
+        
+            <tr>
+                <td>10</td>
+                <td class="manager-name">Rayan</td>
+                <td>No Weimann No Cry</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">2</td>
+            </tr>
+        
+            <tr>
+                <td>11</td>
+                <td class="manager-name">Strand Larsen</td>
+                <td>No Weimann No Cry</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">2</td>
+            </tr>
+        
+            <tr>
+                <td>12</td>
+                <td class="manager-name">Suzuki</td>
+                <td>Kamararama FC</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">2</td>
+            </tr>
+        
+            <tr>
+                <td>13</td>
+                <td class="manager-name">Delap</td>
+                <td>Buendophilia</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">1</td>
+            </tr>
+        
+            <tr>
+                <td>14</td>
+                <td class="manager-name">Eze</td>
+                <td>Kamararama FC</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">1</td>
+            </tr>
+        
+            <tr>
+                <td>15</td>
+                <td class="manager-name">McBurnie</td>
+                <td>NoRSNoRB No Chance</td>
+                <td>GW2</td>
+                <td>1</td>
+                <td class="positive">1</td>
+            </tr>
+        </tbody>
+            </table>
         </div>
     
 
