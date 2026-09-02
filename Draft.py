@@ -715,6 +715,7 @@ print(
 
 import json
 import statistics
+import random
 import time
 import requests
 
@@ -864,6 +865,23 @@ positions_lookup = {
 
 
 # ============================================================
+# CURRENT DRAFT OWNERSHIP
+# ============================================================
+# element-status is the authoritative league-wide ownership list.
+# This prevents players owned by other managers being treated as free agents.
+
+league_element_status = fetch_json(
+    f"{DRAFT_BASE}/league/{LEAGUE_ID}/element-status"
+)
+
+current_owner_by_player = {}
+if isinstance(league_element_status, dict):
+    for row in league_element_status.get("element_status", []):
+        if isinstance(row, dict) and row.get("element") is not None:
+            current_owner_by_player[int(row["element"])] = row.get("owner")
+
+
+# ============================================================
 # PLAYER OWNERSHIP / TRANSFER ANALYSIS
 # ============================================================
 
@@ -970,6 +988,51 @@ for gw in finished_gws:
                 gw
             )
 
+
+# ============================================================
+# NORMALISE PLAYER OWNERSHIP DATA
+# ============================================================
+# Some players may have been present in older/partial ownership data
+# without the newer ownership_by_gw field.  Normalise every record
+# before any downstream analytics access it.
+for _player_id, _info in player_ownership.items():
+    if not isinstance(_info, dict):
+        player_ownership[_player_id] = {
+            "name": "Unknown",
+            "owners": set(),
+            "ownership_by_gw": {},
+            "first_gw": None,
+            "last_gw": None,
+        }
+        continue
+
+    _info.setdefault("name", elements.get(_player_id, {}).get("web_name", "Unknown"))
+    _info.setdefault("owners", set())
+    _info.setdefault("ownership_by_gw", {})
+    _info.setdefault("first_gw", None)
+    _info.setdefault("last_gw", None)
+
+
+# ============================================================
+# NORMALISE PLAYER OWNERSHIP DATA
+# ============================================================
+# Older/partial ownership records may not contain ownership_by_gw.
+# Ensure every record has the fields used by downstream analytics.
+for _player_id, _info in list(player_ownership.items()):
+    if not isinstance(_info, dict):
+        player_ownership[_player_id] = {
+            "name": elements.get(_player_id, {}).get("web_name", "Unknown"),
+            "owners": set(),
+            "ownership_by_gw": {},
+            "first_gw": None,
+            "last_gw": None,
+        }
+    else:
+        _info.setdefault("name", elements.get(_player_id, {}).get("web_name", "Unknown"))
+        _info.setdefault("owners", set())
+        _info.setdefault("ownership_by_gw", {})
+        _info.setdefault("first_gw", None)
+        _info.setdefault("last_gw", None)
 
 # ============================================================
 # COUNT PLAYER TRANSFER EVENTS
@@ -1447,7 +1510,7 @@ if most_recent_gw is not None:
 
     for player_id, info in player_ownership.items():
 
-        owners_now = info["ownership_by_gw"].get(
+        owners_now = info.get("ownership_by_gw", {}).get(
             most_recent_gw,
             set()
         )
@@ -1612,7 +1675,7 @@ if finished_gws:
     for player_id, info in player_ownership.items():
 
         points = player_form.get(player_id, {})
-        ownership = info["ownership_by_gw"]
+        ownership = info.get("ownership_by_gw", {})
 
         for manager in info["owners"]:
 
@@ -2950,14 +3013,26 @@ result_gameweeks = sorted(
 player_search_data = []
 
 
-for player_id, info in (
-    player_ownership.items()
-):
+for player_id, player_meta in elements.items():
 
-    player_meta = elements.get(
+    info = player_ownership.get(
         player_id,
-        {}
+        {
+            "name": player_meta.get("web_name", "Unknown"),
+            "owners": set(),
+            "ownership_by_gw": {},
+            "first_gw": None,
+            "last_gw": None
+        }
     )
+
+    # Older/free-agent players may not appear in player_ownership.
+    # Keep the structure consistent so later analytics can safely
+    # read ownership_by_gw for every player.
+    info.setdefault("owners", set())
+    info.setdefault("ownership_by_gw", {})
+    info.setdefault("first_gw", None)
+    info.setdefault("last_gw", None)
 
     history_entry = {
 
@@ -2990,6 +3065,18 @@ for player_id, info in (
                 player_meta.get("team"),
                 "—"
             ),
+
+        "fantasy_team":
+            "Free Agent",
+
+        "total_points":
+            int(player_meta.get("total_points", 0) or 0),
+
+        "form":
+            float(player_meta.get("form", 0) or 0),
+
+        "points_per_game":
+            float(player_meta.get("points_per_game", 0) or 0),
 
         "goals":
             player_meta.get(
@@ -3060,9 +3147,10 @@ for player_id, info in (
 
         owners = sorted(
             list(
-                info[
-                    "ownership_by_gw"
-                ].get(
+                info.get(
+                    "ownership_by_gw",
+                    {}
+                ).get(
                     gw,
                     set()
                 )
@@ -3207,6 +3295,515 @@ my_team_history_json = json.dumps(
     },
     ensure_ascii=False
 )
+
+
+# ============================================================
+# FREE AGENTS + MY TEAM H2H
+# ============================================================
+
+all_captured_gws = sorted(
+    int(gw) for gw in history.get("gameweeks", {}).keys()
+)
+
+latest_captured_gw = all_captured_gws[-1] if all_captured_gws else None
+
+POSITION_LABELS = {1: "GKP", 2: "DEF", 3: "MID", 4: "FWD"}
+
+current_rosters_by_manager = defaultdict(dict)
+
+if latest_captured_gw is not None:
+    latest_snapshot = history["gameweeks"].get(str(latest_captured_gw), {})
+    for team_data in latest_snapshot.get("teams", {}).values():
+        manager = team_data.get("manager")
+        if not manager:
+            continue
+        for player in team_data.get("starters", []) + team_data.get("bench", []):
+            player_id = player.get("element_id")
+            if player_id is not None:
+                current_rosters_by_manager[manager][player_id] = player
+
+
+def _player_current_metrics(player_id):
+    meta = elements.get(player_id, {})
+    return {
+        "id": player_id,
+        "name": meta.get("web_name", "Unknown"),
+        "team": teams_lookup.get(meta.get("team"), "—"),
+        "position": POSITION_LABELS.get(
+            meta.get("element_type"),
+            positions_lookup.get(meta.get("element_type"), "—")
+        ),
+        "position_id": meta.get("element_type"),
+        "total_points": int(meta.get("total_points", 0) or 0),
+        "form": float(meta.get("form", 0) or 0),
+        "points_per_game": float(meta.get("points_per_game", 0) or 0),
+        "minutes": int(meta.get("minutes", 0) or 0),
+        "goals": int(meta.get("goals_scored", 0) or 0),
+        "assists": int(meta.get("assists", 0) or 0),
+        "clean_sheets": int(meta.get("clean_sheets", 0) or 0),
+        "bonus": int(meta.get("bonus", 0) or 0),
+        "status": meta.get("status", "a")
+    }
+
+
+def build_free_agent_recommendations(manager):
+    roster = current_rosters_by_manager.get(manager, {})
+    if not roster:
+        return []
+
+    owned_ids = set(roster.keys())
+
+    # IMPORTANT: a player is a free agent only if nobody in the league owns them.
+    # The old logic only excluded the selected manager's roster, which meant
+    # players belonging to the other nine managers could be recommended.
+    league_owned_ids = {
+        player_id
+        for player_id, owner in current_owner_by_player.items()
+        if owner not in (None, "", 0, "0")
+    }
+
+    # Safe fallback if element-status is unavailable.
+    if not current_owner_by_player:
+        for other_roster in current_rosters_by_manager.values():
+            league_owned_ids.update(int(pid) for pid in other_roster.keys())
+
+    candidates = []
+
+    for player_id, meta in elements.items():
+        if player_id in owned_ids or player_id in league_owned_ids:
+            continue
+        if meta.get("status") not in (None, "", "a"):
+            continue
+
+        position_id = meta.get("element_type")
+        if position_id not in (1, 2, 3, 4):
+            continue
+
+        candidate = _player_current_metrics(player_id)
+
+        same_position = [
+            _player_current_metrics(owned_id)
+            for owned_id in owned_ids
+            if elements.get(owned_id, {}).get("element_type") == position_id
+        ]
+        if not same_position:
+            continue
+
+        weakest = min(
+            same_position,
+            key=lambda p: (
+                p["total_points"],
+                p["form"],
+                p["points_per_game"]
+            )
+        )
+
+        season_edge = candidate["total_points"] - weakest["total_points"]
+        form_edge = candidate["form"] - weakest["form"]
+
+        if season_edge <= 0 and form_edge <= 0:
+            continue
+
+        recommendation_score = (
+            season_edge * 3
+            + form_edge * 10
+            + (candidate["points_per_game"] - weakest["points_per_game"]) * 2
+        )
+
+        candidates.append({
+            **candidate,
+            "replace_name": weakest["name"],
+            "replace_id": weakest["id"],
+            "replace_total_points": weakest["total_points"],
+            "replace_form": weakest["form"],
+            "season_edge": season_edge,
+            "form_edge": form_edge,
+            "recommendation_score": recommendation_score
+        })
+
+    candidates.sort(
+        key=lambda x: (
+            -x["recommendation_score"],
+            -x["total_points"],
+            -x["form"],
+            x["name"]
+        )
+    )
+
+    position_counts = defaultdict(int)
+    selected = []
+    for candidate in candidates:
+        pos = candidate["position"]
+        if position_counts[pos] >= 2:
+            continue
+        position_counts[pos] += 1
+        selected.append(candidate)
+
+    return selected[:8]
+
+
+free_agent_recommendations = {
+    manager: build_free_agent_recommendations(manager)
+    for manager in current_standings
+}
+
+
+def build_h2h_records():
+    records = {
+        manager: {
+            opponent: {
+                "played": 0,
+                "wins": 0,
+                "draws": 0,
+                "losses": 0,
+                "for": 0,
+                "against": 0
+            }
+            for opponent in managers
+            if opponent != manager
+        }
+        for manager in managers
+    }
+
+    for match in matches_sorted:
+        team1 = match.get("entry_1_name")
+        team2 = match.get("entry_2_name")
+        if team1 not in records or team2 not in records:
+            continue
+
+        try:
+            score1 = int(match.get("entry_1_points", 0) or 0)
+            score2 = int(match.get("entry_2_points", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+
+        r1 = records[team1][team2]
+        r2 = records[team2][team1]
+
+        r1["played"] += 1
+        r1["for"] += score1
+        r1["against"] += score2
+        r2["played"] += 1
+        r2["for"] += score2
+        r2["against"] += score1
+
+        if score1 > score2:
+            r1["wins"] += 1
+            r2["losses"] += 1
+        elif score2 > score1:
+            r2["wins"] += 1
+            r1["losses"] += 1
+        else:
+            r1["draws"] += 1
+            r2["draws"] += 1
+
+    return records
+
+
+h2h_records = build_h2h_records()
+
+free_agent_recommendations_json = json.dumps(
+    free_agent_recommendations,
+    ensure_ascii=False
+)
+
+h2h_records_json = json.dumps(
+    h2h_records,
+    ensure_ascii=False
+)
+
+
+# Attach the current Draft fantasy-team owner to every player in the
+# directory. Players not owned by any manager remain "Free Agent".
+current_fantasy_team_by_player = {}
+
+for manager, roster in current_rosters_by_manager.items():
+    for player_id in roster:
+        current_fantasy_team_by_player[player_id] = manager
+
+for player in player_search_data:
+    player["fantasy_team"] = current_fantasy_team_by_player.get(
+        player["id"],
+        "Free Agent"
+    )
+
+player_search_json = json.dumps(
+    player_search_data,
+    ensure_ascii=False
+)
+
+
+# ============================================================
+# TRADES FROM THE DRAFT API
+# ============================================================
+
+trades_endpoint = f"{DRAFT_BASE}/draft/league/{LEAGUE_ID}/trades"
+
+print("Fetching league trades...")
+trades_response = fetch_json(trades_endpoint)
+
+
+def _trade_list_from_response(data):
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        for key in ("trades", "trade_list", "trade", "results", "data"):
+            value = data.get(key)
+            if isinstance(value, list):
+                return value
+            if isinstance(value, dict):
+                nested = _trade_list_from_response(value)
+                if nested:
+                    return nested
+    return []
+
+
+trades_raw = _trade_list_from_response(trades_response)
+
+
+def _trade_player_name(value):
+    try:
+        numeric_id = int(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return elements.get(numeric_id, {}).get("web_name", f"Player #{numeric_id}")
+
+
+def _trade_manager_name(value):
+    if value is None:
+        return None
+    try:
+        numeric_id = int(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return (
+        entry_id_to_name.get(numeric_id)
+        or league_entry_id_to_name.get(numeric_id)
+        or entry_id_to_name.get(str(numeric_id))
+        or league_entry_id_to_name.get(str(numeric_id))
+        or str(value)
+    )
+
+
+def _trade_date(value):
+    if value in (None, ""):
+        return "—"
+    try:
+        # Draft trade timestamps are ISO-8601 strings such as
+        # 2026-08-26T13:23:39.420369Z.
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return dt.strftime("%d %b %Y, %H:%M")
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _trade_status(value):
+    status_map = {
+        "p": "Processed",
+    }
+    raw = str(value or "").strip()
+    return status_map.get(raw.lower(), raw or "Unknown")
+
+
+def _normalise_all_trades(rows):
+    """Normalise the actual FPL Draft /draft/league/{id}/trades schema.
+
+    Each object in `trades` is already one complete trade:
+      offered_entry  -> manager who offered the trade
+      received_entry -> manager who received the offer
+      tradeitem_set  -> element_out from offered manager, element_in from receiver
+    """
+    result = []
+
+    for trade in rows:
+        if not isinstance(trade, dict):
+            continue
+
+        offered_entry = trade.get("offered_entry")
+        received_entry = trade.get("received_entry")
+
+        offered_manager = _trade_manager_name(offered_entry) or f"Manager {offered_entry}"
+        received_manager = _trade_manager_name(received_entry) or f"Manager {received_entry}"
+
+        offered_players = []
+        received_players = []
+
+        for item in trade.get("tradeitem_set", []) or []:
+            if not isinstance(item, dict):
+                continue
+
+            element_out = item.get("element_out")
+            element_in = item.get("element_in")
+
+            if element_out is not None:
+                offered_players.append(_trade_player_name(element_out))
+            if element_in is not None:
+                received_players.append(_trade_player_name(element_in))
+
+        # Prefer response_time for processed trades; fall back to offer_time.
+        display_time = trade.get("response_time") or trade.get("offer_time")
+
+        result.append({
+            "id": trade.get("id", "—"),
+            "gw": trade.get("event", "—"),
+            "date": _trade_date(display_time),
+            "status": _trade_status(trade.get("state")),
+            "manager1": offered_manager,
+            "manager2": received_manager,
+            # manager1 gives element_out and receives element_in.
+            "players1": offered_players,
+            "players2": received_players,
+            "player_ids1": [item.get("element_out") for item in (trade.get("tradeitem_set", []) or []) if isinstance(item, dict) and item.get("element_out") is not None],
+            "player_ids2": [item.get("element_in") for item in (trade.get("tradeitem_set", []) or []) if isinstance(item, dict) and item.get("element_in") is not None],
+        })
+
+    return result
+
+
+normalised_trades = _normalise_all_trades(trades_raw)
+
+
+def _trade_points_after(player_ids, trade_gw):
+    """Finished-GW points from the GW after a trade onward."""
+    try:
+        start_gw = int(trade_gw) + 1
+    except (TypeError, ValueError):
+        return 0
+
+    total = 0
+    for player_id in player_ids:
+        try:
+            pid = int(player_id)
+        except (TypeError, ValueError):
+            continue
+        points = player_form.get(pid, {})
+        for gw, value in points.items():
+            try:
+                gw_num = int(gw)
+                pts = int(value or 0)
+            except (TypeError, ValueError):
+                continue
+            if gw_num >= start_gw and gw_num in finished_gws:
+                total += pts
+    return total
+
+
+def _trade_grade(trade):
+    """Transparent running grade based on post-trade points."""
+    side1_received = _trade_points_after(trade.get("player_ids2", []), trade.get("gw"))
+    side2_received = _trade_points_after(trade.get("player_ids1", []), trade.get("gw"))
+    try:
+        weeks = len([gw for gw in finished_gws if gw > int(trade.get("gw"))])
+    except (TypeError, ValueError):
+        weeks = 0
+
+    diff = side1_received - side2_received
+    if weeks == 0:
+        verdict = "Too early to call"
+        grade1 = grade2 = "—"
+    elif abs(diff) <= max(3, weeks * 2):
+        verdict = "Dead even"
+        grade1 = grade2 = "B+"
+    else:
+        winner1 = diff > 0
+        margin = abs(diff)
+        if margin >= max(25, weeks * 8):
+            winner_grade, loser_grade = "A+", "C"
+        elif margin >= max(15, weeks * 5):
+            winner_grade, loser_grade = "A", "C+"
+        elif margin >= max(8, weeks * 3):
+            winner_grade, loser_grade = "A-", "B-"
+        else:
+            winner_grade, loser_grade = "B+", "B"
+        grade1, grade2 = (winner_grade, loser_grade) if winner1 else (loser_grade, winner_grade)
+        leader = trade["manager1"] if winner1 else trade["manager2"]
+        verdict = f"{leader} +{margin} pts"
+
+    return {
+        "manager1_points": side1_received,
+        "manager2_points": side2_received,
+        "grade1": grade1,
+        "grade2": grade2,
+        "verdict": verdict,
+        "weeks": weeks,
+    }
+
+
+def trades_table():
+    if not normalised_trades:
+        return """
+            <div class="notice">
+                No trades returned by the Draft API yet.
+            </div>
+        """
+
+    rows = ""
+    for trade in normalised_trades:
+        side1 = ", ".join(escape_html(p) for p in trade["players1"]) or "—"
+        side2 = ", ".join(escape_html(p) for p in trade["players2"]) or "—"
+        status = escape_html(trade["status"])
+        status_class = (
+            "trade-status-complete"
+            if trade["status"].lower() in ("complete", "completed", "accepted", "processed")
+            else "trade-status-other"
+        )
+        grade = _trade_grade(trade)
+        try:
+            grade_start_gw = int(trade["gw"]) + 1
+        except (TypeError, ValueError):
+            grade_start_gw = "—"
+        trade_grade_html = f"""
+            <div class="trade-grade">
+                <div class="trade-grade-title">Running Trade Grade <span>· points from GW{grade_start_gw} onward</span></div>
+                <div class="trade-grade-grid">
+                    <div><strong>{escape_html(trade['manager1'])}</strong><b>{grade['grade1']}</b><span>{grade['manager1_points']} pts received</span></div>
+                    <div class="trade-grade-verdict"><strong>{escape_html(grade['verdict'])}</strong><span>{grade['weeks']} completed GW{'s' if grade['weeks'] != 1 else ''} measured</span></div>
+                    <div><strong>{escape_html(trade['manager2'])}</strong><b>{grade['grade2']}</b><span>{grade['manager2_points']} pts received</span></div>
+                </div>
+            </div>
+        """
+
+        rows += f"""
+            <div class="trade-card">
+                <div class="trade-card-top">
+                    <div>
+                        <div class="trade-managers">
+                            {escape_html(trade["manager1"])}
+                            <span>↔</span>
+                            {escape_html(trade["manager2"])}
+                        </div>
+                        <div class="trade-meta">
+                            {escape_html(trade["date"])}
+                            · GW{escape_html(trade["gw"])}
+                            · Trade #{escape_html(trade["id"])}
+                        </div>
+                    </div>
+                    <span class="trade-status {status_class}">{status}</span>
+                </div>
+
+                <div class="trade-exchange">
+                    <div class="trade-side">
+                        <div class="trade-side-label">
+                            {escape_html(trade["manager1"])} receives
+                        </div>
+                        <div class="trade-players">{side2}</div>
+                    </div>
+
+                    <div class="trade-arrow">↔</div>
+
+                    <div class="trade-side">
+                        <div class="trade-side-label">
+                            {escape_html(trade["manager2"])} receives
+                        </div>
+                        <div class="trade-players">{side1}</div>
+                    </div>
+                </div>
+
+                {trade_grade_html}
+            </div>
+        """
+
+    return f'<div class="trades-list">{rows}</div>'
 
 
 # ============================================================
@@ -4171,12 +4768,131 @@ def default_my_team_index():
     return 0 if current_standings else -1
 
 
-def gameweek_summary_sections():
+def _gw_story_choice(rng, options):
+    return options[rng.randrange(len(options))] if options else ""
 
+
+def _gameweek_player_standout(gw):
+    """Return the highest-scoring owned player captured for a completed GW."""
+    best = None
+    seen = set()
+    gw_data = history.get("gameweeks", {}).get(str(gw), {}).get("teams", {})
+
+    for team_data in gw_data.values():
+        manager = team_data.get("manager", "Unknown")
+        players = (team_data.get("starters", []) or []) + (team_data.get("bench", []) or [])
+        for player in players:
+            player_id = player.get("element_id")
+            if player_id in seen:
+                continue
+            seen.add(player_id)
+            try:
+                pts = int(player.get("points", 0) or 0)
+            except (TypeError, ValueError):
+                pts = 0
+            name = player.get("web_name") or elements.get(player_id, {}).get("web_name", "Unknown")
+            if best is None or pts > best["points"]:
+                best = {"name": name, "points": pts, "manager": manager}
+
+    return best
+
+
+def _gameweek_story(gw, scores, fixtures):
+    """Create a deterministic, varied recap from the actual captured GW data."""
+    rng = random.Random((LEAGUE_ID * 1000) + int(gw))
+    if not scores:
+        return "No completed scoring data was captured for this gameweek."
+
+    ranked = sorted(scores, key=lambda x: x[1], reverse=True)
+    highest = ranked[0]
+    lowest = ranked[-1]
+    average = statistics.mean([score for _, score in ranked])
+    standout = _gameweek_player_standout(gw)
+
+    decided = [m for m in fixtures if m.get("score1") != m.get("score2")]
+    biggest = max(decided, key=lambda m: abs(m["score1"] - m["score2"])) if decided else None
+    closest = min(decided, key=lambda m: abs(m["score1"] - m["score2"])) if decided else None
+
+    opener = _gw_story_choice(rng, [
+        f"GW{gw} belonged to {highest[0]}, who set the pace with {highest[1]} points.",
+        f"{highest[0]} topped the GW{gw} scoring charts on {highest[1]} points.",
+        f"Nobody could match {highest[0]} in GW{gw}: {highest[1]} points was the week's best return.",
+        f"The headline score in GW{gw} came from {highest[0]}, finishing on {highest[1]} points.",
+        f"{highest[0]} came flying out of GW{gw} with a league-best {highest[1]} points.",
+        f"GW{gw} saw {highest[0]} lead the way, banking {highest[1]} points.",
+    ])
+
+    fixture_sentence = ""
+    if biggest:
+        if biggest["score1"] > biggest["score2"]:
+            winner, loser, ws, ls = biggest["team1"], biggest["team2"], biggest["score1"], biggest["score2"]
+        else:
+            winner, loser, ws, ls = biggest["team2"], biggest["team1"], biggest["score2"], biggest["score1"]
+        margin = ws - ls
+        if margin >= 20:
+            fixture_sentence = _gw_story_choice(rng, [
+                f"The week's biggest hiding came as {winner} absolutely dismantled {loser} {ws}-{ls}.",
+                f"{winner} ran riot against {loser}, handing out a {ws}-{ls} spanking.",
+                f"There was no mercy from {winner}, who steamrolled {loser} {ws}-{ls}.",
+                f"{loser} had a week to forget after {winner} blew them away {ws}-{ls}.",
+                f"{winner} made very short work of {loser}, thumping them {ws}-{ls}.",
+                f"The demolition job of the week belonged to {winner}: {ws}-{ls} over {loser}.",
+            ])
+        elif margin >= 10:
+            fixture_sentence = _gw_story_choice(rng, [
+                f"{winner} were comfortable winners over {loser}, taking it {ws}-{ls}.",
+                f"{winner} put {loser} firmly away with a {ws}-{ls} victory.",
+                f"A strong {winner} performance saw off {loser} {ws}-{ls}.",
+                f"{winner} had too much for {loser}, winning {ws}-{ls}.",
+            ])
+        else:
+            fixture_sentence = _gw_story_choice(rng, [
+                f"{winner} edged {loser} {ws}-{ls} in the week's tightest scrap.",
+                f"{winner} just about escaped with the points, squeezing past {loser} {ws}-{ls}.",
+                f"Fine margins decided it as {winner} nicked a {ws}-{ls} win over {loser}.",
+                f"{loser} pushed them all the way, but {winner} survived {ws}-{ls}.",
+            ])
+
+    extras = []
+    if closest and closest is not biggest:
+        if closest["score1"] > closest["score2"]:
+            cw, cl, cws, cls = closest["team1"], closest["team2"], closest["score1"], closest["score2"]
+        else:
+            cw, cl, cws, cls = closest["team2"], closest["team1"], closest["score2"], closest["score1"]
+        extras.append(_gw_story_choice(rng, [
+            f"At the other end of the drama scale, {cw} scraped past {cl} {cws}-{cls}.",
+            f"The nail-biter went to {cw}, who pinched it {cws}-{cls} against {cl}.",
+            f"Only {cws-cls} point{'s' if cws-cls != 1 else ''} separated {cw} and {cl}, with {cw} coming out on top.",
+        ]))
+
+    if standout and standout["points"] > 0:
+        extras.append(_gw_story_choice(rng, [
+            f"On the player front, {standout['name']} was the standout with {standout['points']} points for {standout['manager']}.",
+            f"{standout['name']} produced the individual performance of the week, returning {standout['points']} points for {standout['manager']}.",
+            f"No player in the captured squads bettered {standout['name']}'s {standout['points']}-point haul for {standout['manager']}.",
+            f"{standout['manager']} had {standout['name']} to thank for a superb {standout['points']}-point contribution.",
+        ]))
+
+    if lowest[1] < average - 8:
+        extras.append(_gw_story_choice(rng, [
+            f"Down at the other end, {lowest[0]} endured a stinker on {lowest[1]} points, well below the league average of {average:.1f}.",
+            f"It was rough going for {lowest[0]}: just {lowest[1]} points against a league average of {average:.1f}.",
+            f"{lowest[0]} brought up the rear with {lowest[1]} points and will probably be happy to see the back of GW{gw}.",
+        ]))
+
+    paragraphs = [opener]
+    if fixture_sentence:
+        paragraphs.append(fixture_sentence)
+    if extras:
+        rng.shuffle(extras)
+        paragraphs.append(" ".join(extras[:2]))
+    return "\n\n".join(paragraphs)
+
+
+def gameweek_summary_sections():
     sections = ""
 
     for index, gw in enumerate(finished_gws):
-
         gw_data = history["gameweeks"][str(gw)].get("teams", {})
         scores = []
 
@@ -4194,29 +4910,34 @@ def gameweek_summary_sections():
         lowest = scores[-1] if scores else ("—", 0)
         average = statistics.mean([score for _, score in scores]) if scores else 0
 
-        margins = []
-        for match in results_by_gw.get(gw, []):
-            margins.append(abs(match["score1"] - match["score2"]))
-
+        fixtures = results_by_gw.get(gw, [])
+        margins = [abs(match["score1"] - match["score2"]) for match in fixtures]
         biggest_margin = max(margins) if margins else 0
         closest_margin = min(margins) if margins else 0
+        standout = _gameweek_player_standout(gw)
+        story = _gameweek_story(gw, scores, fixtures)
+        story_html = "".join(f"<p>{escape_html(paragraph)}</p>" for paragraph in story.split("\n\n") if paragraph.strip())
 
         display_mode = "block" if index == len(finished_gws) - 1 else "none"
 
-        sections += f'''
+        sections += f"""
             <div class="gw-summary-slide" id="summary-gw-{gw}" style="display:{display_mode};">
+                <div class="gw-story">
+                    <div class="eyebrow">THE STORY OF GW{gw}</div>
+                    <div class="gw-story-copy">{story_html}</div>
+                </div>
                 <div class="gw-summary-grid">
-                    <div class="summary-stat"><span>Highest Score</span><strong>{escape_html(highest[0])}</strong><b>{highest[1]}</b></div>
-                    <div class="summary-stat"><span>Lowest Score</span><strong>{escape_html(lowest[0])}</strong><b>{lowest[1]}</b></div>
+                    <div class="summary-stat"><span>Manager of the Week</span><strong>{escape_html(highest[0])}</strong><b>{highest[1]} pts</b></div>
+                    <div class="summary-stat"><span>Stinker</span><strong>{escape_html(lowest[0])}</strong><b>{lowest[1]} pts</b></div>
                     <div class="summary-stat"><span>League Average</span><strong>{average:.1f}</strong><b>pts</b></div>
                     <div class="summary-stat"><span>Biggest Win</span><strong>{biggest_margin}</strong><b>point margin</b></div>
                     <div class="summary-stat"><span>Closest Game</span><strong>{closest_margin}</strong><b>point margin</b></div>
+                    <div class="summary-stat"><span>Player of the Week</span><strong>{escape_html(standout['name']) if standout else '—'}</strong><b>{standout['points'] if standout else 0} pts</b></div>
                 </div>
             </div>
-        '''
+        """
 
     return sections
-
 
 def manager_profile_cards():
 
@@ -5924,6 +6645,405 @@ tbody tr:hover {
 }
 
 /* ============================================================
+   PLAYER DIRECTORY / FILTERS
+   ============================================================ */
+
+.player-directory-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.player-directory-count {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    padding-top: 4px;
+}
+
+.player-filter-grid {
+    display: grid;
+    grid-template-columns: 2fr repeat(4, minmax(130px, 1fr));
+    gap: 9px;
+    margin-bottom: 16px;
+}
+
+.player-filter {
+    width: 100%;
+    box-sizing: border-box;
+    background: #0b1120;
+    color: white;
+    border: 1px solid var(--border-light);
+    border-radius: 9px;
+    padding: 12px;
+    font-size: 13px;
+    outline: none;
+}
+
+.player-filter:focus {
+    border-color: var(--accent);
+}
+
+.player-directory-results {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.player-directory-card {
+    background: #172033;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 13px;
+    display: grid;
+    grid-template-columns: minmax(160px, 1fr) auto auto;
+    gap: 12px;
+    align-items: center;
+}
+
+.player-directory-name {
+    color: white;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.player-directory-meta {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.player-directory-meta .free-agent {
+    color: var(--green);
+    font-weight: 800;
+}
+
+.player-directory-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.player-directory-stats div {
+    min-width: 38px;
+    text-align: center;
+}
+
+.player-directory-stats b,
+.player-directory-stats span {
+    display: block;
+}
+
+.player-directory-stats b {
+    color: white;
+    font-size: 14px;
+}
+
+.player-directory-stats span {
+    color: var(--muted-dark);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+.player-details-button {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--border-light);
+    border-radius: 7px;
+    padding: 7px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.player-details-button:hover {
+    background: rgba(56, 189, 248, 0.08);
+}
+
+.player-details {
+    grid-column: 1 / -1;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.player-details .player-gw-table {
+    overflow-x: auto;
+}
+
+.player-details .player-gw-table table {
+    min-width: 420px;
+}
+
+/* ============================================================
+   FREE AGENTS / H2H
+   ============================================================ */
+
+.free-agent-list,
+.h2h-record-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.free-agent-row,
+.h2h-record-row {
+    background: #172033;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 12px;
+}
+
+.free-agent-row {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) minmax(190px, 1.3fr) auto;
+    gap: 12px;
+    align-items: center;
+}
+
+.free-agent-name,
+.h2h-opponent {
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.free-agent-meta {
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 3px;
+}
+
+.free-agent-comparison {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.free-agent-label {
+    width: 100%;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.upgrade-positive,
+.upgrade-neutral {
+    border-radius: 999px;
+    padding: 4px 7px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.upgrade-positive {
+    color: var(--green);
+    background: rgba(34, 197, 94, 0.09);
+}
+
+.upgrade-neutral {
+    color: var(--muted);
+    background: rgba(148, 163, 184, 0.08);
+}
+
+.free-agent-stats {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 0 7px;
+    min-width: 54px;
+    text-align: right;
+}
+
+.free-agent-stats b {
+    color: white;
+    font-size: 13px;
+}
+
+.free-agent-stats span {
+    color: var(--muted-dark);
+    font-size: 9px;
+}
+
+.h2h-record-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.h2h-record-summary {
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.h2h-positive { color: var(--green); }
+.h2h-negative { color: var(--red); }
+.h2h-neutral { color: var(--muted); }
+
+.h2h-record-score {
+    color: white;
+    font-size: 12px;
+    font-weight: 800;
+    min-width: 55px;
+    text-align: right;
+}
+
+.h2h-record-played {
+    color: var(--muted-dark);
+    font-size: 10px;
+    min-width: 55px;
+    text-align: right;
+}
+
+/* ============================================================
+   TRADES
+   ============================================================ */
+
+.trades-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.trade-card {
+    background: #172033;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 14px;
+}
+
+.trade-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.trade-managers {
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.trade-managers span {
+    color: var(--accent);
+    margin: 0 5px;
+}
+
+.trade-meta {
+    color: var(--muted-dark);
+    font-size: 10px;
+    margin-top: 4px;
+}
+
+.trade-status {
+    border-radius: 999px;
+    padding: 5px 8px;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.trade-status-complete {
+    color: var(--green);
+    background: rgba(34, 197, 94, 0.09);
+}
+
+.trade-status-other {
+    color: var(--muted);
+    background: rgba(148, 163, 184, 0.08);
+}
+
+.trade-exchange {
+    display: grid;
+    grid-template-columns: 1fr 35px 1fr;
+    gap: 10px;
+    align-items: center;
+}
+
+.trade-side {
+    background: #0f1626;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px;
+}
+
+.trade-side-label {
+    color: var(--muted-dark);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-weight: 800;
+    margin-bottom: 5px;
+}
+
+.trade-players {
+    color: white;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+
+.gw-story {
+    margin-bottom: 18px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: rgba(255,255,255,0.025);
+}
+
+.gw-story .eyebrow { margin-bottom: 8px; }
+.gw-story-copy { font-size: 15px; line-height: 1.7; }
+.gw-story-copy p { margin: 0 0 10px 0; }
+.gw-story-copy p:last-child { margin-bottom: 0; }
+
+.trade-grade {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+.trade-grade-title {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 10px;
+}
+.trade-grade-title span {
+    font-weight: 500;
+    opacity: .65;
+    text-transform: none;
+    letter-spacing: 0;
+}
+.trade-grade-grid {
+    display: grid;
+    grid-template-columns: 1fr minmax(150px, .8fr) 1fr;
+    gap: 12px;
+    align-items: stretch;
+}
+.trade-grade-grid > div {
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.trade-grade-grid b { font-size: 27px; line-height: 1; }
+.trade-grade-grid span { font-size: 12px; opacity: .72; }
+.trade-grade-verdict { text-align: center; justify-content: center; }
+@media (max-width: 700px) { .trade-grade-grid { grid-template-columns: 1fr; } }
+
+.trade-arrow {
+    color: var(--accent);
+    text-align: center;
+    font-size: 18px;
+}
+
+/* ============================================================
    MOBILE
    ============================================================ */
 
@@ -6210,6 +7330,55 @@ tbody tr:hover {
         font-size: 14px;
     }
 
+    .player-filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .player-filter-grid .player-search-box {
+        grid-column: 1 / -1;
+    }
+
+    .player-directory-heading {
+        gap: 8px;
+    }
+
+    .player-directory-card {
+        grid-template-columns: 1fr auto;
+    }
+
+    .player-directory-stats {
+        grid-column: 1 / -1;
+        justify-content: space-between;
+    }
+
+    .player-details-button {
+        justify-self: end;
+    }
+
+    .free-agent-row {
+        grid-template-columns: 1fr auto;
+    }
+
+    .free-agent-comparison {
+        grid-column: 1 / -1;
+    }
+
+    .h2h-record-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .trade-card-top {
+        flex-direction: column;
+    }
+
+    .trade-exchange {
+        grid-template-columns: 1fr;
+    }
+
+    .trade-arrow {
+        transform: rotate(90deg);
+    }
+
 }
 """
 
@@ -6245,7 +7414,10 @@ function changeMyTeam() {
 
     renderMyTeamSquad();
     renderMyTeamStatsCharts();
+    renderMyTeamFreeAgents();
+    renderMyTeamH2H();
 }
+
 
 function initialiseMyTeam() {
     const select = document.getElementById("my-team-select");
@@ -7329,189 +8501,241 @@ function buildPlayerHistoryChart(historyRows) {
 }
 
 
-function searchPlayers() {
+function renderPlayerDirectoryCard(player) {
+    const historyAvailable = Array.isArray(player.history) && player.history.length > 0;
+    const owner = player.fantasy_team || "Free Agent";
+    const ownerClass = owner === "Free Agent" ? "free-agent" : "";
 
-    const input =
-        document.getElementById(
-            "player-search"
-        );
-
-
-    const results =
-        document.getElementById(
-            "player-search-results"
-        );
-
-
-    const query =
-        input.value
-            .trim()
-            .toLowerCase();
-
-
-    if (
-        query.length < 2
-    ) {
-
-        results.style.display =
-            "none";
-
-        results.innerHTML =
-            "";
-
-        return;
-
-    }
-
-
-    const matches =
-        playerSearchData
-            .filter(
-                function(player) {
-
-                    return player.name
-                        .toLowerCase()
-                        .includes(query);
-
-                }
-            )
-            .slice(
-                0,
-                10
-            );
-
-
-    if (
-        matches.length === 0
-    ) {
-
-        results.style.display =
-            "block";
-
-        results.innerHTML =
-            "<div class='notice'>No players found.</div>";
-
-        return;
-
-    }
-
-
-    results.style.display =
-        "block";
-
-
-    let searchHtml = "";
-
-
-    matches.forEach(
-        function(player) {
-
-            searchHtml +=
-                '<div class="player-history-card">';
-
-
-            searchHtml +=
-                '<div class="player-history-title">' +
-                escapePlayerHTML(
-                    player.name
-                ) +
-                '</div>';
-
-
-            searchHtml +=
-                '<div class="player-meta">' +
-                escapePlayerHTML(player.position) +
-                ' · ' +
-                escapePlayerHTML(player.team) +
-                ' · Used by ' +
-                player.owners.length +
-                ' different managers' +
-                ' · ' +
-                player.transfers +
-                ' transfers' +
-                '</div>';
-
-
-            searchHtml +=
-                '<div class="player-stat-chips">' +
+    return '<div class="player-directory-card">' +
+        '<div class="player-directory-main">' +
+            '<div class="player-directory-name">' + escapePlayerHTML(player.name) + '</div>' +
+            '<div class="player-directory-meta">' +
+                escapePlayerHTML(player.position) + ' · ' +
+                escapePlayerHTML(player.team) + ' · ' +
+                '<span class="' + ownerClass + '">' + escapePlayerHTML(owner) + '</span>' +
+            '</div>' +
+        '</div>' +
+        '<div class="player-directory-stats">' +
+            '<div><b>' + player.total_points + '</b><span>Pts</span></div>' +
+            '<div><b>' + Number(player.form || 0).toFixed(1) + '</b><span>5GW</span></div>' +
+            '<div><b>' + player.goals + '</b><span>G</span></div>' +
+            '<div><b>' + player.assists + '</b><span>A</span></div>' +
+        '</div>' +
+        '<button class="player-details-button" onclick="togglePlayerDetails(' + player.id + ')">Details</button>' +
+        '<div class="player-details" id="player-details-' + player.id + '" style="display:none;">' +
+            '<div class="player-stat-chips">' +
+                '<span class="player-stat-chip"><b>' + player.total_points + '</b> Season points</span>' +
+                '<span class="player-stat-chip"><b>' + Number(player.form || 0).toFixed(1) + '</b> 5 GW form</span>' +
+                '<span class="player-stat-chip"><b>' + Number(player.points_per_game || 0).toFixed(1) + '</b> PPG</span>' +
                 '<span class="player-stat-chip"><b>' + player.goals + '</b> Goals</span>' +
                 '<span class="player-stat-chip"><b>' + player.assists + '</b> Assists</span>' +
                 '<span class="player-stat-chip"><b>' + player.clean_sheets + '</b> Clean Sheets</span>' +
-                '<span class="player-stat-chip"><b>' + player.defensive_contributions + '</b> Def. Contributions</span>' +
+                '<span class="player-stat-chip"><b>' + player.minutes + '</b> Minutes</span>' +
                 '<span class="player-stat-chip"><b>' + player.bonus + '</b> Bonus</span>' +
-                '<span class="player-stat-chip"><b>' + player.saves + '</b> Saves</span>' +
-                '<span class="player-stat-chip"><b>' + player.goals_conceded + '</b> Conceded</span>' +
-                '<span class="player-stat-chip"><b>' + player.minutes + '</b> Mins</span>' +
-                '<span class="player-stat-chip"><b>' + player.yellow_cards + '</b> Yellow</span>' +
-                '<span class="player-stat-chip"><b>' + player.red_cards + '</b> Red</span>' +
-                '</div>';
+            '</div>' +
+            (historyAvailable
+                ? '<div class="player-history-chart-heading">Draft ownership & points history</div>' +
+                  '<div class="player-gw-chart-wrap trend-chart-svg-wrap">' +
+                    buildPlayerHistoryChart(player.history) +
+                  '</div>' +
+                  '<div class="player-gw-table">' +
+                    '<table><thead><tr><th>GW</th><th>Manager(s)</th><th>Points</th></tr></thead><tbody>' +
+                    player.history.map(function(row) {
+                        const ownerNames = row.owners.length
+                            ? row.owners.map(escapePlayerHTML).join(", ")
+                            : "Not owned";
+                        return '<tr><td>GW' + row.gw + '</td><td>' + ownerNames + '</td><td>' + row.points + '</td></tr>';
+                    }).join("") +
+                    '</tbody></table></div>'
+                : '<div class="notice">No draft ownership history has been captured for this player yet.</div>') +
+        '</div>' +
+    '</div>';
+}
 
 
-            searchHtml +=
-                '<div class="player-history-chart-heading">Score By Gameweek</div>' +
-                '<div class="player-gw-chart-wrap trend-chart-svg-wrap">' +
-                buildPlayerHistoryChart(player.history) +
-                '</div>';
+function filterPlayers() {
+    const input = document.getElementById("player-search");
+    const position = document.getElementById("player-position-filter");
+    const club = document.getElementById("player-club-filter");
+    const fantasy = document.getElementById("player-fantasy-filter");
+    const sort = document.getElementById("player-sort");
+    const results = document.getElementById("player-search-results");
+    const count = document.getElementById("player-directory-count");
 
+    if (!input || !results) return;
 
-            searchHtml +=
-                '<div class="player-gw-table">' +
-                '<table>' +
-                '<thead>' +
-                '<tr>' +
-                '<th>GW</th>' +
-                '<th>Manager(s)</th>' +
-                '<th>Points</th>' +
-                '</tr>' +
-                '</thead>' +
-                '<tbody>';
+    const query = input.value.trim().toLowerCase();
+    const positionValue = position ? position.value : "";
+    const clubValue = club ? club.value : "";
+    const fantasyValue = fantasy ? fantasy.value : "";
+    const sortValue = sort ? sort.value : "points";
 
+    let matches = playerSearchData.filter(function(player) {
+        return (!query || player.name.toLowerCase().includes(query)) &&
+               (!positionValue || player.position === positionValue) &&
+               (!clubValue || player.team === clubValue) &&
+               (!fantasyValue || (player.fantasy_team || "Free Agent") === fantasyValue);
+    });
 
-            player.history.forEach(
-                function(row) {
-
-                    const ownerNames =
-                        row.owners.length
-                        ? row.owners
-                            .map(
-                                escapePlayerHTML
-                            )
-                            .join(
-                                ", "
-                            )
-                        : "Not owned";
-
-
-                    searchHtml +=
-                        '<tr>' +
-                        '<td>GW' +
-                        row.gw +
-                        '</td>' +
-                        '<td>' +
-                        ownerNames +
-                        '</td>' +
-                        '<td>' +
-                        row.points +
-                        '</td>' +
-                        '</tr>';
-
-                }
-            );
-
-
-            searchHtml +=
-                '</tbody>' +
-                '</table>' +
-                '</div>' +
-                '</div>';
-
+    matches.sort(function(a, b) {
+        if (sortValue === "name") return a.name.localeCompare(b.name);
+        if (sortValue === "form") {
+            return (Number(b.form || 0) - Number(a.form || 0)) ||
+                   (Number(b.total_points || 0) - Number(a.total_points || 0));
         }
-    );
+        if (sortValue === "goals") {
+            return (Number(b.goals || 0) - Number(a.goals || 0)) ||
+                   (Number(b.total_points || 0) - Number(a.total_points || 0));
+        }
+        if (sortValue === "assists") {
+            return (Number(b.assists || 0) - Number(a.assists || 0)) ||
+                   (Number(b.total_points || 0) - Number(a.total_points || 0));
+        }
+        return (Number(b.total_points || 0) - Number(a.total_points || 0)) ||
+               (Number(b.form || 0) - Number(a.form || 0));
+    });
 
+    if (count) {
+        count.textContent = matches.length + " player" + (matches.length === 1 ? "" : "s");
+    }
 
+    if (matches.length === 0) {
+        results.innerHTML = '<div class="notice">No players match those filters.</div>';
+        return;
+    }
+
+    const visible = matches.slice(0, 100);
     results.innerHTML =
-        searchHtml;
+        visible.map(renderPlayerDirectoryCard).join("") +
+        (matches.length > 100
+            ? '<div class="notice">Showing the first 100 matches. Refine the filters to narrow the list.</div>'
+            : '');
+}
 
+
+function togglePlayerDetails(playerId) {
+    const details = document.getElementById("player-details-" + playerId);
+    if (!details) return;
+
+    const isOpen = details.style.display !== "none";
+    details.style.display = isOpen ? "none" : "block";
+}
+
+
+const FREE_AGENT_RECOMMENDATIONS =
+    __FREE_AGENT_RECOMMENDATIONS__;
+
+
+const H2H_RECORDS =
+    __H2H_RECORDS__;
+
+
+function renderMyTeamFreeAgents() {
+    const wrap = document.getElementById("myteam-free-agents");
+    if (!wrap) return;
+
+    const manager = currentMyTeamManager();
+    const recommendations = FREE_AGENT_RECOMMENDATIONS[manager] || [];
+
+    if (recommendations.length === 0) {
+        wrap.innerHTML =
+            '<div class="notice">No clear like-for-like free-agent upgrades found from the latest captured squad.</div>';
+        return;
+    }
+
+    let html = '<div class="free-agent-list">';
+
+    recommendations.forEach(function(player) {
+        const seasonArrow =
+            player.season_edge > 0
+                ? '<span class="upgrade-positive">+' + player.season_edge + ' pts</span>'
+                : '<span class="upgrade-neutral">Season level</span>';
+
+        const formArrow =
+            player.form_edge > 0
+                ? '<span class="upgrade-positive">+' + player.form_edge.toFixed(1) + ' form</span>'
+                : '<span class="upgrade-neutral">' + player.form_edge.toFixed(1) + ' form</span>';
+
+        html +=
+            '<div class="free-agent-row">' +
+                '<div class="free-agent-main">' +
+                    '<div class="free-agent-name">' + escapePlayerHTML(player.name) + '</div>' +
+                    '<div class="free-agent-meta">' +
+                        escapePlayerHTML(player.position) + ' · ' +
+                        escapePlayerHTML(player.team) + ' · Free Agent' +
+                    '</div>' +
+                '</div>' +
+                '<div class="free-agent-comparison">' +
+                    '<span class="free-agent-label">Over ' + escapePlayerHTML(player.replace_name) + '</span>' +
+                    seasonArrow +
+                    formArrow +
+                '</div>' +
+                '<div class="free-agent-stats">' +
+                    '<b>' + player.total_points + '</b><span>Pts</span>' +
+                    '<b>' + player.form.toFixed(1) + '</b><span>5GW</span>' +
+                '</div>' +
+            '</div>';
+    });
+
+    html += '</div>';
+    wrap.innerHTML = html;
+}
+
+
+function renderMyTeamH2H() {
+    const wrap = document.getElementById("myteam-h2h-record");
+    if (!wrap) return;
+
+    const manager = currentMyTeamManager();
+    if (!manager) {
+        wrap.innerHTML = '<div class="notice">Select a team to view its head-to-head record.</div>';
+        return;
+    }
+
+    const records = H2H_RECORDS[manager] || {};
+    const opponents = MANAGER_ORDER.filter(function(opponent) {
+        return opponent !== manager && records[opponent];
+    });
+
+    if (opponents.length === 0) {
+        wrap.innerHTML = '<div class="notice">No head-to-head matches captured yet.</div>';
+        return;
+    }
+
+    opponents.sort(function(a, b) {
+        const ra = records[a];
+        const rb = records[b];
+        const aWinRate = ra.played ? ra.wins / ra.played : 0;
+        const bWinRate = rb.played ? rb.wins / rb.played : 0;
+        return (bWinRate - aWinRate) || (rb.wins - ra.wins) || a.localeCompare(b);
+    });
+
+    let html = '<div class="h2h-record-list">';
+
+    opponents.forEach(function(opponent) {
+        const record = records[opponent];
+        const resultClass =
+            record.wins > record.losses
+                ? "h2h-positive"
+                : record.losses > record.wins
+                    ? "h2h-negative"
+                    : "h2h-neutral";
+
+        html +=
+            '<div class="h2h-record-row">' +
+                '<div class="h2h-opponent">' + escapePlayerHTML(opponent) + '</div>' +
+                '<div class="h2h-record-summary ' + resultClass + '">' +
+                    record.wins + 'W ' + record.draws + 'D ' + record.losses + 'L' +
+                '</div>' +
+                '<div class="h2h-record-score">' + record["for"] + '–' + record["against"] + '</div>' +
+                '<div class="h2h-record-played">' +
+                    record.played + ' game' + (record.played === 1 ? '' : 's') +
+                '</div>' +
+            '</div>';
+    });
+
+    html += '</div>';
+    wrap.innerHTML = html;
 }
 
 
@@ -7519,29 +8743,68 @@ function searchPlayers() {
    INITIALISE
    ============================================================ */
 
-initialiseMyTeam();
+/* ============================================================
+   SAFE DASHBOARD STARTUP
+   ------------------------------------------------------------
+   Initialise each feature independently. One broken optional
+   component must never take down navigation or the rest of the UI.
+   ============================================================ */
 
-updateTOTW();
+function safeInit(label, fn) {
+    try {
+        fn();
+    } catch (error) {
+        console.error("FPL Dashboard " + label + " failed:", error);
+    }
+}
 
-updateResults();
+function initialiseDashboard() {
+    safeInit("page navigation", function() {
+        showPage("overview");
+    });
 
-changeMyTeam();
+    safeInit("My Team", function() {
+        initialiseMyTeam();
+    });
 
-initAllTrendCharts();
+    safeInit("Team of the Week", function() {
+        updateTOTW();
+    });
 
-showPage(
-    "overview"
-);
+    safeInit("Results", function() {
+        updateResults();
+    });
 
-window.addEventListener(
-    "resize",
-    resizeCharts
-);
+    safeInit("My Team charts", function() {
+        renderMyTeamStatsCharts();
+    });
 
-setTimeout(
-    resizeCharts,
-    150
-);
+    safeInit("trend charts", function() {
+        initAllTrendCharts();
+    });
+
+    safeInit("My Team recommendations", function() {
+        renderMyTeamFreeAgents();
+    });
+
+    safeInit("My Team H2H", function() {
+        renderMyTeamH2H();
+    });
+
+    setTimeout(function() {
+        safeInit("chart resize", resizeCharts);
+    }, 150);
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initialiseDashboard);
+} else {
+    initialiseDashboard();
+}
+
+window.addEventListener("resize", function() {
+    safeInit("chart resize", resizeCharts);
+});
 """
 
 
@@ -7837,6 +9100,23 @@ __CSS__
 
             <div class="dashboard-grid">
 
+                <div class="card">
+                    <h2>Free Agents Who Could Improve You</h2>
+                    <p class="card-description">
+                        Like-for-like recommendations from the current free-agent pool,
+                        ranked by season points and recent form.
+                    </p>
+                    <div id="myteam-free-agents"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Head-to-Head Record</h2>
+                    <p class="card-description">
+                        Your record against every other manager in the league.
+                    </p>
+                    <div id="myteam-h2h-record"></div>
+                </div>
+
                 <div class="card trend-chart-card">
                     <h2>Score By Gameweek</h2>
                     <p class="card-description">Your points, gameweek by gameweek.</p>
@@ -7870,7 +9150,7 @@ __CSS__
                 </h1>
 
                 <p>
-                    Results, Team of the Week and weekly awards.
+                    A fresh match report, results, Team of the Week and weekly awards.
                 </p>
 
             </div>
@@ -8057,23 +9337,58 @@ __CSS__
 
             <div class="card">
 
-                <h2>
-                    Player History
-                </h2>
+                <div class="player-directory-heading">
+                    <div>
+                        <h2>Player Directory</h2>
+                        <p class="card-description">
+                            Search the full player pool and filter by position,
+                            Premier League club or your draft fantasy team.
+                        </p>
+                    </div>
+                    <div class="player-directory-count" id="player-directory-count"></div>
+                </div>
 
+                <div class="player-filter-grid">
+                    <input
+                        type="text"
+                        id="player-search"
+                        class="player-search-box"
+                        placeholder="Search player..."
+                        oninput="filterPlayers()"
+                    />
 
-                <input
-                    type="text"
-                    id="player-search"
-                    class="player-search-box"
-                    placeholder="Search for a player..."
-                    oninput="searchPlayers()"
-                />
+                    <select id="player-position-filter" class="player-filter" onchange="filterPlayers()">
+                        <option value="">All positions</option>
+                        <option value="GKP">Goalkeepers</option>
+                        <option value="DEF">Defenders</option>
+                        <option value="MID">Midfielders</option>
+                        <option value="FWD">Forwards</option>
+                    </select>
 
+                    <select id="player-club-filter" class="player-filter" onchange="filterPlayers()">
+                        <option value="">All clubs</option>
+                        __PLAYER_CLUB_OPTIONS__
+                    </select>
+
+                    <select id="player-fantasy-filter" class="player-filter" onchange="filterPlayers()">
+                        <option value="">All fantasy teams</option>
+                        <option value="Free Agent">Free Agents</option>
+                        __PLAYER_FANTASY_OPTIONS__
+                    </select>
+
+                    <select id="player-sort" class="player-filter" onchange="filterPlayers()">
+                        <option value="points">Season points</option>
+                        <option value="form">5 GW form</option>
+                        <option value="goals">Goals</option>
+                        <option value="assists">Assists</option>
+                        <option value="name">Name</option>
+                    </select>
+                </div>
 
                 <div
                     id="player-search-results"
-                    class="player-search-results"
+                    class="player-search-results player-directory-results"
+                    style="display:block;"
                 ></div>
 
             </div>
@@ -8099,6 +9414,17 @@ __CSS__
                 <p>
                     Ownership changes, manager hopping and transfer disasters.
                 </p>
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>All League Trades</h2>
+                <p class="card-description">
+                    Every processed league trade, with a live grade based on points scored after the deal.
+                </p>
+                __TRADES_TABLE__
 
             </div>
 
@@ -8316,6 +9642,20 @@ __JAVASCRIPT__
 # REPLACE PLACEHOLDERS
 # ============================================================
 
+# JSON is embedded inside a <script> block. Escape characters that can
+# accidentally terminate that block (for example a player/team name
+# containing </script>) while keeping the values valid JavaScript.
+def safe_js_json(raw):
+    text = raw if isinstance(raw, str) else json.dumps(raw, ensure_ascii=True)
+    return (
+        text
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
+    )
+
 html = html_template
 
 replacements = {
@@ -8361,6 +9701,30 @@ replacements = {
 
     "__MY_TEAM_CARDS__":
         my_team_cards(),
+
+    "__TRADES_TABLE__":
+        trades_table(),
+
+    "__PLAYER_CLUB_OPTIONS__":
+        "".join(
+            f'<option value="{escape_html(club)}">{escape_html(club)}</option>'
+            for club in sorted(
+                {
+                    teams_lookup.get(
+                        p.get("team"),
+                        "—"
+                    )
+                    for p in elements.values()
+                    if p.get("team") in teams_lookup
+                }
+            )
+        ),
+
+    "__PLAYER_FANTASY_OPTIONS__":
+        "".join(
+            f'<option value="{escape_html(manager)}">{escape_html(manager)}</option>'
+            for manager in current_standings
+        ),
 
     "__STANDINGS_TABLE__":
         standings_table(),
@@ -8433,35 +9797,37 @@ replacements = {
     "__JAVASCRIPT__":
         javascript.replace(
             "__TOTW_GAMEWEEKS__",
-            json.dumps(
-                finished_gws
-            )
+            safe_js_json(json.dumps(finished_gws))
         ).replace(
             "__RESULT_GAMEWEEKS__",
-            json.dumps(
-                result_gameweeks
-            )
+            safe_js_json(json.dumps(result_gameweeks))
         ).replace(
             "__PLAYER_SEARCH_DATA__",
-            player_search_json
+            safe_js_json(player_search_json)
+        ).replace(
+            "__FREE_AGENT_RECOMMENDATIONS__",
+            safe_js_json(free_agent_recommendations_json)
+        ).replace(
+            "__H2H_RECORDS__",
+            safe_js_json(h2h_records_json)
         ).replace(
             "__DEFAULT_MY_TEAM_INDEX__",
             str(default_my_team_index())
         ).replace(
             "__MY_TEAM_HISTORY_DATA__",
-            my_team_history_json
+            safe_js_json(my_team_history_json)
         ).replace(
             "__CHART_H2H_DATA__",
-            chart_h2h_json
+            safe_js_json(chart_h2h_json)
         ).replace(
             "__CHART_RANK_DATA__",
-            chart_rank_json
+            safe_js_json(chart_rank_json)
         ).replace(
             "__CHART_SCORES_DATA__",
-            chart_scores_json
+            safe_js_json(chart_scores_json)
         ).replace(
             "__MANAGER_ORDER__",
-            manager_order_json
+            safe_js_json(manager_order_json)
         )
 
 }
