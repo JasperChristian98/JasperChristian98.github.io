@@ -3104,6 +3104,112 @@ player_search_json = json.dumps(
 
 
 # ============================================================
+# MY TEAM — SQUAD SELECTED BY GAMEWEEK
+#
+# Unlike latest_team_data() (which only surfaces the most recent
+# captured gameweek), this walks every captured gameweek so the
+# "My Team" page can let a manager flip back through their squad
+# week by week, not just see the latest one.
+# ============================================================
+
+def _my_team_history_for_manager(manager):
+
+    all_captured_gws = sorted(
+        int(gw) for gw in history.get("gameweeks", {}).keys()
+    )
+
+    entries = []
+
+    for gw in all_captured_gws:
+
+        gw_snapshot = history["gameweeks"][str(gw)]
+        teams = gw_snapshot.get("teams", {})
+
+        team_data = next(
+            (
+                t for t in teams.values()
+                if t.get("manager") == manager
+            ),
+            None
+        )
+
+        if not team_data:
+            continue
+
+        official_points = official_gw_score(manager, gw)
+        is_finished = gw_snapshot.get("finished", False)
+
+        if official_points is not None:
+            points = official_points
+        elif is_finished:
+            points = team_data.get("gw_points", 0)
+        else:
+            points = team_data.get(
+                "live_points",
+                team_data.get("gw_points", 0)
+            )
+
+        starters = sorted(
+            team_data.get("starters", []),
+            key=lambda p: int(p.get("points", 0) or 0),
+            reverse=True
+        )
+
+        bench = sorted(
+            team_data.get("bench", []),
+            key=lambda p: int(p.get("points", 0) or 0),
+            reverse=True
+        )
+
+        captain = next(
+            (
+                p.get("web_name")
+                for p in team_data.get("starters", [])
+                if p.get("is_captain")
+            ),
+            None
+        )
+
+        entries.append({
+            "gw": gw,
+            "points": points,
+            "finished": is_finished,
+            "captain": captain,
+            "starters": [
+                {
+                    "name": p.get("web_name", "Unknown"),
+                    "team": p.get("team", "—"),
+                    "position": p.get("position", "—"),
+                    "points": p.get("points", 0),
+                    "is_captain": bool(p.get("is_captain")),
+                    "is_vice_captain": bool(p.get("is_vice_captain")),
+                }
+                for p in starters
+            ],
+            "bench": [
+                {
+                    "name": p.get("web_name", "Unknown"),
+                    "team": p.get("team", "—"),
+                    "position": p.get("position", "—"),
+                    "points": p.get("points", 0),
+                }
+                for p in bench
+            ],
+        })
+
+    return entries
+
+
+my_team_history_json = json.dumps(
+    {
+        manager: _my_team_history_for_manager(manager)
+        for manager in current_standings
+    },
+    ensure_ascii=False
+)
+
+
+# ============================================================
 # CHART HELPER
 # ============================================================
 
@@ -5230,6 +5336,33 @@ tbody tr:hover {
 #my-team-select { background:#172033; color:white; border:1px solid var(--border-light); border-radius:8px; padding:10px 12px; font-size:14px; min-width:230px; cursor:pointer; }
 #my-team-select:focus { outline:2px solid var(--accent); outline-offset:2px; }
 
+.squad-gw-heading {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.squad-gw-heading b {
+    color: white;
+}
+
+.cap-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #0f1626;
+    font-size: 9px;
+    font-weight: 800;
+    border-radius: 4px;
+    padding: 1px 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.cap-badge.vc {
+    background: var(--muted);
+    color: #0f1626;
+}
+
 /* ============================================================
    MOBILE TREND CHARTS (H2H points / rank / gw scores)
    ============================================================ */
@@ -5749,6 +5882,24 @@ tbody tr:hover {
     margin-right: 4px;
 }
 
+.player-history-chart-heading {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 8px;
+}
+
+.player-gw-chart-wrap {
+    margin-bottom: 16px;
+}
+
+.trend-chart-bar {
+    fill: var(--accent);
+    opacity: 0.85;
+}
+
 
 /* ============================================================
    PLOTLY / CHARTS
@@ -6091,6 +6242,9 @@ function changeMyTeam() {
     } catch (e) {
         // localStorage may be unavailable in private/restricted browsers.
     }
+
+    renderMyTeamSquad();
+    renderMyTeamStatsCharts();
 }
 
 function initialiseMyTeam() {
@@ -6585,6 +6739,194 @@ function initAllTrendCharts() {
 
 
 /* ============================================================
+   MY TEAM — SQUAD BY GAMEWEEK + PERSONAL TREND CHARTS
+   ============================================================ */
+
+const MY_TEAM_HISTORY = __MY_TEAM_HISTORY_DATA__;
+
+let myTeamSquadIndex = -1;
+let myTeamSquadManager = null;
+
+function currentMyTeamManager() {
+    const select = document.getElementById("my-team-select");
+    if (!select) return null;
+    return MANAGER_ORDER[Number(select.value)] || null;
+}
+
+function renderMyTeamSquad() {
+    const wrap = document.getElementById("myteam-squad-wrap");
+    const gwDisplay = document.getElementById("myteam-squad-gw-display");
+    const prevButton = document.getElementById("myteam-squad-prev");
+    const nextButton = document.getElementById("myteam-squad-next");
+    if (!wrap) return;
+
+    const manager = currentMyTeamManager();
+    const entries = (manager && MY_TEAM_HISTORY[manager]) || [];
+
+    if (entries.length === 0) {
+        wrap.innerHTML = '<div class="notice">No squad history captured yet.</div>';
+        if (gwDisplay) gwDisplay.textContent = "—";
+        if (prevButton) prevButton.disabled = true;
+        if (nextButton) nextButton.disabled = true;
+        return;
+    }
+
+    if (manager !== myTeamSquadManager || myTeamSquadIndex < 0 || myTeamSquadIndex >= entries.length) {
+        myTeamSquadIndex = entries.length - 1;
+        myTeamSquadManager = manager;
+    }
+
+    const entry = entries[myTeamSquadIndex];
+
+    const starterRows = entry.starters.map(function(p) {
+        let tag = "";
+        if (p.is_captain) {
+            tag = ' <span class="cap-badge">C</span>';
+        } else if (p.is_vice_captain) {
+            tag = ' <span class="cap-badge vc">VC</span>';
+        }
+        return '<div class="squad-row"><span>' + escapePlayerHTML(p.name) + tag + '</span><b>' + p.points + '</b></div>';
+    }).join("") || '<div class="muted">No starting XI captured.</div>';
+
+    const benchRows = entry.bench.map(function(p) {
+        return '<div class="squad-row bench-row"><span>' + escapePlayerHTML(p.name) + '</span><b>' + p.points + '</b></div>';
+    }).join("") || '<div class="muted">No bench captured.</div>';
+
+    const statusText = entry.finished ? "" : " · In progress";
+    const captainText = entry.captain ? (" · Captain: " + escapePlayerHTML(entry.captain)) : "";
+
+    wrap.innerHTML =
+        '<div class="squad-card">' +
+        '<div class="squad-gw-heading">GW' + entry.gw + statusText + ' · <b>' + entry.points + ' pts</b>' + captainText + '</div>' +
+        '<div class="squad-columns">' +
+        '<div><div class="squad-heading">Starting XI</div>' + starterRows + '</div>' +
+        '<div><div class="squad-heading">Bench</div>' + benchRows + '</div>' +
+        '</div>' +
+        '</div>';
+
+    if (gwDisplay) gwDisplay.textContent = "GW" + entry.gw;
+    if (prevButton) prevButton.disabled = myTeamSquadIndex === 0;
+    if (nextButton) nextButton.disabled = myTeamSquadIndex === entries.length - 1;
+}
+
+function changeMyTeamSquadGw(direction) {
+    const manager = currentMyTeamManager();
+    const entries = (manager && MY_TEAM_HISTORY[manager]) || [];
+    if (entries.length === 0) return;
+
+    if (manager !== myTeamSquadManager || myTeamSquadIndex < 0) {
+        myTeamSquadIndex = entries.length - 1;
+        myTeamSquadManager = manager;
+    }
+
+    myTeamSquadIndex = Math.max(0, Math.min(entries.length - 1, myTeamSquadIndex + direction));
+    renderMyTeamSquad();
+}
+
+function renderSingleLineChart(containerId, points, opts) {
+    const wrap = document.getElementById(containerId);
+    if (!wrap) return;
+
+    if (!points || points.length === 0) {
+        wrap.innerHTML = '<div class="trend-chart-empty">No data captured yet.</div>';
+        return;
+    }
+
+    const width = 700;
+    const height = 240;
+    const padL = 34;
+    const padR = 12;
+    const padT = 12;
+    const padB = 26;
+    const plotW = width - padL - padR;
+    const plotH = height - padT - padB;
+
+    const gws = points.map(function(p) { return p[0]; });
+    const xMin = Math.min.apply(null, gws);
+    const xMax = Math.max.apply(null, gws);
+
+    let yMin;
+    let yMax;
+
+    if (opts.rankMode) {
+        yMin = 0.5;
+        yMax = MANAGER_ORDER.length + 0.5;
+    } else {
+        const values = points.map(function(p) { return p[1]; });
+        yMin = Math.min.apply(null, values);
+        yMax = Math.max.apply(null, values);
+        if (yMin === yMax) { yMin -= 1; yMax += 1; }
+        const yPad = (yMax - yMin) * 0.15;
+        yMin -= yPad;
+        yMax += yPad;
+    }
+
+    function xScale(gw) {
+        return xMax === xMin ? padL + plotW / 2 : padL + ((gw - xMin) / (xMax - xMin)) * plotW;
+    }
+
+    function yScale(value) {
+        const t = (value - yMin) / (yMax - yMin);
+        return opts.invert ? padT + (1 - t) * plotH : padT + t * plotH;
+    }
+
+    let gridlines = "";
+    for (let i = 0; i <= 4; i++) {
+        const value = yMin + ((yMax - yMin) * i) / 4;
+        const y = yScale(value).toFixed(1);
+        gridlines += '<line class="trend-chart-gridline" x1="' + padL + '" x2="' + (width - padR) + '" y1="' + y + '" y2="' + y + '" />';
+        gridlines += '<text class="trend-chart-axis-label" x="4" y="' + (Number(y) + 3.5) + '">' + Math.round(value) + '</text>';
+    }
+
+    const step = Math.max(1, Math.ceil(gws.length / 6));
+    let xLabels = "";
+    gws.forEach(function(gw, index) {
+        if (index % step === 0 || index === gws.length - 1) {
+            xLabels += '<text class="trend-chart-axis-label" x="' + xScale(gw).toFixed(1) + '" y="' + (height - 6) + '" text-anchor="middle">GW' + gw + '</text>';
+        }
+    });
+
+    let d = "";
+    points.forEach(function(point, index) {
+        const x = xScale(point[0]).toFixed(1);
+        const y = yScale(point[1]).toFixed(1);
+        d += (index === 0 ? "M" : "L") + x + "," + y + " ";
+    });
+
+    let dots = "";
+    points.forEach(function(point) {
+        dots += '<circle class="trend-chart-dot" cx="' + xScale(point[0]).toFixed(1) + '" cy="' + yScale(point[1]).toFixed(1) + '" r="3.5" fill="' + opts.color + '" stroke="#111827" stroke-width="1" />';
+    });
+
+    wrap.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="xMidYMid meet">' +
+        gridlines +
+        xLabels +
+        '<path class="trend-chart-line" d="' + d.trim() + '" stroke="' + opts.color + '" />' +
+        dots +
+        '</svg>';
+}
+
+function renderMyTeamStatsCharts() {
+    const manager = currentMyTeamManager();
+    if (!manager) return;
+
+    const color = MANAGER_COLORS[manager] || "#38bdf8";
+
+    renderSingleLineChart(
+        "myteam-chart-scores",
+        (TREND_DATA.scores && TREND_DATA.scores[manager]) || [],
+        { invert: true, rankMode: false, color: color }
+    );
+
+    renderSingleLineChart(
+        "myteam-chart-rank",
+        (TREND_DATA.rank && TREND_DATA.rank[manager]) || [],
+        { invert: false, rankMode: true, color: color }
+    );
+}
+
+
+/* ============================================================
    TEAM OF THE WEEK
    ============================================================ */
 
@@ -6916,6 +7258,77 @@ function escapePlayerHTML(
 }
 
 
+function buildPlayerHistoryChart(historyRows) {
+
+    const rows = (historyRows || []).filter(function(row) {
+        return row && typeof row.gw !== "undefined";
+    });
+
+    if (rows.length === 0) {
+        return '<div class="trend-chart-empty">No gameweek history captured yet.</div>';
+    }
+
+    const width = 700;
+    const height = 200;
+    const padL = 30;
+    const padR = 10;
+    const padT = 12;
+    const padB = 26;
+    const plotW = width - padL - padR;
+    const plotH = height - padT - padB;
+
+    const values = rows.map(function(row) { return row.points; });
+    let yMax = Math.max.apply(null, values.concat([1]));
+    let yMin = Math.min(0, Math.min.apply(null, values));
+    if (yMax === yMin) yMax = yMin + 1;
+
+    function yScale(value) {
+        const t = (value - yMin) / (yMax - yMin);
+        return padT + (1 - t) * plotH;
+    }
+
+    const zeroY = yScale(0);
+
+    const gridCount = 3;
+    let gridlines = "";
+    for (let i = 0; i <= gridCount; i++) {
+        const value = yMin + ((yMax - yMin) * i) / gridCount;
+        const y = yScale(value).toFixed(1);
+        gridlines += '<line class="trend-chart-gridline" x1="' + padL + '" x2="' + (width - padR) + '" y1="' + y + '" y2="' + y + '" />';
+        gridlines += '<text class="trend-chart-axis-label" x="2" y="' + (Number(y) + 3.5) + '">' + Math.round(value) + '</text>';
+    }
+
+    const bandWidth = plotW / rows.length;
+    const barWidth = Math.max(4, bandWidth * 0.55);
+
+    let bars = "";
+    let xLabels = "";
+    const labelStep = Math.max(1, Math.ceil(rows.length / 8));
+
+    rows.forEach(function(row, index) {
+        const cx = padL + bandWidth * (index + 0.5);
+        const barY = yScale(Math.max(row.points, 0));
+        const barBottom = yScale(Math.min(row.points, 0));
+        const barHeight = Math.max(1, barBottom - barY);
+
+        bars += '<rect class="trend-chart-bar" x="' + (cx - barWidth / 2).toFixed(1) + '" y="' + barY.toFixed(1) + '" width="' + barWidth.toFixed(1) + '" height="' + barHeight.toFixed(1) + '">' +
+            '<title>GW' + row.gw + ': ' + row.points + ' pts</title>' +
+            '</rect>';
+
+        if (index % labelStep === 0 || index === rows.length - 1) {
+            xLabels += '<text class="trend-chart-axis-label" x="' + cx.toFixed(1) + '" y="' + (height - 6) + '" text-anchor="middle">GW' + row.gw + '</text>';
+        }
+    });
+
+    return '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="xMidYMid meet">' +
+        gridlines +
+        '<line class="trend-chart-gridline" x1="' + padL + '" x2="' + (width - padR) + '" y1="' + zeroY.toFixed(1) + '" y2="' + zeroY.toFixed(1) + '" />' +
+        bars +
+        xLabels +
+        '</svg>';
+}
+
+
 function searchPlayers() {
 
     const input =
@@ -7031,6 +7444,13 @@ function searchPlayers() {
                 '<span class="player-stat-chip"><b>' + player.minutes + '</b> Mins</span>' +
                 '<span class="player-stat-chip"><b>' + player.yellow_cards + '</b> Yellow</span>' +
                 '<span class="player-stat-chip"><b>' + player.red_cards + '</b> Red</span>' +
+                '</div>';
+
+
+            searchHtml +=
+                '<div class="player-history-chart-heading">Score By Gameweek</div>' +
+                '<div class="player-gw-chart-wrap trend-chart-svg-wrap">' +
+                buildPlayerHistoryChart(player.history) +
                 '</div>';
 
 
@@ -7204,6 +7624,15 @@ __CSS__
 
             <button
                 class="nav-button"
+                data-page="myteam"
+                onclick="showPage('myteam')"
+            >
+                My Team
+            </button>
+
+
+            <button
+                class="nav-button"
                 data-page="gameweeks"
                 onclick="showPage('gameweeks')"
             >
@@ -7268,14 +7697,6 @@ __CSS__
             </div>
 
 
-            <div class="card">
-                <div class="my-team-selector-row">
-                    <div><h2>My Team</h2><p class="card-description">Choose your team to see your squad and personal league stats.</p></div>
-                    <label class="my-team-select-wrap" for="my-team-select"><span>Selected team</span><select id="my-team-select" onchange="changeMyTeam()">__MY_TEAM_OPTIONS__</select></label>
-                </div>
-                <div id="my-team-cards">__MY_TEAM_CARDS__</div>
-            </div>
-
             <div class="dashboard-grid">
 
                 <div class="card">
@@ -7333,6 +7754,100 @@ __CSS__
 
                 </div>
 
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             MY TEAM
+             ================================================== -->
+
+        <section
+            class="page"
+            id="page-myteam"
+        >
+
+            <div class="page-heading">
+
+                <h1>
+                    My Team
+                </h1>
+
+                <p>
+                    Your squad, your gameweek-by-gameweek picks,
+                    and how your season is trending.
+                </p>
+
+            </div>
+
+
+            <div class="card">
+                <div class="my-team-selector-row">
+                    <div><h2>My Team</h2><p class="card-description">Choose your team to see your squad and personal league stats.</p></div>
+                    <label class="my-team-select-wrap" for="my-team-select"><span>Selected team</span><select id="my-team-select" onchange="changeMyTeam()">__MY_TEAM_OPTIONS__</select></label>
+                </div>
+                <div id="my-team-cards">__MY_TEAM_CARDS__</div>
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    Squad By Gameweek
+                </h2>
+
+                <p class="card-description">
+                    Your starting XI and bench for every captured gameweek —
+                    flip back through the season to see who you picked.
+                </p>
+
+                <div id="myteam-squad-wrap"></div>
+
+                <div class="results-navigation">
+
+                    <button
+                        class="results-button"
+                        id="myteam-squad-prev"
+                        onclick="changeMyTeamSquadGw(-1)"
+                    >
+                        ← Previous
+                    </button>
+
+                    <div
+                        class="results-gw-display"
+                        id="myteam-squad-gw-display"
+                    >
+                        —
+                    </div>
+
+                    <button
+                        class="results-button"
+                        id="myteam-squad-next"
+                        onclick="changeMyTeamSquadGw(1)"
+                    >
+                        Next →
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-grid">
+
+                <div class="card trend-chart-card">
+                    <h2>Score By Gameweek</h2>
+                    <p class="card-description">Your points, gameweek by gameweek.</p>
+                    <div class="trend-chart-svg-wrap" id="myteam-chart-scores"></div>
+                </div>
+
+                <div class="card trend-chart-card">
+                    <h2>League Position By Gameweek</h2>
+                    <p class="card-description">Where you've sat in the table over the season.</p>
+                    <div class="trend-chart-svg-wrap" id="myteam-chart-rank"></div>
+                </div>
 
             </div>
 
@@ -7932,6 +8447,9 @@ replacements = {
         ).replace(
             "__DEFAULT_MY_TEAM_INDEX__",
             str(default_my_team_index())
+        ).replace(
+            "__MY_TEAM_HISTORY_DATA__",
+            my_team_history_json
         ).replace(
             "__CHART_H2H_DATA__",
             chart_h2h_json
