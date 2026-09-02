@@ -598,6 +598,33 @@ tbody tr:hover {
 #my-team-select { background:#172033; color:white; border:1px solid var(--border-light); border-radius:8px; padding:10px 12px; font-size:14px; min-width:230px; cursor:pointer; }
 #my-team-select:focus { outline:2px solid var(--accent); outline-offset:2px; }
 
+.squad-gw-heading {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.squad-gw-heading b {
+    color: white;
+}
+
+.cap-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #0f1626;
+    font-size: 9px;
+    font-weight: 800;
+    border-radius: 4px;
+    padding: 1px 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.cap-badge.vc {
+    background: var(--muted);
+    color: #0f1626;
+}
+
 /* ============================================================
    MOBILE TREND CHARTS (H2H points / rank / gw scores)
    ============================================================ */
@@ -1117,6 +1144,24 @@ tbody tr:hover {
     margin-right: 4px;
 }
 
+.player-history-chart-heading {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 8px;
+}
+
+.player-gw-chart-wrap {
+    margin-bottom: 16px;
+}
+
+.trend-chart-bar {
+    fill: var(--accent);
+    opacity: 0.85;
+}
+
 
 /* ============================================================
    PLOTLY / CHARTS
@@ -1458,7 +1503,7 @@ tbody tr:hover {
             <div class="header-meta">
 
                 Last updated:
-                2026-09-02T08:15:55.747031+00:00
+                2026-09-02T09:49:12.658104+00:00
 
                 <br>
 
@@ -1478,6 +1523,15 @@ tbody tr:hover {
                 onclick="showPage('overview')"
             >
                 Overview
+            </button>
+
+
+            <button
+                class="nav-button"
+                data-page="myteam"
+                onclick="showPage('myteam')"
+            >
+                My Team
             </button>
 
 
@@ -1546,234 +1600,6 @@ tbody tr:hover {
 
             </div>
 
-
-            <div class="card">
-                <div class="my-team-selector-row">
-                    <div><h2>My Team</h2><p class="card-description">Choose your team to see your squad and personal league stats.</p></div>
-                    <label class="my-team-select-wrap" for="my-team-select"><span>Selected team</span><select id="my-team-select" onchange="changeMyTeam()"><option value="0" >Backstreet Moyes</option><option value="1" >Jaap? Best Stam</option><option value="2" >Ollie Gonna Squashya</option><option value="3" selected>Kamararama FC</option><option value="4" >NoRSNoRB No Chance</option><option value="5" >PAUer Rangers</option><option value="6" >Jacquet Potato</option><option value="7" >danny’s doggy dudes</option><option value="8" >No Weimann No Cry</option><option value="9" >Buendophilia</option></select></label>
-                </div>
-                <div id="my-team-cards">
-        <div class="my-team-card" data-manager-index="0" style="display:none;">
-            <div class="my-team-grid">
-                <div>
-                    <div class="my-team-hero">
-                        <div>
-                            <div class="eyebrow">MY TEAM · GW2</div>
-                            <div class="my-team-name">Backstreet Moyes</div>
-                            <div class="form-badges"><span class="form-badge form-w">W</span><span class="form-badge form-w">W</span></div>
-                        </div>
-                        <div class="my-team-rank"><span>#1</span><small>6 league pts</small></div>
-                    </div>
-                    <div class="stats-grid compact-stats">
-                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">59</div><div class="stat-description">Team points</div></div>
-                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">59.0</div><div class="stat-description">Per gameweek</div></div>
-                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
-                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">1</div><div class="stat-description">Against optimal XIs</div></div>
-                    </div>
-                </div>
-                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Cherki</span><b>14</b></div><div class="squad-row"><span>Scott</span><b>12</b></div><div class="squad-row"><span>João Pedro</span><b>9</b></div><div class="squad-row"><span>Roefs</span><b>6</b></div><div class="squad-row"><span>Branthwaite</span><b>4</b></div><div class="squad-row"><span>Ndiaye</span><b>4</b></div><div class="squad-row"><span>Barnes</span><b>3</b></div><div class="squad-row"><span>Guéhi</span><b>2</b></div><div class="squad-row"><span>Dalot</span><b>2</b></div><div class="squad-row"><span>Barry</span><b>2</b></div><div class="squad-row"><span>Van Hecke</span><b>1</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Sánchez</span><b>0</b></div><div class="squad-row bench-row"><span>Wood</span><b>0</b></div><div class="squad-row bench-row"><span>Grealish</span><b>0</b></div><div class="squad-row bench-row"><span>Mitchell</span><b>0</b></div></div></div></div>
-            </div>
-        </div>
-    
-        <div class="my-team-card" data-manager-index="1" style="display:none;">
-            <div class="my-team-grid">
-                <div>
-                    <div class="my-team-hero">
-                        <div>
-                            <div class="eyebrow">MY TEAM · GW2</div>
-                            <div class="my-team-name">Jaap? Best Stam</div>
-                            <div class="form-badges"><span class="form-badge form-w">W</span><span class="form-badge form-w">W</span></div>
-                        </div>
-                        <div class="my-team-rank"><span>#2</span><small>6 league pts</small></div>
-                    </div>
-                    <div class="stats-grid compact-stats">
-                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">66</div><div class="stat-description">Team points</div></div>
-                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">54.0</div><div class="stat-description">Per gameweek</div></div>
-                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
-                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">3</div><div class="stat-description">Against optimal XIs</div></div>
-                    </div>
-                </div>
-                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Gibbs-White</span><b>13</b></div><div class="squad-row"><span>Haaland</span><b>13</b></div><div class="squad-row"><span>Calafiori</span><b>11</b></div><div class="squad-row"><span>Foden</span><b>9</b></div><div class="squad-row"><span>Thiaw</span><b>6</b></div><div class="squad-row"><span>Evanilson</span><b>5</b></div><div class="squad-row"><span>Hill</span><b>4</b></div><div class="squad-row"><span>Kelleher</span><b>2</b></div><div class="squad-row"><span>Gonzalo</span><b>2</b></div><div class="squad-row"><span>O.Dango</span><b>1</b></div><div class="squad-row"><span>Vuskovic</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Henderson</span><b>1</b></div><div class="squad-row bench-row"><span>Sávio</span><b>0</b></div><div class="squad-row bench-row"><span>Doku</span><b>0</b></div><div class="squad-row bench-row"><span>Muñoz</span><b>0</b></div></div></div></div>
-            </div>
-        </div>
-    
-        <div class="my-team-card" data-manager-index="2" style="display:none;">
-            <div class="my-team-grid">
-                <div>
-                    <div class="my-team-hero">
-                        <div>
-                            <div class="eyebrow">MY TEAM · GW2</div>
-                            <div class="my-team-name">Ollie Gonna Squashya</div>
-                            <div class="form-badges"><span class="form-badge form-w">W</span><span class="form-badge form-w">W</span></div>
-                        </div>
-                        <div class="my-team-rank"><span>#3</span><small>6 league pts</small></div>
-                    </div>
-                    <div class="stats-grid compact-stats">
-                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">62</div><div class="stat-description">Team points</div></div>
-                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">49.5</div><div class="stat-description">Per gameweek</div></div>
-                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
-                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">0</div><div class="stat-description">Against optimal XIs</div></div>
-                    </div>
-                </div>
-                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>B.Fernandes</span><b>23</b></div><div class="squad-row"><span>Mukiele</span><b>9</b></div><div class="squad-row"><span>Gabriel</span><b>8</b></div><div class="squad-row"><span>Rice</span><b>5</b></div><div class="squad-row"><span>Woltemade</span><b>4</b></div><div class="squad-row"><span>Trafford</span><b>3</b></div><div class="squad-row"><span>Collins</span><b>3</b></div><div class="squad-row"><span>Milenković</span><b>3</b></div><div class="squad-row"><span>Anderson</span><b>3</b></div><div class="squad-row"><span>Beto</span><b>1</b></div><div class="squad-row"><span>Madueke</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Florentino</span><b>0</b></div><div class="squad-row bench-row"><span>Georginio</span><b>0</b></div><div class="squad-row bench-row"><span>Aït-Nouri</span><b>0</b></div><div class="squad-row bench-row"><span>Enzo</span><b>0</b></div></div></div></div>
-            </div>
-        </div>
-    
-        <div class="my-team-card" data-manager-index="3" style="display:none;">
-            <div class="my-team-grid">
-                <div>
-                    <div class="my-team-hero">
-                        <div>
-                            <div class="eyebrow">MY TEAM · GW2</div>
-                            <div class="my-team-name">Kamararama FC</div>
-                            <div class="form-badges"><span class="form-badge form-w">W</span><span class="form-badge form-w">W</span></div>
-                        </div>
-                        <div class="my-team-rank"><span>#4</span><small>6 league pts</small></div>
-                    </div>
-                    <div class="stats-grid compact-stats">
-                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">44</div><div class="stat-description">Team points</div></div>
-                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">36.5</div><div class="stat-description">Per gameweek</div></div>
-                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
-                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">3</div><div class="stat-description">Against optimal XIs</div></div>
-                    </div>
-                </div>
-                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Hall</span><b>11</b></div><div class="squad-row"><span>Isak</span><b>8</b></div><div class="squad-row"><span>Raya</span><b>6</b></div><div class="squad-row"><span>Rogers</span><b>5</b></div><div class="squad-row"><span>Tielemans</span><b>4</b></div><div class="squad-row"><span>Lewis-Skelly</span><b>3</b></div><div class="squad-row"><span>O&#39;Reilly</span><b>2</b></div><div class="squad-row"><span>Awoniyi</span><b>2</b></div><div class="squad-row"><span>Frimpong</span><b>1</b></div><div class="squad-row"><span>Eze</span><b>1</b></div><div class="squad-row"><span>Igor Jesus</span><b>1</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Suzuki</span><b>2</b></div><div class="squad-row bench-row"><span>Charles</span><b>1</b></div><div class="squad-row bench-row"><span>Senesi</span><b>0</b></div><div class="squad-row bench-row"><span>Maddison</span><b>0</b></div></div></div></div>
-            </div>
-        </div>
-    
-        <div class="my-team-card" data-manager-index="4" style="display:none;">
-            <div class="my-team-grid">
-                <div>
-                    <div class="my-team-hero">
-                        <div>
-                            <div class="eyebrow">MY TEAM · GW2</div>
-                            <div class="my-team-name">NoRSNoRB No Chance</div>
-                            <div class="form-badges"><span class="form-badge form-w">W</span><span class="form-badge form-l">L</span></div>
-                        </div>
-                        <div class="my-team-rank"><span>#5</span><small>3 league pts</small></div>
-                    </div>
-                    <div class="stats-grid compact-stats">
-                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">39</div><div class="stat-description">Team points</div></div>
-                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">46.0</div><div class="stat-description">Per gameweek</div></div>
-                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">95.1%</div><div class="stat-description">Latest GW optimal XI</div></div>
-                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">2</div><div class="stat-description">Against optimal XIs</div></div>
-                    </div>
-                </div>
-                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Mbeumo</span><b>11</b></div><div class="squad-row"><span>Palmer</span><b>7</b></div><div class="squad-row"><span>Mosquera</span><b>6</b></div><div class="squad-row"><span>Mykolenko</span><b>4</b></div><div class="squad-row"><span>Ødegaard</span><b>3</b></div><div class="squad-row"><span>Dewsbury-Hall</span><b>2</b></div><div class="squad-row"><span>Marmoush</span><b>2</b></div><div class="squad-row"><span>N.Jackson</span><b>2</b></div><div class="squad-row"><span>Sels</span><b>1</b></div><div class="squad-row"><span>McBurnie</span><b>1</b></div><div class="squad-row"><span>Richards</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Rushworth</span><b>2</b></div><div class="squad-row bench-row"><span>Wharton</span><b>2</b></div><div class="squad-row bench-row"><span>Saliba</span><b>0</b></div><div class="squad-row bench-row"><span>O&#39;Brien</span><b>0</b></div></div></div></div>
-            </div>
-        </div>
-    
-        <div class="my-team-card" data-manager-index="5" style="display:none;">
-            <div class="my-team-grid">
-                <div>
-                    <div class="my-team-hero">
-                        <div>
-                            <div class="eyebrow">MY TEAM · GW2</div>
-                            <div class="my-team-name">PAUer Rangers</div>
-                            <div class="form-badges"><span class="form-badge form-l">L</span><span class="form-badge form-w">W</span></div>
-                        </div>
-                        <div class="my-team-rank"><span>#6</span><small>3 league pts</small></div>
-                    </div>
-                    <div class="stats-grid compact-stats">
-                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">58</div><div class="stat-description">Team points</div></div>
-                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">42.0</div><div class="stat-description">Per gameweek</div></div>
-                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">96.7%</div><div class="stat-description">Latest GW optimal XI</div></div>
-                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">10</div><div class="stat-description">Against optimal XIs</div></div>
-                    </div>
-                </div>
-                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Tarkowski</span><b>12</b></div><div class="squad-row"><span>Ballard</span><b>8</b></div><div class="squad-row"><span>Elanga</span><b>8</b></div><div class="squad-row"><span>N.Williams</span><b>6</b></div><div class="squad-row"><span>Gvardiol</span><b>5</b></div><div class="squad-row"><span>Semenyo</span><b>5</b></div><div class="squad-row"><span>Wirtz</span><b>4</b></div><div class="squad-row"><span>Petrović</span><b>3</b></div><div class="squad-row"><span>Ajer</span><b>3</b></div><div class="squad-row"><span>Thiago</span><b>2</b></div><div class="squad-row"><span>Brobbey</span><b>2</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Stach</span><b>4</b></div><div class="squad-row bench-row"><span>Kinsky</span><b>1</b></div><div class="squad-row bench-row"><span>Osula</span><b>0</b></div><div class="squad-row bench-row"><span>Sarr</span><b>0</b></div></div></div></div>
-            </div>
-        </div>
-    
-        <div class="my-team-card" data-manager-index="6" style="display:none;">
-            <div class="my-team-grid">
-                <div>
-                    <div class="my-team-hero">
-                        <div>
-                            <div class="eyebrow">MY TEAM · GW2</div>
-                            <div class="my-team-name">Jacquet Potato</div>
-                            <div class="form-badges"><span class="form-badge form-l">L</span><span class="form-badge form-l">L</span></div>
-                        </div>
-                        <div class="my-team-rank"><span>#7</span><small>0 league pts</small></div>
-                    </div>
-                    <div class="stats-grid compact-stats">
-                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">30</div><div class="stat-description">Team points</div></div>
-                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">36.5</div><div class="stat-description">Per gameweek</div></div>
-                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
-                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">0</div><div class="stat-description">Against optimal XIs</div></div>
-                    </div>
-                </div>
-                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Calvert-Lewin</span><b>8</b></div><div class="squad-row"><span>White</span><b>7</b></div><div class="squad-row"><span>Gakpo</span><b>5</b></div><div class="squad-row"><span>Buendía</span><b>2</b></div><div class="squad-row"><span>Lacroix</span><b>1</b></div><div class="squad-row"><span>Pedro Porro</span><b>1</b></div><div class="squad-row"><span>Konsa</span><b>1</b></div><div class="squad-row"><span>Wilson</span><b>1</b></div><div class="squad-row"><span>Tavernier</span><b>1</b></div><div class="squad-row"><span>A.Becker</span><b>0</b></div><div class="squad-row"><span>Hjertø-Dahl</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Mamardashvili</span><b>0</b></div><div class="squad-row bench-row"><span>Muniz</span><b>0</b></div><div class="squad-row bench-row"><span>Mateta</span><b>0</b></div><div class="squad-row bench-row"><span>Burn</span><b>0</b></div></div></div></div>
-            </div>
-        </div>
-    
-        <div class="my-team-card" data-manager-index="7" style="display:none;">
-            <div class="my-team-grid">
-                <div>
-                    <div class="my-team-hero">
-                        <div>
-                            <div class="eyebrow">MY TEAM · GW2</div>
-                            <div class="my-team-name">danny’s doggy dudes</div>
-                            <div class="form-badges"><span class="form-badge form-l">L</span><span class="form-badge form-l">L</span></div>
-                        </div>
-                        <div class="my-team-rank"><span>#8</span><small>0 league pts</small></div>
-                    </div>
-                    <div class="stats-grid compact-stats">
-                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">36</div><div class="stat-description">Team points</div></div>
-                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">30.0</div><div class="stat-description">Per gameweek</div></div>
-                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">80.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
-                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">10</div><div class="stat-description">Against optimal XIs</div></div>
-                    </div>
-                </div>
-                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Schade</span><b>10</b></div><div class="squad-row"><span>Cunha</span><b>9</b></div><div class="squad-row"><span>Wissa</span><b>8</b></div><div class="squad-row"><span>Kayode</span><b>2</b></div><div class="squad-row"><span>James</span><b>1</b></div><div class="squad-row"><span>Gusto</span><b>1</b></div><div class="squad-row"><span>Garner</span><b>1</b></div><div class="squad-row"><span>Donnarumma</span><b>0</b></div><div class="squad-row"><span>Van de Ven</span><b>0</b></div><div class="squad-row"><span>Van Oevelen</span><b>0</b></div><div class="squad-row"><span>Targett</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Silva</span><b>4</b></div><div class="squad-row bench-row"><span>Truffert</span><b>4</b></div><div class="squad-row bench-row"><span>Gyökeres</span><b>0</b></div><div class="squad-row bench-row"><span>Richarlison</span><b>0</b></div></div></div></div>
-            </div>
-        </div>
-    
-        <div class="my-team-card" data-manager-index="8" style="display:none;">
-            <div class="my-team-grid">
-                <div>
-                    <div class="my-team-hero">
-                        <div>
-                            <div class="eyebrow">MY TEAM · GW2</div>
-                            <div class="my-team-name">No Weimann No Cry</div>
-                            <div class="form-badges"><span class="form-badge form-l">L</span><span class="form-badge form-l">L</span></div>
-                        </div>
-                        <div class="my-team-rank"><span>#9</span><small>0 league pts</small></div>
-                    </div>
-                    <div class="stats-grid compact-stats">
-                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">27</div><div class="stat-description">Team points</div></div>
-                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">28.0</div><div class="stat-description">Per gameweek</div></div>
-                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
-                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">1</div><div class="stat-description">Against optimal XIs</div></div>
-                    </div>
-                </div>
-                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Saka</span><b>11</b></div><div class="squad-row"><span>Leno</span><b>3</b></div><div class="squad-row"><span>Khusanov</span><b>2</b></div><div class="squad-row"><span>King</span><b>2</b></div><div class="squad-row"><span>Rayan</span><b>2</b></div><div class="squad-row"><span>Strand Larsen</span><b>2</b></div><div class="squad-row"><span>Colwill</span><b>1</b></div><div class="squad-row"><span>Kerkez</span><b>1</b></div><div class="squad-row"><span>Gravenberch</span><b>1</b></div><div class="squad-row"><span>Šeško</span><b>1</b></div><div class="squad-row"><span>Solanke</span><b>1</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Pickford</span><b>3</b></div><div class="squad-row bench-row"><span>Kudus</span><b>1</b></div><div class="squad-row bench-row"><span>De Cuyper</span><b>0</b></div><div class="squad-row bench-row"><span>J.Timber</span><b>0</b></div></div></div></div>
-            </div>
-        </div>
-    
-        <div class="my-team-card" data-manager-index="9" style="display:none;">
-            <div class="my-team-grid">
-                <div>
-                    <div class="my-team-hero">
-                        <div>
-                            <div class="eyebrow">MY TEAM · GW2</div>
-                            <div class="my-team-name">Buendophilia</div>
-                            <div class="form-badges"><span class="form-badge form-l">L</span><span class="form-badge form-l">L</span></div>
-                        </div>
-                        <div class="my-team-rank"><span>#10</span><small>0 league pts</small></div>
-                    </div>
-                    <div class="stats-grid compact-stats">
-                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">24</div><div class="stat-description">Team points</div></div>
-                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">24.5</div><div class="stat-description">Per gameweek</div></div>
-                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
-                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">5</div><div class="stat-description">Against optimal XIs</div></div>
-                    </div>
-                </div>
-                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Dedić</span><b>11</b></div><div class="squad-row"><span>Neto</span><b>7</b></div><div class="squad-row"><span>Szoboszlai</span><b>4</b></div><div class="squad-row"><span>Lammens</span><b>2</b></div><div class="squad-row"><span>Rúben</span><b>2</b></div><div class="squad-row"><span>Rashford</span><b>2</b></div><div class="squad-row"><span>Havertz</span><b>2</b></div><div class="squad-row"><span>Virgil</span><b>1</b></div><div class="squad-row"><span>Maatsen</span><b>1</b></div><div class="squad-row"><span>Bruno G.</span><b>1</b></div><div class="squad-row"><span>Delap</span><b>1</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Murillo</span><b>1</b></div><div class="squad-row bench-row"><span>Verbruggen</span><b>0</b></div><div class="squad-row bench-row"><span>Palestra</span><b>0</b></div><div class="squad-row bench-row"><span>Manzambi</span><b>0</b></div></div></div></div>
-            </div>
-        </div>
-    </div>
-            </div>
 
             <div class="dashboard-grid">
 
@@ -2033,6 +1859,320 @@ tbody tr:hover {
 
                 </div>
 
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             MY TEAM
+             ================================================== -->
+
+        <section
+            class="page"
+            id="page-myteam"
+        >
+
+            <div class="page-heading">
+
+                <h1>
+                    My Team
+                </h1>
+
+                <p>
+                    Your squad, your gameweek-by-gameweek picks,
+                    and how your season is trending.
+                </p>
+
+            </div>
+
+
+            <div class="card">
+                <div class="my-team-selector-row">
+                    <div><h2>My Team</h2><p class="card-description">Choose your team to see your squad and personal league stats.</p></div>
+                    <label class="my-team-select-wrap" for="my-team-select"><span>Selected team</span><select id="my-team-select" onchange="changeMyTeam()"><option value="0" >Backstreet Moyes</option><option value="1" >Jaap? Best Stam</option><option value="2" >Ollie Gonna Squashya</option><option value="3" selected>Kamararama FC</option><option value="4" >NoRSNoRB No Chance</option><option value="5" >PAUer Rangers</option><option value="6" >Jacquet Potato</option><option value="7" >danny’s doggy dudes</option><option value="8" >No Weimann No Cry</option><option value="9" >Buendophilia</option></select></label>
+                </div>
+                <div id="my-team-cards">
+        <div class="my-team-card" data-manager-index="0" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW2</div>
+                            <div class="my-team-name">Backstreet Moyes</div>
+                            <div class="form-badges"><span class="form-badge form-w">W</span><span class="form-badge form-w">W</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#1</span><small>6 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">59</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">59.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">1</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Cherki</span><b>14</b></div><div class="squad-row"><span>Scott</span><b>12</b></div><div class="squad-row"><span>João Pedro</span><b>9</b></div><div class="squad-row"><span>Roefs</span><b>6</b></div><div class="squad-row"><span>Branthwaite</span><b>4</b></div><div class="squad-row"><span>Ndiaye</span><b>4</b></div><div class="squad-row"><span>Barnes</span><b>3</b></div><div class="squad-row"><span>Guéhi</span><b>2</b></div><div class="squad-row"><span>Dalot</span><b>2</b></div><div class="squad-row"><span>Barry</span><b>2</b></div><div class="squad-row"><span>Van Hecke</span><b>1</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Sánchez</span><b>0</b></div><div class="squad-row bench-row"><span>Wood</span><b>0</b></div><div class="squad-row bench-row"><span>Grealish</span><b>0</b></div><div class="squad-row bench-row"><span>Mitchell</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="1" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW2</div>
+                            <div class="my-team-name">Jaap? Best Stam</div>
+                            <div class="form-badges"><span class="form-badge form-w">W</span><span class="form-badge form-w">W</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#2</span><small>6 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">66</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">54.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">3</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Gibbs-White</span><b>13</b></div><div class="squad-row"><span>Haaland</span><b>13</b></div><div class="squad-row"><span>Calafiori</span><b>11</b></div><div class="squad-row"><span>Foden</span><b>9</b></div><div class="squad-row"><span>Thiaw</span><b>6</b></div><div class="squad-row"><span>Evanilson</span><b>5</b></div><div class="squad-row"><span>Hill</span><b>4</b></div><div class="squad-row"><span>Kelleher</span><b>2</b></div><div class="squad-row"><span>Gonzalo</span><b>2</b></div><div class="squad-row"><span>O.Dango</span><b>1</b></div><div class="squad-row"><span>Vuskovic</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Henderson</span><b>1</b></div><div class="squad-row bench-row"><span>Sávio</span><b>0</b></div><div class="squad-row bench-row"><span>Doku</span><b>0</b></div><div class="squad-row bench-row"><span>Muñoz</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="2" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW2</div>
+                            <div class="my-team-name">Ollie Gonna Squashya</div>
+                            <div class="form-badges"><span class="form-badge form-w">W</span><span class="form-badge form-w">W</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#3</span><small>6 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">62</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">49.5</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">0</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>B.Fernandes</span><b>23</b></div><div class="squad-row"><span>Mukiele</span><b>9</b></div><div class="squad-row"><span>Gabriel</span><b>8</b></div><div class="squad-row"><span>Rice</span><b>5</b></div><div class="squad-row"><span>Woltemade</span><b>4</b></div><div class="squad-row"><span>Trafford</span><b>3</b></div><div class="squad-row"><span>Collins</span><b>3</b></div><div class="squad-row"><span>Milenković</span><b>3</b></div><div class="squad-row"><span>Anderson</span><b>3</b></div><div class="squad-row"><span>Beto</span><b>1</b></div><div class="squad-row"><span>Madueke</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Florentino</span><b>0</b></div><div class="squad-row bench-row"><span>Georginio</span><b>0</b></div><div class="squad-row bench-row"><span>Aït-Nouri</span><b>0</b></div><div class="squad-row bench-row"><span>Enzo</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="3" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW2</div>
+                            <div class="my-team-name">Kamararama FC</div>
+                            <div class="form-badges"><span class="form-badge form-w">W</span><span class="form-badge form-w">W</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#4</span><small>6 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">44</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">36.5</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">3</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Hall</span><b>11</b></div><div class="squad-row"><span>Isak</span><b>8</b></div><div class="squad-row"><span>Raya</span><b>6</b></div><div class="squad-row"><span>Rogers</span><b>5</b></div><div class="squad-row"><span>Tielemans</span><b>4</b></div><div class="squad-row"><span>Lewis-Skelly</span><b>3</b></div><div class="squad-row"><span>O&#39;Reilly</span><b>2</b></div><div class="squad-row"><span>Awoniyi</span><b>2</b></div><div class="squad-row"><span>Frimpong</span><b>1</b></div><div class="squad-row"><span>Eze</span><b>1</b></div><div class="squad-row"><span>Igor Jesus</span><b>1</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Suzuki</span><b>2</b></div><div class="squad-row bench-row"><span>Charles</span><b>1</b></div><div class="squad-row bench-row"><span>Senesi</span><b>0</b></div><div class="squad-row bench-row"><span>Maddison</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="4" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW2</div>
+                            <div class="my-team-name">NoRSNoRB No Chance</div>
+                            <div class="form-badges"><span class="form-badge form-w">W</span><span class="form-badge form-l">L</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#5</span><small>3 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">39</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">46.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">95.1%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">2</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Mbeumo</span><b>11</b></div><div class="squad-row"><span>Palmer</span><b>7</b></div><div class="squad-row"><span>Mosquera</span><b>6</b></div><div class="squad-row"><span>Mykolenko</span><b>4</b></div><div class="squad-row"><span>Ødegaard</span><b>3</b></div><div class="squad-row"><span>Dewsbury-Hall</span><b>2</b></div><div class="squad-row"><span>Marmoush</span><b>2</b></div><div class="squad-row"><span>N.Jackson</span><b>2</b></div><div class="squad-row"><span>Sels</span><b>1</b></div><div class="squad-row"><span>McBurnie</span><b>1</b></div><div class="squad-row"><span>Richards</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Rushworth</span><b>2</b></div><div class="squad-row bench-row"><span>Wharton</span><b>2</b></div><div class="squad-row bench-row"><span>Saliba</span><b>0</b></div><div class="squad-row bench-row"><span>O&#39;Brien</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="5" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW2</div>
+                            <div class="my-team-name">PAUer Rangers</div>
+                            <div class="form-badges"><span class="form-badge form-l">L</span><span class="form-badge form-w">W</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#6</span><small>3 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">58</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">42.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">96.7%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">10</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Tarkowski</span><b>12</b></div><div class="squad-row"><span>Ballard</span><b>8</b></div><div class="squad-row"><span>Elanga</span><b>8</b></div><div class="squad-row"><span>N.Williams</span><b>6</b></div><div class="squad-row"><span>Gvardiol</span><b>5</b></div><div class="squad-row"><span>Semenyo</span><b>5</b></div><div class="squad-row"><span>Wirtz</span><b>4</b></div><div class="squad-row"><span>Petrović</span><b>3</b></div><div class="squad-row"><span>Ajer</span><b>3</b></div><div class="squad-row"><span>Thiago</span><b>2</b></div><div class="squad-row"><span>Brobbey</span><b>2</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Stach</span><b>4</b></div><div class="squad-row bench-row"><span>Kinsky</span><b>1</b></div><div class="squad-row bench-row"><span>Osula</span><b>0</b></div><div class="squad-row bench-row"><span>Sarr</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="6" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW2</div>
+                            <div class="my-team-name">Jacquet Potato</div>
+                            <div class="form-badges"><span class="form-badge form-l">L</span><span class="form-badge form-l">L</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#7</span><small>0 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">30</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">36.5</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">0</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Calvert-Lewin</span><b>8</b></div><div class="squad-row"><span>White</span><b>7</b></div><div class="squad-row"><span>Gakpo</span><b>5</b></div><div class="squad-row"><span>Buendía</span><b>2</b></div><div class="squad-row"><span>Lacroix</span><b>1</b></div><div class="squad-row"><span>Pedro Porro</span><b>1</b></div><div class="squad-row"><span>Konsa</span><b>1</b></div><div class="squad-row"><span>Wilson</span><b>1</b></div><div class="squad-row"><span>Tavernier</span><b>1</b></div><div class="squad-row"><span>A.Becker</span><b>0</b></div><div class="squad-row"><span>Hjertø-Dahl</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Mamardashvili</span><b>0</b></div><div class="squad-row bench-row"><span>Muniz</span><b>0</b></div><div class="squad-row bench-row"><span>Mateta</span><b>0</b></div><div class="squad-row bench-row"><span>Burn</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="7" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW2</div>
+                            <div class="my-team-name">danny’s doggy dudes</div>
+                            <div class="form-badges"><span class="form-badge form-l">L</span><span class="form-badge form-l">L</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#8</span><small>0 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">36</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">30.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">80.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">10</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Schade</span><b>10</b></div><div class="squad-row"><span>Cunha</span><b>9</b></div><div class="squad-row"><span>Wissa</span><b>8</b></div><div class="squad-row"><span>Kayode</span><b>2</b></div><div class="squad-row"><span>James</span><b>1</b></div><div class="squad-row"><span>Gusto</span><b>1</b></div><div class="squad-row"><span>Garner</span><b>1</b></div><div class="squad-row"><span>Donnarumma</span><b>0</b></div><div class="squad-row"><span>Van de Ven</span><b>0</b></div><div class="squad-row"><span>Van Oevelen</span><b>0</b></div><div class="squad-row"><span>Targett</span><b>0</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Silva</span><b>4</b></div><div class="squad-row bench-row"><span>Truffert</span><b>4</b></div><div class="squad-row bench-row"><span>Gyökeres</span><b>0</b></div><div class="squad-row bench-row"><span>Richarlison</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="8" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW2</div>
+                            <div class="my-team-name">No Weimann No Cry</div>
+                            <div class="form-badges"><span class="form-badge form-l">L</span><span class="form-badge form-l">L</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#9</span><small>0 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">27</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">28.0</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">1</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Saka</span><b>11</b></div><div class="squad-row"><span>Leno</span><b>3</b></div><div class="squad-row"><span>Khusanov</span><b>2</b></div><div class="squad-row"><span>King</span><b>2</b></div><div class="squad-row"><span>Rayan</span><b>2</b></div><div class="squad-row"><span>Strand Larsen</span><b>2</b></div><div class="squad-row"><span>Colwill</span><b>1</b></div><div class="squad-row"><span>Kerkez</span><b>1</b></div><div class="squad-row"><span>Gravenberch</span><b>1</b></div><div class="squad-row"><span>Šeško</span><b>1</b></div><div class="squad-row"><span>Solanke</span><b>1</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Pickford</span><b>3</b></div><div class="squad-row bench-row"><span>Kudus</span><b>1</b></div><div class="squad-row bench-row"><span>De Cuyper</span><b>0</b></div><div class="squad-row bench-row"><span>J.Timber</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    
+        <div class="my-team-card" data-manager-index="9" style="display:none;">
+            <div class="my-team-grid">
+                <div>
+                    <div class="my-team-hero">
+                        <div>
+                            <div class="eyebrow">MY TEAM · GW2</div>
+                            <div class="my-team-name">Buendophilia</div>
+                            <div class="form-badges"><span class="form-badge form-l">L</span><span class="form-badge form-l">L</span></div>
+                        </div>
+                        <div class="my-team-rank"><span>#10</span><small>0 league pts</small></div>
+                    </div>
+                    <div class="stats-grid compact-stats">
+                        <div class="stat-card"><div class="stat-label">Latest GW</div><div class="stat-value">24</div><div class="stat-description">Team points</div></div>
+                        <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">24.5</div><div class="stat-description">Per gameweek</div></div>
+                        <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">100.0%</div><div class="stat-description">Latest GW optimal XI</div></div>
+                        <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">5</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                </div>
+                <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div><div class="squad-row"><span>Dedić</span><b>11</b></div><div class="squad-row"><span>Neto</span><b>7</b></div><div class="squad-row"><span>Szoboszlai</span><b>4</b></div><div class="squad-row"><span>Lammens</span><b>2</b></div><div class="squad-row"><span>Rúben</span><b>2</b></div><div class="squad-row"><span>Rashford</span><b>2</b></div><div class="squad-row"><span>Havertz</span><b>2</b></div><div class="squad-row"><span>Virgil</span><b>1</b></div><div class="squad-row"><span>Maatsen</span><b>1</b></div><div class="squad-row"><span>Bruno G.</span><b>1</b></div><div class="squad-row"><span>Delap</span><b>1</b></div></div><div><div class="squad-heading">Bench</div><div class="squad-row bench-row"><span>Murillo</span><b>1</b></div><div class="squad-row bench-row"><span>Verbruggen</span><b>0</b></div><div class="squad-row bench-row"><span>Palestra</span><b>0</b></div><div class="squad-row bench-row"><span>Manzambi</span><b>0</b></div></div></div></div>
+            </div>
+        </div>
+    </div>
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    Squad By Gameweek
+                </h2>
+
+                <p class="card-description">
+                    Your starting XI and bench for every captured gameweek —
+                    flip back through the season to see who you picked.
+                </p>
+
+                <div id="myteam-squad-wrap"></div>
+
+                <div class="results-navigation">
+
+                    <button
+                        class="results-button"
+                        id="myteam-squad-prev"
+                        onclick="changeMyTeamSquadGw(-1)"
+                    >
+                        ← Previous
+                    </button>
+
+                    <div
+                        class="results-gw-display"
+                        id="myteam-squad-gw-display"
+                    >
+                        —
+                    </div>
+
+                    <button
+                        class="results-button"
+                        id="myteam-squad-next"
+                        onclick="changeMyTeamSquadGw(1)"
+                    >
+                        Next →
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-grid">
+
+                <div class="card trend-chart-card">
+                    <h2>Score By Gameweek</h2>
+                    <p class="card-description">Your points, gameweek by gameweek.</p>
+                    <div class="trend-chart-svg-wrap" id="myteam-chart-scores"></div>
+                </div>
+
+                <div class="card trend-chart-card">
+                    <h2>League Position By Gameweek</h2>
+                    <p class="card-description">Where you've sat in the table over the season.</p>
+                    <div class="trend-chart-svg-wrap" id="myteam-chart-rank"></div>
+                </div>
 
             </div>
 
@@ -3992,7 +4132,7 @@ tbody tr:hover {
                 </h2>
 
                 <div style="height:550px; width:100%;">                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
-        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.7.0.min.js" integrity="sha256-jvTGqxNp8AGWEcvNLVuKr+8j5dGe9Yw51LQkmDH+IYA=" crossorigin="anonymous"></script>                <div id="ec39c3fa-3468-4933-83bb-c49a2ddd603f" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("ec39c3fa-3468-4933-83bb-c49a2ddd603f")) {                    Plotly.newPlot(                        "ec39c3fa-3468-4933-83bb-c49a2ddd603f",                        [{"orientation":"h","x":[1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],"y":["Awoniyi","Eze","Rayan","Strand Larsen","A.Becker","Ajer","Anderson","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Most Transferred Players","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Ownership Changes"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.7.0.min.js" integrity="sha256-jvTGqxNp8AGWEcvNLVuKr+8j5dGe9Yw51LQkmDH+IYA=" crossorigin="anonymous"></script>                <div id="57b85c8e-da3f-4b3d-8e1d-006e5077c46e" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("57b85c8e-da3f-4b3d-8e1d-006e5077c46e")) {                    Plotly.newPlot(                        "57b85c8e-da3f-4b3d-8e1d-006e5077c46e",                        [{"orientation":"h","x":[1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],"y":["Awoniyi","Eze","Rayan","Strand Larsen","A.Becker","Ajer","Anderson","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Most Transferred Players","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Ownership Changes"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
 
                 
         <div class="table-wrap">
@@ -4335,7 +4475,7 @@ tbody tr:hover {
                     Players Used By The Most Managers
                 </h2>
 
-                <div style="height:550px; width:100%;">                            <div id="4168caa2-72a8-4077-9d3f-89a77155e6b8" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("4168caa2-72a8-4077-9d3f-89a77155e6b8")) {                    Plotly.newPlot(                        "4168caa2-72a8-4077-9d3f-89a77155e6b8",                        [{"orientation":"h","x":[2,2,2,2,1,1,1,1,1,1,1,1,1,1,1],"y":["Awoniyi","Eze","Rayan","Strand Larsen","A.Becker","Ajer","Anderson","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Players Used By The Most Managers","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Different Managers"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
+                <div style="height:550px; width:100%;">                            <div id="04393948-5e95-4793-b04b-b86a035e39a7" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("04393948-5e95-4793-b04b-b86a035e39a7")) {                    Plotly.newPlot(                        "04393948-5e95-4793-b04b-b86a035e39a7",                        [{"orientation":"h","x":[2,2,2,2,1,1,1,1,1,1,1,1,1,1,1],"y":["Awoniyi","Eze","Rayan","Strand Larsen","A.Becker","Ajer","Anderson","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Branthwaite","Brobbey"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Players Used By The Most Managers","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Different Managers"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
 
             </div>
 
@@ -5572,6 +5712,9 @@ function changeMyTeam() {
     } catch (e) {
         // localStorage may be unavailable in private/restricted browsers.
     }
+
+    renderMyTeamSquad();
+    renderMyTeamStatsCharts();
 }
 
 function initialiseMyTeam() {
@@ -6066,6 +6209,194 @@ function initAllTrendCharts() {
 
 
 /* ============================================================
+   MY TEAM — SQUAD BY GAMEWEEK + PERSONAL TREND CHARTS
+   ============================================================ */
+
+const MY_TEAM_HISTORY = {"Backstreet Moyes": [{"gw": 1, "points": 59, "finished": true, "captain": null, "starters": [{"name": "João Pedro", "team": "Chelsea", "position": "FWD", "points": 11, "is_captain": false, "is_vice_captain": false}, {"name": "Guéhi", "team": "Man City", "position": "DEF", "points": 10, "is_captain": false, "is_vice_captain": false}, {"name": "Ndiaye", "team": "Everton", "position": "MID", "points": 9, "is_captain": false, "is_vice_captain": false}, {"name": "Cherki", "team": "Man City", "position": "MID", "points": 8, "is_captain": false, "is_vice_captain": false}, {"name": "Barry", "team": "Everton", "position": "FWD", "points": 8, "is_captain": false, "is_vice_captain": false}, {"name": "Branthwaite", "team": "Everton", "position": "DEF", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Sánchez", "team": "Chelsea", "position": "GKP", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Scott", "team": "Bournemouth", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Van Hecke", "team": "Spurs", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Dalot", "team": "Man Utd", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Wood", "team": "Nott'm Forest", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Barnes", "team": "Newcastle", "position": "MID", "points": 2}, {"name": "Roefs", "team": "Sunderland", "position": "GKP", "points": 1}, {"name": "Grealish", "team": "Man City", "position": "MID", "points": 1}, {"name": "Mitchell", "team": "Crystal Palace", "position": "DEF", "points": 1}]}, {"gw": 2, "points": 59, "finished": true, "captain": null, "starters": [{"name": "Cherki", "team": "Man City", "position": "MID", "points": 14, "is_captain": false, "is_vice_captain": false}, {"name": "Scott", "team": "Bournemouth", "position": "MID", "points": 12, "is_captain": false, "is_vice_captain": false}, {"name": "João Pedro", "team": "Chelsea", "position": "FWD", "points": 9, "is_captain": false, "is_vice_captain": false}, {"name": "Roefs", "team": "Sunderland", "position": "GKP", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Branthwaite", "team": "Everton", "position": "DEF", "points": 4, "is_captain": false, "is_vice_captain": false}, {"name": "Ndiaye", "team": "Everton", "position": "MID", "points": 4, "is_captain": false, "is_vice_captain": false}, {"name": "Barnes", "team": "Newcastle", "position": "MID", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Guéhi", "team": "Man City", "position": "DEF", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Dalot", "team": "Man Utd", "position": "DEF", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Barry", "team": "Everton", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Van Hecke", "team": "Spurs", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Sánchez", "team": "Chelsea", "position": "GKP", "points": 0}, {"name": "Wood", "team": "Nott'm Forest", "position": "FWD", "points": 0}, {"name": "Grealish", "team": "Man City", "position": "MID", "points": 0}, {"name": "Mitchell", "team": "Crystal Palace", "position": "DEF", "points": 0}]}], "Jaap? Best Stam": [{"gw": 1, "points": 42, "finished": true, "captain": null, "starters": [{"name": "Calafiori", "team": "Arsenal", "position": "DEF", "points": 9, "is_captain": false, "is_vice_captain": false}, {"name": "Kelleher", "team": "Brentford", "position": "GKP", "points": 7, "is_captain": false, "is_vice_captain": false}, {"name": "Vuskovic", "team": "Brighton", "position": "DEF", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Gonzalo", "team": "Fulham", "position": "FWD", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Evanilson", "team": "Bournemouth", "position": "FWD", "points": 4, "is_captain": false, "is_vice_captain": false}, {"name": "O.Dango", "team": "Brentford", "position": "MID", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Gibbs-White", "team": "Nott'm Forest", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Ngumoha", "team": "Liverpool", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Haaland", "team": "Man City", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Foden", "team": "Man City", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Muñoz", "team": "Nott'm Forest", "position": "DEF", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Thiaw", "team": "Newcastle", "position": "DEF", "points": 3}, {"name": "Henderson", "team": "Crystal Palace", "position": "GKP", "points": 2}, {"name": "Hill", "team": "Bournemouth", "position": "DEF", "points": 1}, {"name": "Sávio", "team": "Spurs", "position": "MID", "points": 0}]}, {"gw": 2, "points": 66, "finished": true, "captain": null, "starters": [{"name": "Gibbs-White", "team": "Nott'm Forest", "position": "MID", "points": 13, "is_captain": false, "is_vice_captain": false}, {"name": "Haaland", "team": "Man City", "position": "FWD", "points": 13, "is_captain": false, "is_vice_captain": false}, {"name": "Calafiori", "team": "Arsenal", "position": "DEF", "points": 11, "is_captain": false, "is_vice_captain": false}, {"name": "Foden", "team": "Man City", "position": "MID", "points": 9, "is_captain": false, "is_vice_captain": false}, {"name": "Thiaw", "team": "Newcastle", "position": "DEF", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Evanilson", "team": "Bournemouth", "position": "FWD", "points": 5, "is_captain": false, "is_vice_captain": false}, {"name": "Hill", "team": "Bournemouth", "position": "DEF", "points": 4, "is_captain": false, "is_vice_captain": false}, {"name": "Kelleher", "team": "Brentford", "position": "GKP", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Gonzalo", "team": "Fulham", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "O.Dango", "team": "Brentford", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Vuskovic", "team": "Brighton", "position": "DEF", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Henderson", "team": "Crystal Palace", "position": "GKP", "points": 1}, {"name": "Sávio", "team": "Spurs", "position": "MID", "points": 0}, {"name": "Doku", "team": "Man City", "position": "MID", "points": 0}, {"name": "Muñoz", "team": "Nott'm Forest", "position": "DEF", "points": 0}]}], "Ollie Gonna Squashya": [{"gw": 1, "points": 37, "finished": true, "captain": null, "starters": [{"name": "Trafford", "team": "Leeds", "position": "GKP", "points": 9, "is_captain": false, "is_vice_captain": false}, {"name": "Collins", "team": "Brentford", "position": "DEF", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Gabriel", "team": "Arsenal", "position": "DEF", "points": 5, "is_captain": false, "is_vice_captain": false}, {"name": "Georginio", "team": "Brighton", "position": "FWD", "points": 5, "is_captain": false, "is_vice_captain": false}, {"name": "Rice", "team": "Arsenal", "position": "MID", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Milenković", "team": "Nott'm Forest", "position": "DEF", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "B.Fernandes", "team": "Man Utd", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Anderson", "team": "Man City", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Enzo", "team": "Chelsea", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Madueke", "team": "Arsenal", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Beto", "team": "Everton", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Martinez", "team": "Chelsea", "position": "GKP", "points": 0}, {"name": "Woltemade", "team": "Newcastle", "position": "FWD", "points": 0}, {"name": "Aït-Nouri", "team": "Man City", "position": "DEF", "points": 0}, {"name": "Mukiele", "team": "Sunderland", "position": "DEF", "points": 0}]}, {"gw": 2, "points": 62, "finished": true, "captain": null, "starters": [{"name": "B.Fernandes", "team": "Man Utd", "position": "MID", "points": 23, "is_captain": false, "is_vice_captain": false}, {"name": "Mukiele", "team": "Sunderland", "position": "DEF", "points": 9, "is_captain": false, "is_vice_captain": false}, {"name": "Gabriel", "team": "Arsenal", "position": "DEF", "points": 8, "is_captain": false, "is_vice_captain": false}, {"name": "Rice", "team": "Arsenal", "position": "MID", "points": 5, "is_captain": false, "is_vice_captain": false}, {"name": "Woltemade", "team": "Newcastle", "position": "FWD", "points": 4, "is_captain": false, "is_vice_captain": false}, {"name": "Trafford", "team": "Leeds", "position": "GKP", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Collins", "team": "Brentford", "position": "DEF", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Milenković", "team": "Nott'm Forest", "position": "DEF", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Anderson", "team": "Man City", "position": "MID", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Beto", "team": "Everton", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Madueke", "team": "Arsenal", "position": "MID", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Florentino", "team": "Ipswich Town", "position": "MID", "points": 0}, {"name": "Georginio", "team": "Brighton", "position": "FWD", "points": 0}, {"name": "Aït-Nouri", "team": "Man City", "position": "DEF", "points": 0}, {"name": "Enzo", "team": "Chelsea", "position": "MID", "points": 0}]}], "Kamararama FC": [{"gw": 1, "points": 29, "finished": true, "captain": null, "starters": [{"name": "Rogers", "team": "Chelsea", "position": "MID", "points": 8, "is_captain": false, "is_vice_captain": false}, {"name": "Raya", "team": "Arsenal", "position": "GKP", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Senesi", "team": "Spurs", "position": "DEF", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "O'Reilly", "team": "Man City", "position": "DEF", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Rayan", "team": "Bournemouth", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Tielemans", "team": "Man Utd", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Isak", "team": "Liverpool", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Igor Jesus", "team": "Nott'm Forest", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Maddison", "team": "Spurs", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Strand Larsen", "team": "Crystal Palace", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Frimpong", "team": "Liverpool", "position": "DEF", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Hall", "team": "Newcastle", "position": "DEF", "points": 3}, {"name": "Charles", "team": "Fulham", "position": "MID", "points": 1}, {"name": "Pope", "team": "Newcastle", "position": "GKP", "points": 0}, {"name": "Caicedo", "team": "Chelsea", "position": "MID", "points": 0}]}, {"gw": 2, "points": 44, "finished": true, "captain": null, "starters": [{"name": "Hall", "team": "Newcastle", "position": "DEF", "points": 11, "is_captain": false, "is_vice_captain": false}, {"name": "Isak", "team": "Liverpool", "position": "FWD", "points": 8, "is_captain": false, "is_vice_captain": false}, {"name": "Raya", "team": "Arsenal", "position": "GKP", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Rogers", "team": "Chelsea", "position": "MID", "points": 5, "is_captain": false, "is_vice_captain": false}, {"name": "Tielemans", "team": "Man Utd", "position": "MID", "points": 4, "is_captain": false, "is_vice_captain": false}, {"name": "Lewis-Skelly", "team": "Arsenal", "position": "MID", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "O'Reilly", "team": "Man City", "position": "DEF", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Awoniyi", "team": "Coventry City", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Frimpong", "team": "Liverpool", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Eze", "team": "Arsenal", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Igor Jesus", "team": "Nott'm Forest", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Suzuki", "team": "Aston Villa", "position": "GKP", "points": 2}, {"name": "Charles", "team": "Fulham", "position": "MID", "points": 1}, {"name": "Senesi", "team": "Spurs", "position": "DEF", "points": 0}, {"name": "Maddison", "team": "Spurs", "position": "MID", "points": 0}]}], "NoRSNoRB No Chance": [{"gw": 1, "points": 53, "finished": true, "captain": null, "starters": [{"name": "Palmer", "team": "Chelsea", "position": "MID", "points": 13, "is_captain": false, "is_vice_captain": false}, {"name": "Ødegaard", "team": "Arsenal", "position": "MID", "points": 11, "is_captain": false, "is_vice_captain": false}, {"name": "Dewsbury-Hall", "team": "Everton", "position": "MID", "points": 11, "is_captain": false, "is_vice_captain": false}, {"name": "Mykolenko", "team": "Everton", "position": "DEF", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Wharton", "team": "Crystal Palace", "position": "MID", "points": 4, "is_captain": false, "is_vice_captain": false}, {"name": "Richards", "team": "Crystal Palace", "position": "DEF", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Sels", "team": "Nott'm Forest", "position": "GKP", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Mbeumo", "team": "Man Utd", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Hincapie", "team": "Arsenal", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "N.Jackson", "team": "Aston Villa", "position": "FWD", "points": 0, "is_captain": false, "is_vice_captain": false}, {"name": "G.Jesus", "team": "Arsenal", "position": "FWD", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Rushworth", "team": "Coventry City", "position": "GKP", "points": 1}, {"name": "Marmoush", "team": "Spurs", "position": "FWD", "points": 0}, {"name": "Saliba", "team": "Arsenal", "position": "DEF", "points": 0}, {"name": "O'Brien", "team": "Everton", "position": "DEF", "points": 0}]}, {"gw": 2, "points": 39, "finished": true, "captain": null, "starters": [{"name": "Mbeumo", "team": "Man Utd", "position": "MID", "points": 11, "is_captain": false, "is_vice_captain": false}, {"name": "Palmer", "team": "Chelsea", "position": "MID", "points": 7, "is_captain": false, "is_vice_captain": false}, {"name": "Mosquera", "team": "Arsenal", "position": "DEF", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Mykolenko", "team": "Everton", "position": "DEF", "points": 4, "is_captain": false, "is_vice_captain": false}, {"name": "Ødegaard", "team": "Arsenal", "position": "MID", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Dewsbury-Hall", "team": "Everton", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Marmoush", "team": "Spurs", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "N.Jackson", "team": "Aston Villa", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Sels", "team": "Nott'm Forest", "position": "GKP", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "McBurnie", "team": "Hull City", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Richards", "team": "Crystal Palace", "position": "DEF", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Rushworth", "team": "Coventry City", "position": "GKP", "points": 2}, {"name": "Wharton", "team": "Crystal Palace", "position": "MID", "points": 2}, {"name": "Saliba", "team": "Arsenal", "position": "DEF", "points": 0}, {"name": "O'Brien", "team": "Everton", "position": "DEF", "points": 0}]}], "PAUer Rangers": [{"gw": 1, "points": 26, "finished": true, "captain": null, "starters": [{"name": "Gvardiol", "team": "Man City", "position": "DEF", "points": 9, "is_captain": false, "is_vice_captain": false}, {"name": "Tarkowski", "team": "Everton", "position": "DEF", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Kinsky", "team": "Spurs", "position": "GKP", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "N.Williams", "team": "Nott'm Forest", "position": "DEF", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Semenyo", "team": "Man City", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Wirtz", "team": "Liverpool", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Brobbey", "team": "Sunderland", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Matheus N.", "team": "Man City", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Ballard", "team": "Sunderland", "position": "DEF", "points": 0, "is_captain": false, "is_vice_captain": false}, {"name": "Dorgu", "team": "Man Utd", "position": "MID", "points": 0, "is_captain": false, "is_vice_captain": false}, {"name": "Thiago", "team": "Brentford", "position": "FWD", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Munoz", "team": "Liverpool", "position": "MID", "points": 4}, {"name": "Osula", "team": "Newcastle", "position": "FWD", "points": 4}, {"name": "Petrović", "team": "Bournemouth", "position": "GKP", "points": 2}, {"name": "Sarr", "team": "Crystal Palace", "position": "MID", "points": 0}]}, {"gw": 2, "points": 58, "finished": true, "captain": null, "starters": [{"name": "Tarkowski", "team": "Everton", "position": "DEF", "points": 12, "is_captain": false, "is_vice_captain": false}, {"name": "Ballard", "team": "Sunderland", "position": "DEF", "points": 8, "is_captain": false, "is_vice_captain": false}, {"name": "Elanga", "team": "Newcastle", "position": "MID", "points": 8, "is_captain": false, "is_vice_captain": false}, {"name": "N.Williams", "team": "Nott'm Forest", "position": "DEF", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Gvardiol", "team": "Man City", "position": "DEF", "points": 5, "is_captain": false, "is_vice_captain": false}, {"name": "Semenyo", "team": "Man City", "position": "MID", "points": 5, "is_captain": false, "is_vice_captain": false}, {"name": "Wirtz", "team": "Liverpool", "position": "MID", "points": 4, "is_captain": false, "is_vice_captain": false}, {"name": "Petrović", "team": "Bournemouth", "position": "GKP", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Ajer", "team": "Brentford", "position": "DEF", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Thiago", "team": "Brentford", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Brobbey", "team": "Sunderland", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Stach", "team": "Leeds", "position": "MID", "points": 4}, {"name": "Kinsky", "team": "Spurs", "position": "GKP", "points": 1}, {"name": "Osula", "team": "Newcastle", "position": "FWD", "points": 0}, {"name": "Sarr", "team": "Crystal Palace", "position": "MID", "points": 0}]}], "Jacquet Potato": [{"gw": 1, "points": 43, "finished": true, "captain": null, "starters": [{"name": "Gakpo", "team": "Liverpool", "position": "MID", "points": 12, "is_captain": false, "is_vice_captain": false}, {"name": "White", "team": "Arsenal", "position": "DEF", "points": 11, "is_captain": false, "is_vice_captain": false}, {"name": "Lacroix", "team": "Chelsea", "position": "DEF", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Wilson", "team": "Leeds", "position": "MID", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Kluivert", "team": "Bournemouth", "position": "MID", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "A.Becker", "team": "Liverpool", "position": "GKP", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Buendía", "team": "Aston Villa", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Mateta", "team": "Crystal Palace", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Muniz", "team": "Fulham", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Calvert-Lewin", "team": "Leeds", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Konsa", "team": "Arsenal", "position": "DEF", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Mamardashvili", "team": "Liverpool", "position": "GKP", "points": 0}, {"name": "Pedro Porro", "team": "Spurs", "position": "DEF", "points": 0}, {"name": "Hjertø-Dahl", "team": "Hull City", "position": "MID", "points": 0}, {"name": "Burn", "team": "Newcastle", "position": "DEF", "points": 0}]}, {"gw": 2, "points": 30, "finished": true, "captain": null, "starters": [{"name": "Calvert-Lewin", "team": "Leeds", "position": "FWD", "points": 8, "is_captain": false, "is_vice_captain": false}, {"name": "White", "team": "Arsenal", "position": "DEF", "points": 7, "is_captain": false, "is_vice_captain": false}, {"name": "Gakpo", "team": "Liverpool", "position": "MID", "points": 5, "is_captain": false, "is_vice_captain": false}, {"name": "Buendía", "team": "Aston Villa", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Lacroix", "team": "Chelsea", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Pedro Porro", "team": "Spurs", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Konsa", "team": "Arsenal", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Wilson", "team": "Leeds", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Tavernier", "team": "Bournemouth", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "A.Becker", "team": "Liverpool", "position": "GKP", "points": 0, "is_captain": false, "is_vice_captain": false}, {"name": "Hjertø-Dahl", "team": "Hull City", "position": "MID", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Mamardashvili", "team": "Liverpool", "position": "GKP", "points": 0}, {"name": "Muniz", "team": "Fulham", "position": "FWD", "points": 0}, {"name": "Mateta", "team": "Crystal Palace", "position": "FWD", "points": 0}, {"name": "Burn", "team": "Newcastle", "position": "DEF", "points": 0}]}], "danny’s doggy dudes": [{"gw": 1, "points": 24, "finished": true, "captain": null, "starters": [{"name": "Wissa", "team": "Newcastle", "position": "FWD", "points": 4, "is_captain": false, "is_vice_captain": false}, {"name": "Donnarumma", "team": "Man City", "position": "GKP", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Schade", "team": "Brentford", "position": "MID", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Cunha", "team": "Man Utd", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Richarlison", "team": "Spurs", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Gusto", "team": "Chelsea", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Truffert", "team": "Bournemouth", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Fernandes", "team": "Spurs", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Garner", "team": "Everton", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "James", "team": "Chelsea", "position": "DEF", "points": 0, "is_captain": false, "is_vice_captain": false}, {"name": "Van Oevelen", "team": "Ipswich Town", "position": "GKP", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Silva", "team": "Bournemouth", "position": "DEF", "points": 2}, {"name": "Van de Ven", "team": "Spurs", "position": "DEF", "points": 0}, {"name": "F.Kadıoğlu", "team": "Brighton", "position": "DEF", "points": 0}, {"name": "Gyökeres", "team": "Arsenal", "position": "FWD", "points": 0}]}, {"gw": 2, "points": 36, "finished": true, "captain": null, "starters": [{"name": "Schade", "team": "Brentford", "position": "MID", "points": 10, "is_captain": false, "is_vice_captain": false}, {"name": "Cunha", "team": "Man Utd", "position": "MID", "points": 9, "is_captain": false, "is_vice_captain": false}, {"name": "Wissa", "team": "Newcastle", "position": "FWD", "points": 8, "is_captain": false, "is_vice_captain": false}, {"name": "Kayode", "team": "Brentford", "position": "DEF", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "James", "team": "Chelsea", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Gusto", "team": "Chelsea", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Garner", "team": "Everton", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Donnarumma", "team": "Man City", "position": "GKP", "points": 0, "is_captain": false, "is_vice_captain": false}, {"name": "Van de Ven", "team": "Spurs", "position": "DEF", "points": 0, "is_captain": false, "is_vice_captain": false}, {"name": "Van Oevelen", "team": "Ipswich Town", "position": "GKP", "points": 0, "is_captain": false, "is_vice_captain": false}, {"name": "Targett", "team": "Hull City", "position": "DEF", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Silva", "team": "Bournemouth", "position": "DEF", "points": 4}, {"name": "Truffert", "team": "Bournemouth", "position": "DEF", "points": 4}, {"name": "Gyökeres", "team": "Arsenal", "position": "FWD", "points": 0}, {"name": "Richarlison", "team": "Spurs", "position": "FWD", "points": 0}]}], "No Weimann No Cry": [{"gw": 1, "points": 29, "finished": true, "captain": null, "starters": [{"name": "Saka", "team": "Arsenal", "position": "MID", "points": 9, "is_captain": false, "is_vice_captain": false}, {"name": "Pickford", "team": "Everton", "position": "GKP", "points": 7, "is_captain": false, "is_vice_captain": false}, {"name": "Gravenberch", "team": "Liverpool", "position": "MID", "points": 5, "is_captain": false, "is_vice_captain": false}, {"name": "Khusanov", "team": "Man City", "position": "DEF", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "E.Le Fée", "team": "Sunderland", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Shaw", "team": "Man Utd", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Eze", "team": "Arsenal", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Šeško", "team": "Man Utd", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Solanke", "team": "Spurs", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Colwill", "team": "Chelsea", "position": "DEF", "points": 0, "is_captain": false, "is_vice_captain": false}, {"name": "Kerkez", "team": "Liverpool", "position": "DEF", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Leno", "team": "Fulham", "position": "GKP", "points": 2}, {"name": "Awoniyi", "team": "Coventry City", "position": "FWD", "points": 1}, {"name": "Kudus", "team": "Spurs", "position": "MID", "points": 0}, {"name": "J.Timber", "team": "Arsenal", "position": "DEF", "points": 0}]}, {"gw": 2, "points": 27, "finished": true, "captain": null, "starters": [{"name": "Saka", "team": "Arsenal", "position": "MID", "points": 11, "is_captain": false, "is_vice_captain": false}, {"name": "Leno", "team": "Fulham", "position": "GKP", "points": 3, "is_captain": false, "is_vice_captain": false}, {"name": "Khusanov", "team": "Man City", "position": "DEF", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "King", "team": "Fulham", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Rayan", "team": "Bournemouth", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Strand Larsen", "team": "Crystal Palace", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Colwill", "team": "Chelsea", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Kerkez", "team": "Liverpool", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Gravenberch", "team": "Liverpool", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Šeško", "team": "Man Utd", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Solanke", "team": "Spurs", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Pickford", "team": "Everton", "position": "GKP", "points": 3}, {"name": "Kudus", "team": "Spurs", "position": "MID", "points": 1}, {"name": "De Cuyper", "team": "Brighton", "position": "DEF", "points": 0}, {"name": "J.Timber", "team": "Arsenal", "position": "DEF", "points": 0}]}], "Buendophilia": [{"gw": 1, "points": 25, "finished": true, "captain": null, "starters": [{"name": "Szoboszlai", "team": "Liverpool", "position": "MID", "points": 8, "is_captain": false, "is_vice_captain": false}, {"name": "Havertz", "team": "Arsenal", "position": "FWD", "points": 6, "is_captain": false, "is_vice_captain": false}, {"name": "Murillo", "team": "Nott'm Forest", "position": "DEF", "points": 4, "is_captain": false, "is_vice_captain": false}, {"name": "Virgil", "team": "Liverpool", "position": "DEF", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Rúben", "team": "Man City", "position": "DEF", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Lammens", "team": "Man Utd", "position": "GKP", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Rashford", "team": "Man Utd", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Neto", "team": "Chelsea", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Maatsen", "team": "Aston Villa", "position": "DEF", "points": 0, "is_captain": false, "is_vice_captain": false}, {"name": "Bruno G.", "team": "Arsenal", "position": "MID", "points": 0, "is_captain": false, "is_vice_captain": false}, {"name": "Watkins", "team": "Aston Villa", "position": "FWD", "points": 0, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Verbruggen", "team": "Brighton", "position": "GKP", "points": 6}, {"name": "Welbeck", "team": "Chelsea", "position": "FWD", "points": 0}, {"name": "Palestra", "team": "Chelsea", "position": "DEF", "points": 0}, {"name": "Manzambi", "team": "Aston Villa", "position": "MID", "points": 0}]}, {"gw": 2, "points": 24, "finished": true, "captain": null, "starters": [{"name": "Dedić", "team": "Newcastle", "position": "DEF", "points": 11, "is_captain": false, "is_vice_captain": false}, {"name": "Neto", "team": "Chelsea", "position": "MID", "points": 7, "is_captain": false, "is_vice_captain": false}, {"name": "Szoboszlai", "team": "Liverpool", "position": "MID", "points": 4, "is_captain": false, "is_vice_captain": false}, {"name": "Lammens", "team": "Man Utd", "position": "GKP", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Rúben", "team": "Man City", "position": "DEF", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Rashford", "team": "Man Utd", "position": "MID", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Havertz", "team": "Arsenal", "position": "FWD", "points": 2, "is_captain": false, "is_vice_captain": false}, {"name": "Virgil", "team": "Liverpool", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Maatsen", "team": "Aston Villa", "position": "DEF", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Bruno G.", "team": "Arsenal", "position": "MID", "points": 1, "is_captain": false, "is_vice_captain": false}, {"name": "Delap", "team": "Nott'm Forest", "position": "FWD", "points": 1, "is_captain": false, "is_vice_captain": false}], "bench": [{"name": "Murillo", "team": "Nott'm Forest", "position": "DEF", "points": 1}, {"name": "Verbruggen", "team": "Brighton", "position": "GKP", "points": 0}, {"name": "Palestra", "team": "Chelsea", "position": "DEF", "points": 0}, {"name": "Manzambi", "team": "Aston Villa", "position": "MID", "points": 0}]}]};
+
+let myTeamSquadIndex = -1;
+let myTeamSquadManager = null;
+
+function currentMyTeamManager() {
+    const select = document.getElementById("my-team-select");
+    if (!select) return null;
+    return MANAGER_ORDER[Number(select.value)] || null;
+}
+
+function renderMyTeamSquad() {
+    const wrap = document.getElementById("myteam-squad-wrap");
+    const gwDisplay = document.getElementById("myteam-squad-gw-display");
+    const prevButton = document.getElementById("myteam-squad-prev");
+    const nextButton = document.getElementById("myteam-squad-next");
+    if (!wrap) return;
+
+    const manager = currentMyTeamManager();
+    const entries = (manager && MY_TEAM_HISTORY[manager]) || [];
+
+    if (entries.length === 0) {
+        wrap.innerHTML = '<div class="notice">No squad history captured yet.</div>';
+        if (gwDisplay) gwDisplay.textContent = "—";
+        if (prevButton) prevButton.disabled = true;
+        if (nextButton) nextButton.disabled = true;
+        return;
+    }
+
+    if (manager !== myTeamSquadManager || myTeamSquadIndex < 0 || myTeamSquadIndex >= entries.length) {
+        myTeamSquadIndex = entries.length - 1;
+        myTeamSquadManager = manager;
+    }
+
+    const entry = entries[myTeamSquadIndex];
+
+    const starterRows = entry.starters.map(function(p) {
+        let tag = "";
+        if (p.is_captain) {
+            tag = ' <span class="cap-badge">C</span>';
+        } else if (p.is_vice_captain) {
+            tag = ' <span class="cap-badge vc">VC</span>';
+        }
+        return '<div class="squad-row"><span>' + escapePlayerHTML(p.name) + tag + '</span><b>' + p.points + '</b></div>';
+    }).join("") || '<div class="muted">No starting XI captured.</div>';
+
+    const benchRows = entry.bench.map(function(p) {
+        return '<div class="squad-row bench-row"><span>' + escapePlayerHTML(p.name) + '</span><b>' + p.points + '</b></div>';
+    }).join("") || '<div class="muted">No bench captured.</div>';
+
+    const statusText = entry.finished ? "" : " · In progress";
+    const captainText = entry.captain ? (" · Captain: " + escapePlayerHTML(entry.captain)) : "";
+
+    wrap.innerHTML =
+        '<div class="squad-card">' +
+        '<div class="squad-gw-heading">GW' + entry.gw + statusText + ' · <b>' + entry.points + ' pts</b>' + captainText + '</div>' +
+        '<div class="squad-columns">' +
+        '<div><div class="squad-heading">Starting XI</div>' + starterRows + '</div>' +
+        '<div><div class="squad-heading">Bench</div>' + benchRows + '</div>' +
+        '</div>' +
+        '</div>';
+
+    if (gwDisplay) gwDisplay.textContent = "GW" + entry.gw;
+    if (prevButton) prevButton.disabled = myTeamSquadIndex === 0;
+    if (nextButton) nextButton.disabled = myTeamSquadIndex === entries.length - 1;
+}
+
+function changeMyTeamSquadGw(direction) {
+    const manager = currentMyTeamManager();
+    const entries = (manager && MY_TEAM_HISTORY[manager]) || [];
+    if (entries.length === 0) return;
+
+    if (manager !== myTeamSquadManager || myTeamSquadIndex < 0) {
+        myTeamSquadIndex = entries.length - 1;
+        myTeamSquadManager = manager;
+    }
+
+    myTeamSquadIndex = Math.max(0, Math.min(entries.length - 1, myTeamSquadIndex + direction));
+    renderMyTeamSquad();
+}
+
+function renderSingleLineChart(containerId, points, opts) {
+    const wrap = document.getElementById(containerId);
+    if (!wrap) return;
+
+    if (!points || points.length === 0) {
+        wrap.innerHTML = '<div class="trend-chart-empty">No data captured yet.</div>';
+        return;
+    }
+
+    const width = 700;
+    const height = 240;
+    const padL = 34;
+    const padR = 12;
+    const padT = 12;
+    const padB = 26;
+    const plotW = width - padL - padR;
+    const plotH = height - padT - padB;
+
+    const gws = points.map(function(p) { return p[0]; });
+    const xMin = Math.min.apply(null, gws);
+    const xMax = Math.max.apply(null, gws);
+
+    let yMin;
+    let yMax;
+
+    if (opts.rankMode) {
+        yMin = 0.5;
+        yMax = MANAGER_ORDER.length + 0.5;
+    } else {
+        const values = points.map(function(p) { return p[1]; });
+        yMin = Math.min.apply(null, values);
+        yMax = Math.max.apply(null, values);
+        if (yMin === yMax) { yMin -= 1; yMax += 1; }
+        const yPad = (yMax - yMin) * 0.15;
+        yMin -= yPad;
+        yMax += yPad;
+    }
+
+    function xScale(gw) {
+        return xMax === xMin ? padL + plotW / 2 : padL + ((gw - xMin) / (xMax - xMin)) * plotW;
+    }
+
+    function yScale(value) {
+        const t = (value - yMin) / (yMax - yMin);
+        return opts.invert ? padT + (1 - t) * plotH : padT + t * plotH;
+    }
+
+    let gridlines = "";
+    for (let i = 0; i <= 4; i++) {
+        const value = yMin + ((yMax - yMin) * i) / 4;
+        const y = yScale(value).toFixed(1);
+        gridlines += '<line class="trend-chart-gridline" x1="' + padL + '" x2="' + (width - padR) + '" y1="' + y + '" y2="' + y + '" />';
+        gridlines += '<text class="trend-chart-axis-label" x="4" y="' + (Number(y) + 3.5) + '">' + Math.round(value) + '</text>';
+    }
+
+    const step = Math.max(1, Math.ceil(gws.length / 6));
+    let xLabels = "";
+    gws.forEach(function(gw, index) {
+        if (index % step === 0 || index === gws.length - 1) {
+            xLabels += '<text class="trend-chart-axis-label" x="' + xScale(gw).toFixed(1) + '" y="' + (height - 6) + '" text-anchor="middle">GW' + gw + '</text>';
+        }
+    });
+
+    let d = "";
+    points.forEach(function(point, index) {
+        const x = xScale(point[0]).toFixed(1);
+        const y = yScale(point[1]).toFixed(1);
+        d += (index === 0 ? "M" : "L") + x + "," + y + " ";
+    });
+
+    let dots = "";
+    points.forEach(function(point) {
+        dots += '<circle class="trend-chart-dot" cx="' + xScale(point[0]).toFixed(1) + '" cy="' + yScale(point[1]).toFixed(1) + '" r="3.5" fill="' + opts.color + '" stroke="#111827" stroke-width="1" />';
+    });
+
+    wrap.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="xMidYMid meet">' +
+        gridlines +
+        xLabels +
+        '<path class="trend-chart-line" d="' + d.trim() + '" stroke="' + opts.color + '" />' +
+        dots +
+        '</svg>';
+}
+
+function renderMyTeamStatsCharts() {
+    const manager = currentMyTeamManager();
+    if (!manager) return;
+
+    const color = MANAGER_COLORS[manager] || "#38bdf8";
+
+    renderSingleLineChart(
+        "myteam-chart-scores",
+        (TREND_DATA.scores && TREND_DATA.scores[manager]) || [],
+        { invert: true, rankMode: false, color: color }
+    );
+
+    renderSingleLineChart(
+        "myteam-chart-rank",
+        (TREND_DATA.rank && TREND_DATA.rank[manager]) || [],
+        { invert: false, rankMode: true, color: color }
+    );
+}
+
+
+/* ============================================================
    TEAM OF THE WEEK
    ============================================================ */
 
@@ -6397,6 +6728,77 @@ function escapePlayerHTML(
 }
 
 
+function buildPlayerHistoryChart(historyRows) {
+
+    const rows = (historyRows || []).filter(function(row) {
+        return row && typeof row.gw !== "undefined";
+    });
+
+    if (rows.length === 0) {
+        return '<div class="trend-chart-empty">No gameweek history captured yet.</div>';
+    }
+
+    const width = 700;
+    const height = 200;
+    const padL = 30;
+    const padR = 10;
+    const padT = 12;
+    const padB = 26;
+    const plotW = width - padL - padR;
+    const plotH = height - padT - padB;
+
+    const values = rows.map(function(row) { return row.points; });
+    let yMax = Math.max.apply(null, values.concat([1]));
+    let yMin = Math.min(0, Math.min.apply(null, values));
+    if (yMax === yMin) yMax = yMin + 1;
+
+    function yScale(value) {
+        const t = (value - yMin) / (yMax - yMin);
+        return padT + (1 - t) * plotH;
+    }
+
+    const zeroY = yScale(0);
+
+    const gridCount = 3;
+    let gridlines = "";
+    for (let i = 0; i <= gridCount; i++) {
+        const value = yMin + ((yMax - yMin) * i) / gridCount;
+        const y = yScale(value).toFixed(1);
+        gridlines += '<line class="trend-chart-gridline" x1="' + padL + '" x2="' + (width - padR) + '" y1="' + y + '" y2="' + y + '" />';
+        gridlines += '<text class="trend-chart-axis-label" x="2" y="' + (Number(y) + 3.5) + '">' + Math.round(value) + '</text>';
+    }
+
+    const bandWidth = plotW / rows.length;
+    const barWidth = Math.max(4, bandWidth * 0.55);
+
+    let bars = "";
+    let xLabels = "";
+    const labelStep = Math.max(1, Math.ceil(rows.length / 8));
+
+    rows.forEach(function(row, index) {
+        const cx = padL + bandWidth * (index + 0.5);
+        const barY = yScale(Math.max(row.points, 0));
+        const barBottom = yScale(Math.min(row.points, 0));
+        const barHeight = Math.max(1, barBottom - barY);
+
+        bars += '<rect class="trend-chart-bar" x="' + (cx - barWidth / 2).toFixed(1) + '" y="' + barY.toFixed(1) + '" width="' + barWidth.toFixed(1) + '" height="' + barHeight.toFixed(1) + '">' +
+            '<title>GW' + row.gw + ': ' + row.points + ' pts</title>' +
+            '</rect>';
+
+        if (index % labelStep === 0 || index === rows.length - 1) {
+            xLabels += '<text class="trend-chart-axis-label" x="' + cx.toFixed(1) + '" y="' + (height - 6) + '" text-anchor="middle">GW' + row.gw + '</text>';
+        }
+    });
+
+    return '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="xMidYMid meet">' +
+        gridlines +
+        '<line class="trend-chart-gridline" x1="' + padL + '" x2="' + (width - padR) + '" y1="' + zeroY.toFixed(1) + '" y2="' + zeroY.toFixed(1) + '" />' +
+        bars +
+        xLabels +
+        '</svg>';
+}
+
+
 function searchPlayers() {
 
     const input =
@@ -6512,6 +6914,13 @@ function searchPlayers() {
                 '<span class="player-stat-chip"><b>' + player.minutes + '</b> Mins</span>' +
                 '<span class="player-stat-chip"><b>' + player.yellow_cards + '</b> Yellow</span>' +
                 '<span class="player-stat-chip"><b>' + player.red_cards + '</b> Red</span>' +
+                '</div>';
+
+
+            searchHtml +=
+                '<div class="player-history-chart-heading">Score By Gameweek</div>' +
+                '<div class="player-gw-chart-wrap trend-chart-svg-wrap">' +
+                buildPlayerHistoryChart(player.history) +
                 '</div>';
 
 
