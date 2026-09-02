@@ -1730,6 +1730,214 @@ transfer_roi = sorted(
 
 
 # ============================================================
+# TRANSFER ACTIVITY ARCHIVE
+#
+# Ownership changes are effective at the START of the labelled GW.
+# Therefore a player acquired for GW2 contributes their GW2 points to
+# that manager.  This archive includes hand-offs between managers plus
+# pure free-agent pickups/drops, while GW1 remains the initial draft.
+# ============================================================
+
+transfer_activity = []
+historical_pickups = []
+
+for player_id, info in player_ownership.items():
+    ownership_by_gw = info.get("ownership_by_gw", {})
+    player_name = info.get("name") or elements.get(player_id, {}).get("web_name", "Unknown")
+    previous_owners = set()
+
+    # Track each manager's post-draft stint so individual pickups can be
+    # ranked by the points actually delivered while on that roster.
+    open_stints = {}
+
+    for i, gw in enumerate(finished_gws):
+        current_owners = set(ownership_by_gw.get(gw, set()) or set())
+
+        if i == 0:
+            previous_owners = current_owners
+            continue
+
+        joined = sorted(current_owners - previous_owners)
+        left = sorted(previous_owners - current_owners)
+
+        # Close outgoing stints before opening incoming ones. Points from
+        # the new GW belong to the incoming manager, not the old manager.
+        for manager in left:
+            stint = open_stints.pop(manager, None)
+            if stint is not None:
+                start_gw = stint["start_gw"]
+                stint_points = sum(
+                    int(player_form.get(player_id, {}).get(g, 0) or 0)
+                    for g in finished_gws
+                    if start_gw <= g < gw
+                )
+                historical_pickups.append({
+                    "player": player_name,
+                    "player_id": player_id,
+                    "manager": manager,
+                    "from_team": stint.get("from_team", "Free Agent"),
+                    "start_gw": start_gw,
+                    "end_gw": gw - 1,
+                    "points": stint_points,
+                    "weeks": len([g for g in finished_gws if start_gw <= g < gw]),
+                })
+
+        if joined or left:
+            # There should normally be one owner in Draft, but retain list
+            # handling so the archive remains robust if the snapshots are odd.
+            from_label = ", ".join(left) if left else "Free Agent"
+            to_label = ", ".join(joined) if joined else "Free Agent"
+
+            if joined:
+                for manager in joined:
+                    transfer_activity.append({
+                        "gw": gw,
+                        "player": player_name,
+                        "player_id": player_id,
+                        "team": manager,
+                        "action": "IN",
+                        "from_team": from_label,
+                        "to_team": manager,
+                    })
+                    open_stints[manager] = {
+                        "start_gw": gw,
+                        "from_team": from_label,
+                    }
+
+            if left:
+                for manager in left:
+                    transfer_activity.append({
+                        "gw": gw,
+                        "player": player_name,
+                        "player_id": player_id,
+                        "team": manager,
+                        "action": "OUT",
+                        "from_team": manager,
+                        "to_team": to_label,
+                    })
+
+        previous_owners = current_owners
+
+    # Score any acquired stint still open at the end of captured history.
+    for manager, stint in open_stints.items():
+        start_gw = stint["start_gw"]
+        stint_points = sum(
+            int(player_form.get(player_id, {}).get(g, 0) or 0)
+            for g in finished_gws
+            if g >= start_gw
+        )
+        historical_pickups.append({
+            "player": player_name,
+            "player_id": player_id,
+            "manager": manager,
+            "from_team": stint.get("from_team", "Free Agent"),
+            "start_gw": start_gw,
+            "end_gw": max(finished_gws) if finished_gws else start_gw,
+            "points": stint_points,
+            "weeks": len([g for g in finished_gws if g >= start_gw]),
+        })
+
+transfer_activity.sort(key=lambda x: (-int(x["gw"]), x["player"], x["action"]))
+historical_pickups.sort(key=lambda x: (-x["points"], -x["weeks"], x["player"]))
+
+latest_transfer_gw = max(finished_gws) if finished_gws else None
+
+
+def recent_transfer_activity_table():
+    if latest_transfer_gw is None:
+        return '<div class="notice">No completed gameweeks yet.</div>'
+
+    rows_data = [row for row in transfer_activity if row["gw"] == latest_transfer_gw]
+    if not rows_data:
+        return f'<div class="notice">No ownership changes recorded for GW{latest_transfer_gw}.</div>'
+
+    rows = ""
+    for row in rows_data:
+        direction = "Picked up" if row["action"] == "IN" else "Dropped"
+        other = row["from_team"] if row["action"] == "IN" else row["to_team"]
+        rows += f"""
+            <tr>
+                <td class="manager-name">{escape_html(row['player'])}</td>
+                <td>{escape_html(row['team'])}</td>
+                <td>{direction}</td>
+                <td>{escape_html(other)}</td>
+            </tr>
+        """
+
+    return f"""
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Player</th><th>Fantasy Team</th><th>Move</th><th>From / To</th></tr></thead>
+                <tbody>{rows}</tbody>
+            </table>
+        </div>
+    """
+
+
+def transfer_archive_table():
+    if not transfer_activity:
+        return '<div class="notice">No transfer activity captured yet.</div>'
+
+    rows = ""
+    for row in transfer_activity:
+        direction = "Picked up" if row["action"] == "IN" else "Dropped"
+        movement = f"{row['from_team']} → {row['to_team']}"
+        search_team = f"{row['team']} {row['from_team']} {row['to_team']}".lower()
+        rows += f"""
+            <tr class="transfer-archive-row"
+                data-player="{escape_html(row['player'].lower())}"
+                data-team="{escape_html(search_team)}">
+                <td>GW{row['gw']}</td>
+                <td class="manager-name">{escape_html(row['player'])}</td>
+                <td>{escape_html(row['team'])}</td>
+                <td>{direction}</td>
+                <td>{escape_html(movement)}</td>
+            </tr>
+        """
+
+    return f"""
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>GW</th><th>Player</th><th>Fantasy Team</th><th>Move</th><th>Movement</th></tr></thead>
+                <tbody id="transfer-archive-body">{rows}</tbody>
+            </table>
+        </div>
+        <div id="transfer-search-empty" class="notice" style="display:none; margin-top:12px;">
+            No transfers match those filters.
+        </div>
+    """
+
+
+def best_historical_transfers_table(limit=15):
+    candidates = [row for row in historical_pickups if row.get("weeks", 0) > 0]
+    if not candidates:
+        return '<div class="notice">Not enough completed transfer history yet.</div>'
+
+    rows = ""
+    for index, row in enumerate(candidates[:limit], start=1):
+        span = f"GW{row['start_gw']}" if row['start_gw'] == row['end_gw'] else f"GW{row['start_gw']}–{row['end_gw']}"
+        rows += f"""
+            <tr>
+                <td>{index}</td>
+                <td class="manager-name">{escape_html(row['player'])}</td>
+                <td>{escape_html(row['manager'])}</td>
+                <td>{span}</td>
+                <td>{row['weeks']}</td>
+                <td class="positive">{row['points']}</td>
+            </tr>
+        """
+
+    return f"""
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>#</th><th>Player</th><th>Fantasy Team</th><th>Owned</th><th>GWs</th><th>Points Delivered</th></tr></thead>
+                <tbody>{rows}</tbody>
+            </table>
+        </div>
+    """
+
+
+# ============================================================
 # H2H STANDINGS
 # ============================================================
 
@@ -3664,9 +3872,13 @@ normalised_trades = _normalise_all_trades(trades_raw)
 
 
 def _trade_points_after(player_ids, trade_gw):
-    """Finished-GW points from the GW after a trade onward."""
+    """Finished-GW points from the trade GW onward.
+
+    Draft trades processed for GW2 are active for GW2, so the acquired
+    players' GW2 points belong to the receiving manager.
+    """
     try:
-        start_gw = int(trade_gw) + 1
+        start_gw = int(trade_gw)
     except (TypeError, ValueError):
         return 0
 
@@ -3693,7 +3905,7 @@ def _trade_grade(trade):
     side1_received = _trade_points_after(trade.get("player_ids2", []), trade.get("gw"))
     side2_received = _trade_points_after(trade.get("player_ids1", []), trade.get("gw"))
     try:
-        weeks = len([gw for gw in finished_gws if gw > int(trade.get("gw"))])
+        weeks = len([gw for gw in finished_gws if gw >= int(trade.get("gw"))])
     except (TypeError, ValueError):
         weeks = 0
 
@@ -3729,8 +3941,15 @@ def _trade_grade(trade):
     }
 
 
-def trades_table():
-    if not normalised_trades:
+def trades_table(gw=None):
+    trades_to_show = normalised_trades
+    if gw is not None:
+        trades_to_show = [
+            trade for trade in normalised_trades
+            if str(trade.get("gw")) == str(gw)
+        ]
+
+    if not trades_to_show:
         return """
             <div class="notice">
                 No trades returned by the Draft API yet.
@@ -3738,7 +3957,7 @@ def trades_table():
         """
 
     rows = ""
-    for trade in normalised_trades:
+    for trade in trades_to_show:
         side1 = ", ".join(escape_html(p) for p in trade["players1"]) or "—"
         side2 = ", ".join(escape_html(p) for p in trade["players2"]) or "—"
         status = escape_html(trade["status"])
@@ -3749,7 +3968,7 @@ def trades_table():
         )
         grade = _trade_grade(trade)
         try:
-            grade_start_gw = int(trade["gw"]) + 1
+            grade_start_gw = int(trade["gw"])
         except (TypeError, ValueError):
             grade_start_gw = "—"
         trade_grade_html = f"""
@@ -6083,6 +6302,36 @@ tbody tr:hover {
     background: var(--muted);
     color: #0f1626;
 }
+
+/* ============================================================
+   TRANSFER ARCHIVE FILTERS
+   ============================================================ */
+
+function filterTransfers() {
+    const playerInput = document.getElementById("transfer-player-search");
+    const teamSelect = document.getElementById("transfer-team-filter");
+    const rows = document.querySelectorAll(".transfer-archive-row");
+    const empty = document.getElementById("transfer-search-empty");
+
+    if (!rows.length) return;
+
+    const playerQuery = playerInput ? playerInput.value.trim().toLowerCase() : "";
+    const teamQuery = teamSelect ? teamSelect.value.trim().toLowerCase() : "";
+    let visible = 0;
+
+    rows.forEach(function(row) {
+        const player = (row.dataset.player || "").toLowerCase();
+        const teams = (row.dataset.team || "").toLowerCase();
+        const matchesPlayer = !playerQuery || player.includes(playerQuery);
+        const matchesTeam = !teamQuery || teams.includes(teamQuery);
+        const show = matchesPlayer && matchesTeam;
+        row.style.display = show ? "" : "none";
+        if (show) visible += 1;
+    });
+
+    if (empty) empty.style.display = visible ? "none" : "block";
+}
+
 
 /* ============================================================
    MOBILE TREND CHARTS (H2H points / rank / gw scores)
@@ -9420,9 +9669,38 @@ __CSS__
 
             <div class="card">
 
-                <h2>All League Trades</h2>
+                <h2>Recent Transfers · GW__LATEST_TRANSFER_GW__</h2>
                 <p class="card-description">
-                    Every processed league trade, with a live grade based on points scored after the deal.
+                    Ownership moves effective for the latest completed gameweek. A GW2 pickup is counted as owned from GW2.
+                </p>
+                __RECENT_TRANSFER_ACTIVITY__
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>Search Transfer History</h2>
+                <p class="card-description">
+                    Search every captured ownership move by player or fantasy team.
+                </p>
+                <div class="player-filter-grid transfer-filter-grid">
+                    <input id="transfer-player-search" class="player-search-box" type="search" placeholder="Search player…" oninput="filterTransfers()">
+                    <select id="transfer-team-filter" class="player-filter" onchange="filterTransfers()">
+                        <option value="">All fantasy teams</option>
+                        __TRANSFER_TEAM_OPTIONS__
+                    </select>
+                </div>
+                __TRANSFER_ARCHIVE__
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>Recent League Trades</h2>
+                <p class="card-description">
+                    Negotiated trades processed for GW__LATEST_TRANSFER_GW__, with running grades counting points from that GW onward.
                 </p>
                 __TRADES_TABLE__
 
@@ -9481,6 +9759,18 @@ __CSS__
                 </p>
 
                 __ABANDONED_ASSETS__
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>Best Historical Transfers</h2>
+                <p class="card-description">
+                    The best post-draft pickups so far, ranked by points delivered while the player was actually on that fantasy roster.
+                    Acquisition-gameweek points are included.
+                </p>
+                __BEST_HISTORICAL_TRANSFERS__
 
             </div>
 
@@ -9703,7 +9993,25 @@ replacements = {
         my_team_cards(),
 
     "__TRADES_TABLE__":
-        trades_table(),
+        trades_table(latest_transfer_gw),
+
+    "__LATEST_TRANSFER_GW__":
+        str(latest_transfer_gw if latest_transfer_gw is not None else "—"),
+
+    "__RECENT_TRANSFER_ACTIVITY__":
+        recent_transfer_activity_table(),
+
+    "__TRANSFER_ARCHIVE__":
+        transfer_archive_table(),
+
+    "__TRANSFER_TEAM_OPTIONS__":
+        "".join(
+            f'<option value="{escape_html(manager)}">{escape_html(manager)}</option>'
+            for manager in sorted(managers)
+        ),
+
+    "__BEST_HISTORICAL_TRANSFERS__":
+        best_historical_transfers_table(),
 
     "__PLAYER_CLUB_OPTIONS__":
         "".join(
