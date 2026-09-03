@@ -885,6 +885,125 @@ if isinstance(league_element_status, dict):
 
 
 # ============================================================
+# DASHBOARD GAME STATE
+# ============================================================
+dashboard_last_finished_gw = max(finished_gws) if finished_gws else 0
+dashboard_target_gw = dashboard_last_finished_gw + 1
+
+_dashboard_events = {
+    int(event.get("id")): event
+    for event in bootstrap.get("events", [])
+    if event.get("id") is not None
+}
+_dashboard_target_event = _dashboard_events.get(dashboard_target_gw, {})
+
+dashboard_target_started = bool(_dashboard_target_event.get("started", False))
+dashboard_target_finished = bool(_dashboard_target_event.get("finished", False))
+
+_dashboard_league_entry_names = history.get("league_entry_id_to_name", {})
+
+def _dashboard_owner_name(owner):
+    if owner in (None, "", 0, "0"):
+        return None
+
+    name = (
+        _dashboard_league_entry_names.get(owner)
+        or _dashboard_league_entry_names.get(str(owner))
+    )
+    if name:
+        return name
+
+    try:
+        return entry_id_to_name.get(int(owner))
+    except (TypeError, ValueError):
+        return None
+
+_dashboard_previous_owner = {}
+
+if dashboard_last_finished_gw:
+    _previous_snapshot = history.get("gameweeks", {}).get(
+        str(dashboard_last_finished_gw), {}
+    )
+
+    for _team_data in _previous_snapshot.get("teams", {}).values():
+        _manager = _team_data.get("manager")
+        if not _manager:
+            continue
+
+        for _player in (
+            _team_data.get("starters", [])
+            + _team_data.get("bench", [])
+        ):
+            _pid = _player.get("element_id")
+            if _pid is not None:
+                _dashboard_previous_owner[int(_pid)] = _manager
+
+_dashboard_current_owner = {
+    int(player_id): _dashboard_owner_name(owner)
+    for player_id, owner in current_owner_by_player.items()
+}
+
+dashboard_market_changes = []
+
+_all_market_player_ids = set(_dashboard_previous_owner) | set(
+    _dashboard_current_owner
+)
+
+for _pid in sorted(_all_market_player_ids):
+    _old_owner = _dashboard_previous_owner.get(_pid)
+    _new_owner = _dashboard_current_owner.get(_pid)
+
+    if _old_owner == _new_owner:
+        continue
+
+    if _old_owner is None and _new_owner is None:
+        continue
+
+    _meta = elements.get(_pid, {})
+    _player_name = _meta.get("web_name", f"Player {_pid}")
+
+    if _old_owner is None and _new_owner is not None:
+        _move_type = "Pickup"
+    elif _old_owner is not None and _new_owner is None:
+        _move_type = "Drop"
+    else:
+        _move_type = "Transfer"
+
+    dashboard_market_changes.append({
+        "player_id": _pid,
+        "player": _player_name,
+        "from_team": _old_owner or "Free Agent",
+        "to_team": _new_owner or "Free Agent",
+        "move": _move_type,
+    })
+
+dashboard_market_active = bool(dashboard_market_changes)
+
+if dashboard_target_started and not dashboard_target_finished:
+    dashboard_game_state = "live"
+elif dashboard_market_active:
+    dashboard_game_state = "upcoming"
+else:
+    dashboard_game_state = "completed"
+
+print(
+    "Dashboard state: "
+    f"{dashboard_game_state.upper()} | "
+    f"last completed GW={dashboard_last_finished_gw} | "
+    f"target GW={dashboard_target_gw} | "
+    f"started={dashboard_target_started} | "
+    f"market changes={len(dashboard_market_changes)}"
+)
+
+
+dashboard_display_gw = (
+    dashboard_target_gw
+    if dashboard_game_state in ("upcoming", "live")
+    else dashboard_last_finished_gw
+)
+
+
+# ============================================================
 # PLAYER OWNERSHIP / TRANSFER ANALYSIS
 # ============================================================
 
@@ -1843,7 +1962,7 @@ for player_id, info in player_ownership.items():
 transfer_activity.sort(key=lambda x: (-int(x["gw"]), x["player"], x["action"]))
 historical_pickups.sort(key=lambda x: (-x["points"], -x["weeks"], x["player"]))
 
-latest_transfer_gw = max(finished_gws) if finished_gws else None
+latest_transfer_gw = dashboard_display_gw if dashboard_display_gw else None
 
 
 def canonical_transfer_movements():
@@ -1890,11 +2009,57 @@ transfer_movements = canonical_transfer_movements()
 
 def recent_transfer_activity_table():
     if latest_transfer_gw is None:
-        return '<div class="notice">No completed gameweeks yet.</div>'
+        return '<div class="notice">No gameweek transfer activity available yet.</div>'
 
-    rows_data = [row for row in transfer_movements if row["gw"] == latest_transfer_gw]
+    rows_data = [
+        row.copy()
+        for row in transfer_movements
+        if int(row.get("gw", 0) or 0) == int(latest_transfer_gw)
+    ]
+
+    # During Upcoming/Live, frozen finished-GW ownership does not yet include
+    # this gameweek. Merge in current element-status changes immediately.
+    if (
+        dashboard_game_state in ("upcoming", "live")
+        and int(latest_transfer_gw) == int(dashboard_target_gw)
+    ):
+        seen = {
+            (
+                int(row.get("player_id", 0) or 0),
+                row.get("from_team"),
+                row.get("to_team"),
+            )
+            for row in rows_data
+        }
+
+        for change in dashboard_market_changes:
+            key = (
+                int(change.get("player_id", 0) or 0),
+                change.get("from_team"),
+                change.get("to_team"),
+            )
+            if key in seen:
+                continue
+
+            rows_data.append({
+                "gw": dashboard_target_gw,
+                **change,
+            })
+            seen.add(key)
+
     if not rows_data:
-        return f'<div class="notice">No ownership changes recorded for GW{latest_transfer_gw}.</div>'
+        return (
+            f'<div class="notice">No processed ownership changes '
+            f'for GW{latest_transfer_gw} yet.</div>'
+        )
+
+    move_order = {"Transfer": 0, "Pickup": 1, "Drop": 2}
+    rows_data.sort(
+        key=lambda row: (
+            move_order.get(row.get("move"), 9),
+            row.get("player", ""),
+        )
+    )
 
     rows = ""
     for row in rows_data:
@@ -5796,6 +5961,309 @@ def latest_league_storyline_html():
     return f'<div class="storyline-latest"><div class="eyebrow">GW{gw} · THE McDRAFT COLUMN</div><p>{escape_html(story)}</p></div>'
 
 
+
+def _dashboard_current_free_agents(limit=8):
+    candidates = []
+
+    for player_id, meta in elements.items():
+        owner = current_owner_by_player.get(int(player_id))
+
+        if owner not in (None, "", 0, "0"):
+            continue
+
+        if meta.get("status", "a") == "u":
+            continue
+
+        try:
+            points = int(meta.get("total_points", 0) or 0)
+        except (TypeError, ValueError):
+            points = 0
+
+        try:
+            form = float(meta.get("form", 0) or 0)
+        except (TypeError, ValueError):
+            form = 0.0
+
+        candidates.append({
+            "id": int(player_id),
+            "name": meta.get("web_name", "Unknown"),
+            "club": teams_lookup.get(meta.get("team"), "—"),
+            "position": positions_lookup.get(meta.get("element_type"), "—"),
+            "points": points,
+            "form": form,
+        })
+
+    candidates.sort(
+        key=lambda row: (-row["form"], -row["points"], row["name"])
+    )
+    return candidates[:limit]
+
+
+def _dashboard_market_changes_html():
+    if not dashboard_market_changes:
+        return '<div class="notice">No processed squad changes detected yet.</div>'
+
+    rows = ""
+    for row in dashboard_market_changes:
+        rows += (
+            "<tr>"
+            f"<td class=\"manager-name\">{escape_html(row['player'])}</td>"
+            f"<td>{escape_html(row['from_team'])}</td>"
+            f"<td>{escape_html(row['to_team'])}</td>"
+            f"<td>{escape_html(row['move'])}</td>"
+            "</tr>"
+        )
+
+    return (
+        '<div class="table-wrap"><table>'
+        '<thead><tr><th>Player</th><th>From</th><th>To</th><th>Move</th></tr></thead>'
+        f'<tbody>{rows}</tbody></table></div>'
+    )
+
+
+def _dashboard_free_agents_html():
+    free_agents = _dashboard_current_free_agents()
+
+    if not free_agents:
+        return '<div class="notice">No free-agent recommendations available.</div>'
+
+    rows = ""
+    for player in free_agents:
+        rows += (
+            "<tr>"
+            f"<td class=\"manager-name\">{escape_html(player['name'])}</td>"
+            f"<td>{escape_html(player['position'])}</td>"
+            f"<td>{escape_html(player['club'])}</td>"
+            f"<td>{player['form']:.1f}</td>"
+            f"<td>{player['points']}</td>"
+            "</tr>"
+        )
+
+    return (
+        '<div class="table-wrap"><table>'
+        '<thead><tr><th>Player</th><th>Pos</th><th>Club</th><th>Form</th><th>Pts</th></tr></thead>'
+        f'<tbody>{rows}</tbody></table></div>'
+    )
+
+
+def _dashboard_upcoming_fixtures_html():
+    fixtures = full_fixture_schedule.get(dashboard_target_gw, [])
+
+    if not fixtures:
+        return '<div class="notice">Next-GW fixtures are not available yet.</div>'
+
+    html = '<div class="fixtures-list">'
+
+    for fixture in fixtures:
+        derby = _derby_name(fixture.get("team1"), fixture.get("team2"))
+        derby_html = (
+            f'<div class="fixture-derby unified-derby">{escape_html(derby)}</div>'
+            if derby
+            else ''
+        )
+
+        html += (
+            '<div class="fixture future-fixture-unified">'
+            f'{derby_html}'
+            '<div class="fixture-team">'
+            f'<span class="fixture-manager">{escape_html(fixture.get("team1", "—"))}</span>'
+            '</div>'
+            '<div class="fixture-vs">VS</div>'
+            '<div class="fixture-team">'
+            f'<span class="fixture-manager">{escape_html(fixture.get("team2", "—"))}</span>'
+            '</div></div>'
+        )
+
+    html += '</div>'
+    return html
+
+
+def _dashboard_live_scoreboard_html():
+    raw_matches = [
+        match
+        for match in (league_matches_all or [])
+        if int(match.get("event", 0) or 0) == dashboard_target_gw
+    ]
+
+    if not raw_matches:
+        return '<div class="notice">GW has started; waiting for live Draft scores.</div>'
+
+    html = '<div class="fixtures-list">'
+
+    for match in raw_matches:
+        team1 = league_entry_id_to_name.get(
+            match.get("league_entry_1"), "Unknown"
+        )
+        team2 = league_entry_id_to_name.get(
+            match.get("league_entry_2"), "Unknown"
+        )
+
+        try:
+            score1 = int(match.get("league_entry_1_points", 0) or 0)
+        except (TypeError, ValueError):
+            score1 = 0
+
+        try:
+            score2 = int(match.get("league_entry_2_points", 0) or 0)
+        except (TypeError, ValueError):
+            score2 = 0
+
+        html += (
+            '<div class="fixture">'
+            '<div class="fixture-team">'
+            f'<span class="fixture-score">{score1}</span>'
+            f'<span class="fixture-manager">{escape_html(team1)}</span>'
+            '</div>'
+            '<div class="fixture-vs">LIVE</div>'
+            '<div class="fixture-team">'
+            f'<span class="fixture-score">{score2}</span>'
+            f'<span class="fixture-manager">{escape_html(team2)}</span>'
+            '</div></div>'
+        )
+
+    html += '</div>'
+    return html
+
+
+def upcoming_gameweek_preview_story():
+    """Dramatic preview driven by fixtures, derbies and live market movement."""
+    gw = dashboard_target_gw
+    fixtures = full_fixture_schedule.get(gw, [])
+    rng = random.Random(
+        (LEAGUE_ID * 100003)
+        + (gw * 104729)
+        + len(dashboard_market_changes)
+    )
+
+    paragraphs = []
+
+    openings = [
+        f"GW{gw} is already rattling the cage. The scores are still on zero, but the market has moved and McDraft has entered that dangerous period where everybody thinks they have fixed their squad.",
+        f"The dust from GW{dashboard_last_finished_gw} has barely settled and GW{gw} is already causing trouble. Waivers have landed, squads have shifted and optimism has once again become completely untethered from evidence.",
+        f"Welcome to the GW{gw} build-up: no football yet, plenty of administrative violence. The waiver wire has fired, managers have gone shopping and the next round is beginning to smell faintly of chaos.",
+        f"GW{gw} has not kicked a ball yet and somehow there is already drama. The market is moving, squads are being rewritten and several managers have plainly decided last week's problems were personnel rather than management.",
+        f"The shutters are up on GW{gw}. Transfers are moving, free agents are disappearing from shelves and ten managers are simultaneously convincing themselves that this time they have absolutely nailed it.",
+    ]
+    paragraphs.append(rng.choice(openings))
+
+    derby_bits = []
+    for fixture in fixtures:
+        derby = _derby_name(fixture.get("team1"), fixture.get("team2"))
+        if not derby:
+            continue
+
+        t1 = fixture.get("team1", "Unknown")
+        t2 = fixture.get("team2", "Unknown")
+
+        derby_bits.append(rng.choice([
+            f"Then there is {derby}: {t1} against {t2}. Three league points are available, but more importantly so is the right to be absolutely unbearable for a week.",
+            f"Top billing belongs to {derby}, with {t1} and {t2} renewing hostilities. Form, reason and basic human decency may all be suspended until the final score is in.",
+            f"The fixture computer has chosen violence: {derby} sends {t1} into {t2}. Expect screenshots, selective memory and forensic interpretation of every point.",
+            f"Clear the diary for {derby}. {t1} meet {t2}, and losing this particular fixture tends to have a much longer half-life than an ordinary defeat.",
+        ]))
+
+    if derby_bits:
+        paragraphs.append(" ".join(derby_bits[:2]))
+
+    pickups = [m for m in dashboard_market_changes if m.get("move") == "Pickup"]
+    transfers = [m for m in dashboard_market_changes if m.get("move") == "Transfer"]
+    drops = [m for m in dashboard_market_changes if m.get("move") == "Drop"]
+
+    market_bits = []
+
+    for move in transfers[:2]:
+        market_bits.append(rng.choice([
+            f"{move['player']} has crossed from {move['from_team']} to {move['to_team']}. Somebody will call it inspired recruitment; somebody else is quietly bookmarking this paragraph.",
+            f"{move['player']} changes hands, leaving {move['from_team']} for {move['to_team']}. A perfectly sensible transaction right up until the player scores 2 or 14.",
+            f"There has been an actual handover: {move['player']} moves from {move['from_team']} to {move['to_team']}. The trade-grade tribunal is already putting on its little wig.",
+        ]))
+
+    for move in pickups[:3]:
+        market_bits.append(rng.choice([
+            f"{move['to_team']} have swooped for {move['player']} from free agency, which is either inspired scouting or tomorrow's evidence exhibit.",
+            f"{move['to_team']} have grabbed {move['player']} off the wire. New toy acquired; unreasonable expectations activated.",
+            f"{move['player']} is off the shelf and into {move['to_team']}. Nothing says 'new gameweek, new me' like immediate emotional dependence on a pickup.",
+        ]))
+
+    if drops:
+        move = drops[0]
+        market_bits.append(
+            f"{move['player']} has also been cut loose by {move['from_team']}, "
+            "which is either ruthless squad management or the opening scene of a future Hall of Shame entry."
+        )
+
+    if market_bits:
+        paragraphs.append(" ".join(market_bits[:5]))
+
+    free_agents = _dashboard_current_free_agents(5)
+    if free_agents:
+        names = [p["name"] for p in free_agents[:3]]
+        if len(names) == 1:
+            name_text = names[0]
+        elif len(names) == 2:
+            name_text = f"{names[0]} and {names[1]}"
+        else:
+            name_text = f"{names[0]}, {names[1]} and {names[2]}"
+
+        paragraphs.append(rng.choice([
+            f"And the cupboard is not bare: {name_text} remain among the more interesting free agents. Somewhere, a manager is staring at the app and talking themselves into something reckless.",
+            f"Still sitting on the shelf are {name_text}, among the stronger available names. Bargains waiting to happen, or bait. Delicious, stat-shaped bait.",
+            f"Free agency still has teeth: {name_text} remain unattached and worth a look before somebody else decides they discovered them first.",
+        ]))
+
+    paragraphs.append(rng.choice([
+        f"GW{gw} is therefore set: grudges refreshed, squads tinkered with and confidence dangerously high. All that remains is for the actual football to ruin everybody's plans.",
+        f"The pieces are on the board for GW{gw}. Now we wait for ninety minutes of football to make several days of careful squad planning look extremely silly.",
+        f"That is the state of play before GW{gw}: rivalry, recruitment and rampant overconfidence. Lovely stuff.",
+    ]))
+
+    return "\n\n".join(paragraphs)
+
+
+def homepage_game_state_title():
+    if dashboard_game_state == "live":
+        return f"GW{dashboard_target_gw} · Live"
+    if dashboard_game_state == "upcoming":
+        return f"GW{dashboard_target_gw} · Preview"
+    if dashboard_last_finished_gw:
+        return f"GW{dashboard_last_finished_gw} · Completed"
+    return "McDraft"
+
+
+def homepage_game_state_html():
+    if dashboard_game_state == "live":
+        return (
+            '<div class="storyline-latest">'
+            f'<div class="eyebrow">LIVE GAMEWEEK · GW{dashboard_target_gw}</div>'
+            '<p>The gameweek is underway. Scores refresh whenever the GitHub job rebuilds the dashboard.</p>'
+            f'{_dashboard_live_scoreboard_html()}'
+            '</div>'
+        )
+
+    if dashboard_game_state == "upcoming":
+        preview_story = upcoming_gameweek_preview_story()
+        preview_html = "".join(
+            f"<p>{escape_html(paragraph)}</p>"
+            for paragraph in preview_story.split("\n\n")
+            if paragraph.strip()
+        )
+        return (
+            '<div class="storyline-latest">'
+            f'<div class="eyebrow">GW{dashboard_target_gw} · THE McDRAFT PREVIEW</div>'
+            f'{preview_html}'
+            '<h3>Fixtures</h3>'
+            f'{_dashboard_upcoming_fixtures_html()}'
+            '<h3 style="margin-top:18px;">Waivers, pickups & transfers</h3>'
+            f'{_dashboard_market_changes_html()}'
+            '<h3 style="margin-top:18px;">Free agents to watch</h3>'
+            f'{_dashboard_free_agents_html()}'
+            '</div>'
+        )
+
+
+    return latest_league_storyline_html()
+
+
 def season_summary_html():
     if not finished_gws:
         return '<div class="notice">No completed gameweeks yet.</div>'
@@ -6066,8 +6534,15 @@ for gw in gameweek_browser_gameweeks:
                     </div>
                 </div>
             """
-        title = f"Gameweek {gw} · Upcoming Fixtures"
-        state_class = "future-gw"
+        if dashboard_game_state == "live" and int(gw) == int(dashboard_target_gw):
+            title = f"Gameweek {gw} · Live"
+            state_class = "live-gw"
+        elif int(gw) == int(dashboard_target_gw):
+            title = f"Gameweek {gw} · Upcoming Fixtures"
+            state_class = "future-gw"
+        else:
+            title = f"Gameweek {gw} · Future Fixtures"
+            state_class = "future-gw"
 
     if not fixtures_html:
         fixtures_html = '<div class="notice">No fixtures available for this gameweek.</div>'
@@ -9211,7 +9686,11 @@ const resultsGameweeks =
     __RESULT_GAMEWEEKS__;
 
 const latestCompletedGameweek = totwGameweeks.length ? Math.max.apply(null, totwGameweeks) : null;
-let resultsIndex = latestCompletedGameweek !== null ? resultsGameweeks.indexOf(latestCompletedGameweek) : 0;
+const dashboardDisplayGameweek = __DASHBOARD_DISPLAY_GW__;
+let resultsIndex = resultsGameweeks.indexOf(dashboardDisplayGameweek);
+if (resultsIndex < 0 && latestCompletedGameweek !== null) {
+    resultsIndex = resultsGameweeks.indexOf(latestCompletedGameweek);
+}
 if (resultsIndex < 0) resultsIndex = Math.max(0, resultsGameweeks.length - 1);
 
 function updateResults() {
@@ -9886,9 +10365,9 @@ __CSS__
             </div>
 
             <div class="card storyline-card">
-                <h2>This Week in McDraft</h2>
-                <p class="card-description">A dramatic league column: table swings, rivalries, trades, luck, player disasters and what comes next. The factual recap remains on Gameweeks.</p>
-                __LATEST_LEAGUE_STORYLINE__
+                <h2>__HOME_GAME_STATE_TITLE__</h2>
+                <p class="card-description">Completed recap, upcoming market preview or live head-to-head scoreboard — this panel changes automatically with the gameweek.</p>
+                __HOME_GAME_STATE_PANEL__
             </div>
 
             <div class="card">
@@ -10360,7 +10839,7 @@ __CSS__
 
                 <h2>Recent Transfers · GW__LATEST_TRANSFER_GW__</h2>
                 <p class="card-description">
-                    Ownership moves effective for the latest completed gameweek. A GW2 pickup is counted as owned from GW2.
+                    Processed ownership moves for the active gameweek. During the preview window this updates as waivers, pickups, drops and transfers appear.
                 </p>
                 __RECENT_TRANSFER_ACTIVITY__
 
@@ -10735,6 +11214,12 @@ replacements = {
     "__LATEST_LEAGUE_STORYLINE__":
         latest_league_storyline_html(),
 
+    "__HOME_GAME_STATE_TITLE__":
+        escape_html(homepage_game_state_title()),
+
+    "__HOME_GAME_STATE_PANEL__":
+        homepage_game_state_html(),
+
     "__SEASON_SUMMARY__":
         season_summary_html(),
 
@@ -10816,6 +11301,9 @@ replacements = {
         ).replace(
             "__RESULT_GAMEWEEKS__",
             safe_js_json(json.dumps(gameweek_browser_gameweeks))
+        ).replace(
+            "__DASHBOARD_DISPLAY_GW__",
+            str(dashboard_display_gw or 0)
         ).replace(
             "__PLAYER_SEARCH_DATA__",
             safe_js_json(player_search_json)
