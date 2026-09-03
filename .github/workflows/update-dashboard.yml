@@ -4,7 +4,8 @@ on:
   # Run once a day at 04:00 UTC (05:00 UK during BST).
   # This gives Monday-night gameweeks time to finish processing.
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '0 */4 * * 2-4'
+    - cron: '0 * * * 5,6,0,1'
 
   # Allow you to run it manually from the Actions tab.
   workflow_dispatch:
