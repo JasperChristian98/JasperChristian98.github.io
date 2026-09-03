@@ -203,6 +203,9 @@ matches = league_details.get(
     []
 )
 
+# Full live schedule retained for future-fixture browsing.
+league_matches_all = list(matches)
+
 
 # ============================================================
 # ENRICH MATCHES WITH MANAGER NAMES
@@ -1843,31 +1846,71 @@ historical_pickups.sort(key=lambda x: (-x["points"], -x["weeks"], x["player"]))
 latest_transfer_gw = max(finished_gws) if finished_gws else None
 
 
+def canonical_transfer_movements():
+    """Collapse paired IN/OUT ownership changes into one human-readable move."""
+    seen = set()
+    moves = []
+
+    for row in transfer_activity:
+        gw = int(row.get("gw", 0) or 0)
+        player = row.get("player", "Unknown")
+        player_id = row.get("player_id")
+        from_team = row.get("from_team") or "Free Agent"
+        to_team = row.get("to_team") or "Free Agent"
+
+        key = (gw, player_id, from_team, to_team)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        if from_team == "Free Agent" and to_team != "Free Agent":
+            move_label = "Pickup"
+        elif to_team == "Free Agent" and from_team != "Free Agent":
+            move_label = "Drop"
+        elif from_team != to_team:
+            move_label = "Transfer"
+        else:
+            move_label = row.get("action", "Move")
+
+        moves.append({
+            "gw": gw,
+            "player": player,
+            "player_id": player_id,
+            "from_team": from_team,
+            "to_team": to_team,
+            "move": move_label,
+        })
+
+    moves.sort(key=lambda x: (-x["gw"], x["player"], x["from_team"], x["to_team"]))
+    return moves
+
+
+transfer_movements = canonical_transfer_movements()
+
+
 def recent_transfer_activity_table():
     if latest_transfer_gw is None:
         return '<div class="notice">No completed gameweeks yet.</div>'
 
-    rows_data = [row for row in transfer_activity if row["gw"] == latest_transfer_gw]
+    rows_data = [row for row in transfer_movements if row["gw"] == latest_transfer_gw]
     if not rows_data:
         return f'<div class="notice">No ownership changes recorded for GW{latest_transfer_gw}.</div>'
 
     rows = ""
     for row in rows_data:
-        direction = "Picked up" if row["action"] == "IN" else "Dropped"
-        other = row["from_team"] if row["action"] == "IN" else row["to_team"]
         rows += f"""
             <tr>
                 <td class="manager-name">{escape_html(row['player'])}</td>
-                <td>{escape_html(row['team'])}</td>
-                <td>{direction}</td>
-                <td>{escape_html(other)}</td>
+                <td>{escape_html(row['from_team'])}</td>
+                <td>{escape_html(row['to_team'])}</td>
+                <td>{escape_html(row['move'])}</td>
             </tr>
         """
 
     return f"""
-        <div class="table-wrap">
+        <div class="table-wrap recent-transfers-scroll">
             <table>
-                <thead><tr><th>Player</th><th>Fantasy Team</th><th>Move</th><th>From / To</th></tr></thead>
+                <thead><tr><th>Player</th><th>From</th><th>To</th><th>Move</th></tr></thead>
                 <tbody>{rows}</tbody>
             </table>
         </div>
@@ -1875,30 +1918,28 @@ def recent_transfer_activity_table():
 
 
 def transfer_archive_table():
-    if not transfer_activity:
+    if not transfer_movements:
         return '<div class="notice">No transfer activity captured yet.</div>'
 
     rows = ""
-    for row in transfer_activity:
-        direction = "Picked up" if row["action"] == "IN" else "Dropped"
-        movement = f"{row['from_team']} → {row['to_team']}"
-        search_team = f"{row['team']} {row['from_team']} {row['to_team']}".lower()
+    for row in transfer_movements:
+        search_team = f"{row['from_team']} {row['to_team']}".lower()
         rows += f"""
             <tr class="transfer-archive-row"
                 data-player="{escape_html(row['player'].lower())}"
                 data-team="{escape_html(search_team)}">
                 <td>GW{row['gw']}</td>
                 <td class="manager-name">{escape_html(row['player'])}</td>
-                <td>{escape_html(row['team'])}</td>
-                <td>{direction}</td>
-                <td>{escape_html(movement)}</td>
+                <td>{escape_html(row['from_team'])}</td>
+                <td>{escape_html(row['to_team'])}</td>
+                <td>{escape_html(row['move'])}</td>
             </tr>
         """
 
     return f"""
-        <div class="table-wrap">
+        <div class="table-wrap transfer-history-scroll">
             <table>
-                <thead><tr><th>GW</th><th>Player</th><th>Fantasy Team</th><th>Move</th><th>Movement</th></tr></thead>
+                <thead><tr><th>GW</th><th>Player</th><th>From</th><th>To</th><th>Move</th></tr></thead>
                 <tbody id="transfer-archive-body">{rows}</tbody>
             </table>
         </div>
@@ -2772,6 +2813,67 @@ for manager in managers:
 # Only the resulting rank position is surfaced on the dashboard,
 # not the underlying score - this is an editorial "who's actually
 # playing well" call, not a stat with a defensible absolute value.
+
+# ============================================================
+# LUCK INDEX
+# ============================================================
+# Expected league points = average H2H return the manager's weekly score
+# would have earned against every other manager that same completed GW.
+
+expected_league_points = {manager: 0.0 for manager in managers}
+actual_finished_league_points = {manager: 0.0 for manager in managers}
+opponent_score_totals = {manager: [] for manager in managers}
+
+for gw in finished_gws:
+    gw_scores_map = {}
+    for manager in managers:
+        score = official_gw_score(manager, gw)
+        if score is not None:
+            gw_scores_map[manager] = float(score)
+
+    if len(gw_scores_map) >= 2:
+        for manager, score in gw_scores_map.items():
+            virtual_points = []
+            for opponent, opponent_score in gw_scores_map.items():
+                if opponent == manager:
+                    continue
+                if score > opponent_score:
+                    virtual_points.append(3.0)
+                elif score == opponent_score:
+                    virtual_points.append(1.0)
+                else:
+                    virtual_points.append(0.0)
+            if virtual_points:
+                expected_league_points[manager] += statistics.mean(virtual_points)
+
+    gw_matches = [m for m in matches_sorted if int(m.get('event', 0) or 0) == int(gw)]
+    for match in gw_matches:
+        t1, t2 = match.get('entry_1_name'), match.get('entry_2_name')
+        s1 = float(match.get('entry_1_points', 0) or 0)
+        s2 = float(match.get('entry_2_points', 0) or 0)
+        if t1 in opponent_score_totals:
+            opponent_score_totals[t1].append(s2)
+        if t2 in opponent_score_totals:
+            opponent_score_totals[t2].append(s1)
+        if t1 in actual_finished_league_points and t2 in actual_finished_league_points:
+            if s1 > s2:
+                actual_finished_league_points[t1] += 3
+            elif s2 > s1:
+                actual_finished_league_points[t2] += 3
+            else:
+                actual_finished_league_points[t1] += 1
+                actual_finished_league_points[t2] += 1
+
+luck_index = {
+    manager: actual_finished_league_points.get(manager, 0.0) - expected_league_points.get(manager, 0.0)
+    for manager in managers
+}
+
+opponent_avg_score = {
+    manager: (statistics.mean(scores) if scores else 0.0)
+    for manager, scores in opponent_score_totals.items()
+}
+
 # ============================================================
 
 def _normalize_0_100(values):
@@ -4343,13 +4445,10 @@ def standings_table():
 
 def power_rankings_table():
 
-    rows = ""
-
+    rows = ''
     for position, manager in enumerate(power_rankings, start=1):
-
         league_position = manager_current_rank.get(manager, position)
         movement = league_position - position
-
         if movement > 0:
             movement_html = f'<span class="rank-up">↑ {movement}</span>'
         elif movement < 0:
@@ -4357,30 +4456,58 @@ def power_rankings_table():
         else:
             movement_html = '<span class="rank-flat">—</span>'
 
-        safe_manager = escape_html(manager)
-
-        rows += f"""
+        rows += f'''
             <tr>
                 <td class="rank-cell">{position}</td>
-                <td class="manager-name">{safe_manager}</td>
+                <td class="manager-name">{escape_html(manager)}</td>
+                <td><b>{power_score.get(manager, 0):.1f}</b></td>
+                <td>{norm_recent_form.get(manager, 0):.0f}</td>
+                <td>{norm_season_quality.get(manager, 0):.0f}</td>
+                <td>{norm_squad_management.get(manager, 0):.0f}</td>
                 <td>{movement_html}</td>
             </tr>
-        """
+        '''
 
-    return f"""
+    return f'''
+        <div class="power-formula">
+            <b>Power score:</b> 40% recent 5GW scoring + 35% season scoring quality + 25% squad-management efficiency. Every component is normalised 0–100 within this league.
+        </div>
         <div class="table-wrap">
             <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Manager</th>
-                        <th>vs League Table</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>#</th><th>Manager</th><th>Power</th><th>5GW Form</th><th>Season</th><th>Management</th><th>vs Table</th></tr></thead>
                 <tbody>{rows}</tbody>
             </table>
         </div>
-    """
+    '''
+
+
+def luck_index_table():
+    ordered = sorted(managers, key=lambda m: (-luck_index.get(m, 0), m))
+    rows = ''
+    for manager in ordered:
+        luck = luck_index.get(manager, 0.0)
+        luck_class = 'rank-up' if luck > 0.05 else ('rank-down' if luck < -0.05 else 'rank-flat')
+        sign = '+' if luck > 0 else ''
+        rows += f'''
+            <tr>
+                <td class="manager-name">{escape_html(manager)}</td>
+                <td>{actual_finished_league_points.get(manager, 0):.0f}</td>
+                <td>{expected_league_points.get(manager, 0):.1f}</td>
+                <td><span class="{luck_class}">{sign}{luck:.1f}</span></td>
+                <td>{opponent_avg_score.get(manager, 0):.1f}</td>
+            </tr>
+        '''
+    return f'''
+        <div class="power-formula">
+            <b>Luck Index:</b> actual league points minus the points your weekly scores would be expected to earn against a random league opponent. Positive = results ahead of performances; negative = the rough end of the fixtures.
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Manager</th><th>Actual LP</th><th>Expected LP</th><th>Luck</th><th>Opponent Avg</th></tr></thead>
+                <tbody>{rows}</tbody>
+            </table>
+        </div>
+    '''
 
 
 def awards_table():
@@ -5108,6 +5235,603 @@ def _gameweek_story(gw, scores, fixtures):
     return "\n\n".join(paragraphs)
 
 
+
+DERBY_RIVALRIES = [
+    ("The Christian Classico", "Kamararama FC", "Buendophilia"),
+    ("The Brammer Derby", "NoRSNoRB No Chance", "Backstreet Moyes"),
+    ("The Cheltenham Derby", "Ollie Gonna Squashya", "No Weimann No Cry"),
+    ("The Sadly Broke Scuffle", "danny’s doggy dudes", "PAUer Rangers"),
+    ("The Bald Derby", "Jaap? Best Stam", "Backstreet Moyes"),
+    ("The Shit Beard Rivalry", "Jacquet Potato", "No Weimann No Cry"),
+]
+
+
+def _norm_team_name(value):
+    return " ".join(str(value or "").replace("’", "'").lower().split())
+
+
+def _derby_name(team1, team2):
+    pair = {_norm_team_name(team1), _norm_team_name(team2)}
+    for derby, a, b in DERBY_RIVALRIES:
+        if pair == {_norm_team_name(a), _norm_team_name(b)}:
+            return derby
+    return None
+
+
+def _all_schedule_by_gw():
+    schedule = defaultdict(list)
+    for match in league_matches_all:
+        try:
+            gw = int(match.get("event"))
+        except (TypeError, ValueError):
+            continue
+        e1 = match.get("league_entry_1")
+        e2 = match.get("league_entry_2")
+        t1 = league_entry_id_to_name.get(e1, league_entry_id_to_name.get(str(e1), "Unknown"))
+        t2 = league_entry_id_to_name.get(e2, league_entry_id_to_name.get(str(e2), "Unknown"))
+        schedule[gw].append({"team1": t1, "team2": t2, "finished": bool(match.get("finished"))})
+    return schedule
+
+
+full_fixture_schedule = _all_schedule_by_gw()
+
+
+def _ordinal_suffix(n):
+    n = int(n)
+    if 10 <= n % 100 <= 20:
+        return "th"
+    return {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
+
+def _standings_through_gw(gw):
+    lp = defaultdict(float)
+    pf = defaultdict(float)
+    played = set()
+    for match in matches_sorted:
+        try:
+            event = int(match.get("event", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if event > int(gw):
+            continue
+        t1 = match.get("entry_1_name", "Unknown")
+        t2 = match.get("entry_2_name", "Unknown")
+        s1 = int(match.get("entry_1_points", 0) or 0)
+        s2 = int(match.get("entry_2_points", 0) or 0)
+        played.update((t1, t2))
+        pf[t1] += s1
+        pf[t2] += s2
+        if s1 > s2:
+            lp[t1] += 3
+        elif s2 > s1:
+            lp[t2] += 3
+        else:
+            lp[t1] += 1
+            lp[t2] += 1
+    ranked = sorted(played or managers, key=lambda m: (-lp[m], -pf[m], m))
+    return ranked, {m: i for i, m in enumerate(ranked, 1)}
+
+
+def _manager_result_streak_through(manager, gw):
+    seq = []
+    for match in matches_sorted:
+        event = int(match.get("event", 0) or 0)
+        if event > int(gw):
+            continue
+        t1, t2 = match.get("entry_1_name"), match.get("entry_2_name")
+        if manager not in (t1, t2):
+            continue
+        s1 = int(match.get("entry_1_points", 0) or 0)
+        s2 = int(match.get("entry_2_points", 0) or 0)
+        if s1 == s2:
+            seq.append("D")
+        elif (manager == t1 and s1 > s2) or (manager == t2 and s2 > s1):
+            seq.append("W")
+        else:
+            seq.append("L")
+    if not seq:
+        return None, 0
+    last = seq[-1]
+    count = 0
+    for result in reversed(seq):
+        if result != last:
+            break
+        count += 1
+    return last, count
+
+
+def _luck_through_gw(gw):
+    expected = defaultdict(float)
+    actual = defaultdict(float)
+    against = defaultdict(list)
+    for event in [g for g in finished_gws if g <= int(gw)]:
+        scores = {m: official_gw_score(m, event) for m in managers}
+        scores = {m: float(v) for m, v in scores.items() if v is not None}
+        if len(scores) >= 2:
+            for manager, score in scores.items():
+                virtual = []
+                for opponent, other in scores.items():
+                    if opponent == manager:
+                        continue
+                    virtual.append(3.0 if score > other else 1.0 if score == other else 0.0)
+                if virtual:
+                    expected[manager] += statistics.mean(virtual)
+        for match in [m for m in matches_sorted if int(m.get("event", 0) or 0) == event]:
+            t1, t2 = match.get("entry_1_name"), match.get("entry_2_name")
+            s1 = float(match.get("entry_1_points", 0) or 0)
+            s2 = float(match.get("entry_2_points", 0) or 0)
+            against[t1].append(s2)
+            against[t2].append(s1)
+            if s1 > s2:
+                actual[t1] += 3
+            elif s2 > s1:
+                actual[t2] += 3
+            else:
+                actual[t1] += 1
+                actual[t2] += 1
+    luck = {m: actual[m] - expected[m] for m in managers}
+    opp_avg = {m: statistics.mean(against[m]) if against[m] else 0.0 for m in managers}
+    return luck, opp_avg
+
+
+def _free_agents_high_in_chart(gw, limit=3):
+    owned = set()
+    gw_data = history.get("gameweeks", {}).get(str(gw), {}).get("teams", {})
+    for team in gw_data.values():
+        for player in (team.get("starters", []) or []) + (team.get("bench", []) or []):
+            pid = player.get("element_id")
+            if pid is not None:
+                try:
+                    owned.add(int(pid))
+                except (TypeError, ValueError):
+                    pass
+    ranked = []
+    for pid, meta in elements.items():
+        if int(pid) in owned:
+            continue
+        total = 0
+        for event, pts in player_form.get(pid, {}).items():
+            try:
+                if int(event) <= int(gw):
+                    total += int(pts or 0)
+            except (TypeError, ValueError):
+                pass
+        if total > 0:
+            ranked.append((meta.get("web_name", f"Player {pid}"), total))
+    ranked.sort(key=lambda x: x[1], reverse=True)
+    return ranked[:limit]
+
+
+def _starter_stinker(gw):
+    candidates = []
+    gw_data = history.get("gameweeks", {}).get(str(gw), {}).get("teams", {})
+    for team in gw_data.values():
+        manager = team.get("manager", "Unknown")
+        for player in team.get("starters", []) or []:
+            try:
+                pts = int(player.get("points", 0) or 0)
+            except (TypeError, ValueError):
+                pts = 0
+            name = player.get("web_name") or elements.get(player.get("element_id"), {}).get("web_name", "Unknown")
+            if pts <= 1:
+                candidates.append((pts, name, manager))
+    return min(candidates, key=lambda x: x[0]) if candidates else None
+
+
+def _trade_story_for_gw(gw, rng):
+    trades = [t for t in normalised_trades if str(t.get("gw")) == str(gw) and str(t.get("status", "")).lower() == "processed"]
+    if not trades:
+        return ""
+    trade = trades[rng.randrange(len(trades))]
+    a_gives = ", ".join(trade.get("players1", [])) or "nobody"
+    b_gives = ", ".join(trade.get("players2", [])) or "nobody"
+    intros = [
+        f"The transfer fax machine was also smoking: {trade['manager1']} sent {a_gives} to {trade['manager2']} for {b_gives}.",
+        f"In the week's boardroom drama, {trade['manager1']} shipped {a_gives} to {trade['manager2']} and took back {b_gives}.",
+        f"There was movement in the McDraft bazaar too, with {trade['manager1']} exchanging {a_gives} for {trade['manager2']}'s {b_gives}.",
+        f"While everyone else was staring at scores, {trade['manager1']} and {trade['manager2']} were doing business: {a_gives} went one way, {b_gives} the other.",
+        f"A trade grenade landed in GW{gw}: {trade['manager1']} gave up {a_gives}, with {trade['manager2']} parting with {b_gives} in return.",
+        f"The market had its own subplot as {trade['manager1']} and {trade['manager2']} swapped {a_gives} for {b_gives}.",
+        f"Somebody found the trade button: {trade['manager1']} moved {a_gives} to {trade['manager2']} for {b_gives}.",
+        f"The league's wheeler-dealers got involved, {trade['manager1']} sending {a_gives} across the aisle for {b_gives} from {trade['manager2']}.",
+        f"Negotiations apparently survived contact with reality: {trade['manager1']} traded {a_gives} to {trade['manager2']} for {b_gives}.",
+        f"There was a little transfer-market arson too: {trade['manager1']} exchanged {a_gives} with {trade['manager2']} for {b_gives}.",
+    ]
+    tails = [
+        "A bold bit of business — time will tell who has read the market better.",
+        "One for the trade ledger; this could look inspired or ridiculous in a few weeks' time.",
+        "The paperwork is done, and now the league gets to judge it every Saturday.",
+        "That one has all the ingredients to be revisited later in the season.",
+        "Who could possibly regret that? We shall find out.",
+        "Future historians may call it genius. They may also call it evidence.",
+        "Either somebody has seen the future, or somebody has made an almighty mess. Excellent.",
+        "The early verdict is unknowable; the group-chat verdict will of course be immediate and definitive.",
+        "Bookmark it now. Somebody will pretend they always knew how this would end.",
+        "This is either the start of a masterclass or a future screenshot with several laughing emojis.",
+        "No pressure, but every point those players score from here is now legally admissible banter.",
+        "The trade grade can wait; the accusations absolutely cannot.",
+        "One manager will eventually call this visionary. The other may quietly stop mentioning it.",
+        "There is no such thing as a harmless trade in a ten-team draft league.",
+        "The spreadsheet has recorded it. The spreadsheet does not forget.",
+        "It has the unmistakable smell of a deal that will age either like wine or warm milk.",
+        "For now it is Schrödinger's trade: both a robbery and a disaster until the points arrive.",
+        "A perfectly normal transaction that definitely will not be weaponised months from now.",
+    ]
+    return _gw_story_choice(rng, intros) + " " + _gw_story_choice(rng, tails)
+
+
+def _next_week_preview(gw, positions, rng):
+    next_gw = int(gw) + 1
+    fixtures = full_fixture_schedule.get(next_gw, [])
+    if not fixtures:
+        return ""
+    derby_fixtures = [(f, _derby_name(f["team1"], f["team2"])) for f in fixtures]
+    derby_fixtures = [(f, d) for f, d in derby_fixtures if d]
+    if derby_fixtures:
+        fixture, derby = derby_fixtures[0]
+        p1, p2 = positions.get(fixture["team1"]), positions.get(fixture["team2"])
+        context = ""
+        if p1 and p2:
+            context = f", with {fixture['team1']} sitting {p1}{_ordinal_suffix(p1)} and {fixture['team2']} {p2}{_ordinal_suffix(p2)}"
+        return _gw_story_choice(rng, [
+            f"Next up in GW{next_gw}, circle {derby} in red: {fixture['team1']} face {fixture['team2']}{context}. Form can go out of the window for this one.",
+            f"GW{next_gw} brings {derby}, as {fixture['team1']} and {fixture['team2']} renew hostilities{context}. Expect absolutely no perspective whatsoever if this is close.",
+            f"And then comes {derby}: {fixture['team1']} versus {fixture['team2']} in GW{next_gw}{context}. Bragging rights are very much on the table.",
+            f"Clear the diary for {derby} in GW{next_gw}: {fixture['team1']} meet {fixture['team2']}{context}, and civility has already been ruled out.",
+            f"The fixture computer has chosen violence for GW{next_gw}: {derby} pits {fixture['team1']} against {fixture['team2']}{context}. Nobody involved will overreact, obviously.",
+            f"Next week's main event is unmistakable — {derby}, {fixture['team1']} against {fixture['team2']}{context}. The points matter; the bragging rights matter far more.",
+            f"GW{next_gw} serves up {derby}{context}. {fixture['team1']} and {fixture['team2']} can forget subtlety and prepare for a week of completely proportionate chat.",
+            f"All roads now lead to {derby}: {fixture['team1']} versus {fixture['team2']} in GW{next_gw}{context}. Losing this one tends to have a longer half-life than three league points.",
+            f"There is spice waiting in GW{next_gw}, where {derby} brings {fixture['team1']} and {fixture['team2']} together{context}. Screenshots are already being prepared.",
+            f"Next week has one fixture with its collar turned up and fists already clenched: {derby}, {fixture['team1']} v {fixture['team2']}{context}.",
+            f"GW{next_gw} is headlined by {derby}{context}. {fixture['team1']} face {fixture['team2']}, and the loser may wish to mute the group chat for 48 hours.",
+            f"The next chapter is {derby}: {fixture['team1']} meet {fixture['team2']} in GW{next_gw}{context}. Sensible analysis can resume afterwards.",
+        ])
+    fixture = min(fixtures, key=lambda f: positions.get(f["team1"], 99) + positions.get(f["team2"], 99))
+    p1, p2 = positions.get(fixture["team1"]), positions.get(fixture["team2"])
+    context = ""
+    if p1 and p2:
+        context = f" — currently {p1}{_ordinal_suffix(p1)} versus {p2}{_ordinal_suffix(p2)}"
+    return _gw_story_choice(rng, [
+        f"Looking ahead to GW{next_gw}, {fixture['team1']} against {fixture['team2']} is the fixture to watch{context}; another result there could reshape the table.",
+        f"The attention now turns to GW{next_gw}, where {fixture['team1']} meet {fixture['team2']}{context} in the pick of the next set of fixtures.",
+        f"Next week's slate is headed by {fixture['team1']} versus {fixture['team2']}{context}; there are useful points and potentially terrible vibes on offer.",
+        f"GW{next_gw} already has a pressure point: {fixture['team1']} take on {fixture['team2']}{context}, with neither side likely to fancy giving the other a free shove up the table.",
+        f"The circus rolls into GW{next_gw} with {fixture['team1']} v {fixture['team2']}{context} looking especially tasty.",
+        f"Eyes forward: {fixture['team1']} and {fixture['team2']} collide in GW{next_gw}{context}, a fixture with enough table consequence to make everyone pretend they are not checking live points every four minutes.",
+        f"GW{next_gw} offers {fixture['team1']} against {fixture['team2']}{context}; one of those matches that could look very important indeed by Monday night.",
+        f"Next on the conveyor belt of nonsense is {fixture['team1']} v {fixture['team2']} in GW{next_gw}{context}. Somebody is about to feel much cleverer than they really are.",
+        f"The table gets another shake in GW{next_gw}, with {fixture['team1']} facing {fixture['team2']}{context}. No promises of dignity have been made.",
+        f"Coming up: {fixture['team1']} against {fixture['team2']} in GW{next_gw}{context}. On paper, fascinating; in practice, probably decided by a defender's 93rd-minute yellow card.",
+        f"GW{next_gw} beckons, and {fixture['team1']} v {fixture['team2']}{context} is the one with the biggest potential to rearrange both the standings and several moods.",
+        f"Next week's spotlight falls on {fixture['team1']} and {fixture['team2']}{context}. If the fantasy gods are feeling theatrical, this is where they will strike.",
+    ])
+
+
+def league_storyline_for_gw(gw):
+    """A dramatic editorial column, deliberately separate from the factual GW summary."""
+    gw = int(gw)
+    rng = random.Random((LEAGUE_ID * 100000) + gw * 7919)
+    fixtures = results_by_gw.get(gw, [])
+    if not fixtures:
+        return f"GW{gw} has no completed fixture data to write up yet."
+
+    ranked_now, pos_now = _standings_through_gw(gw)
+    _, pos_prev = _standings_through_gw(gw - 1) if gw > 1 else ([], {})
+    biggest = max(fixtures, key=lambda f: abs(f["score1"] - f["score2"]))
+    if biggest["score1"] >= biggest["score2"]:
+        bw, bl, bs, ls = biggest["team1"], biggest["team2"], biggest["score1"], biggest["score2"]
+    else:
+        bw, bl, bs, ls = biggest["team2"], biggest["team1"], biggest["score2"], biggest["score1"]
+    margin = bs - ls
+    leader = ranked_now[0] if ranked_now else bw
+
+    new_leader_openers = [
+        f"{leader} stormed to the top of McDraft in GW{gw}, seizing first place after the latest round of chaos.",
+        f"There is a new name at the summit: {leader} surged into first after GW{gw} turned the table on its head.",
+        f"GW{gw} has a new league leader, with {leader} muscling their way into top spot when the dust settled.",
+        f"Sound the summit klaxon: {leader} are top of McDraft after GW{gw}, barging their way into first while everyone else checks the tie-break rules.",
+        f"The throne changed hands in GW{gw}. {leader} now sit top of the pile, having emerged from the weekend's wreckage in first place.",
+        f"A fresh flag is flying over McDraft HQ: {leader} climbed into first in GW{gw} and suddenly everybody below them has opinions about sustainability.",
+        f"Top spot has a new tenant. {leader} grabbed the keys in GW{gw}, turning the latest round into their own small regime change.",
+        f"McDraft has a new overlord for the week: {leader} jumped to first after GW{gw}, a sentence they will presumably be forwarding to everyone immediately.",
+        f"The table did a cartwheel in GW{gw} and {leader} landed on top, taking over first place at precisely the right moment for maximum smugness.",
+        f"GW{gw} ended with {leader} perched at the summit, having climbed into first and discovered the air is apparently much nicer up there.",
+        f"Leadership changed hands in GW{gw}: {leader} are now setting the pace, and the chase pack has acquired a slightly more anxious look.",
+        f"Move over, previous leader. {leader} took control of McDraft in GW{gw}, climbing to first after another weekend of entirely normal fantasy behaviour.",
+    ]
+    demolition_openers = [
+        f"{bw} delivered the statement of GW{gw}, absolutely flattening {bl} {bs}-{ls} in a {margin}-point demolition.",
+        f"GW{gw} belonged to {bw}, who handed {bl} a full-scale hiding, {bs}-{ls}.",
+        f"Someone check on {bl}: {bw} ran riot in a brutal {bs}-{ls} win that provided GW{gw}'s loudest result.",
+        f"{bw} arrived with a flamethrower and left {bl} as a small pile of waiver claims, winning {bs}-{ls}.",
+        f"The mercy rule does not exist in McDraft, which was unfortunate for {bl}: {bw} vaporised them {bs}-{ls}.",
+        f"{bw} committed an administrative error on {bl}, filing them under 'absolutely battered' after a {bs}-{ls} rout.",
+        f"There are wins, there are comfortable wins, and then there is what {bw} did to {bl}: {bs}-{ls}, thank you and goodnight.",
+        f"GW{gw}'s crime scene was {bw} {bs}, {bl} {ls}. Detectives have described the margin as 'unnecessary'.",
+        f"{bl} may wish to report GW{gw} missing after {bw} bulldozed them {bs}-{ls} without so much as looking in the rear-view mirror.",
+        f"{bw} put on steel-toe boots and treated {bl} like a cardboard box, stomping to a {bs}-{ls} win.",
+        f"The week's loudest thud came from {bw}, who dropped a {bs}-{ls} piano on {bl}.",
+        f"{bw} did not so much beat {bl} as redecorate the room with them, running out {bs}-{ls} winners.",
+        f"A small weather event formed over McDraft in GW{gw}, centred directly above {bl}, where {bw} won {bs}-{ls}.",
+        f"{bw} chose violence, subtlety and moderation were unavailable, and {bl} were swept aside {bs}-{ls}.",
+        f"If {bl} felt a sudden chill, it was probably the shadow of {bw}'s {bs}-{ls} score passing overhead.",
+        f"{bw} produced the sort of {bs}-{ls} walloping that makes a manager close the app and develop an interest in gardening.",
+    ]
+    general_openers = [
+        f"GW{gw} shuffled the McDraft pack again, with {bw}'s {bs}-{ls} win over {bl} providing the headline result.",
+        f"Another week, another dose of McDraft nonsense: {bw} emerged with a {bs}-{ls} victory over {bl} as the standings shifted around them.",
+        f"GW{gw} refused to be quiet, led by {bw} seeing off {bl} {bs}-{ls} in the round's defining result.",
+        f"The McDraft washing machine completed another spin in GW{gw}, and {bw}'s {bs}-{ls} win over {bl} came tumbling out on top.",
+        f"GW{gw} served another tray of nonsense, with {bw} beating {bl} {bs}-{ls} and several managers immediately rewriting what they had said on Friday.",
+        f"The league table received another vigorous shake in GW{gw}; {bw}'s {bs}-{ls} victory over {bl} was the result with the biggest fingerprints on it.",
+        f"McDraft's weekly experiment in controlled chaos continued as {bw} beat {bl} {bs}-{ls} and the standings rearranged themselves yet again.",
+        f"GW{gw} came in wearing muddy boots and knocked over the furniture, with {bw}'s {bs}-{ls} win against {bl} at the centre of the mess.",
+        f"Another seven days, another outbreak of fantasy football nonsense: {bw} defeated {bl} {bs}-{ls} in GW{gw}'s headline act.",
+        f"GW{gw} has been weighed, measured and found deeply unserious; {bw}'s {bs}-{ls} victory over {bl} leads the evidence.",
+        f"The latest McDraft chapter opened with calculators and ended with accusations, as {bw} beat {bl} {bs}-{ls}.",
+        f"GW{gw} tossed the form book down the stairs and watched what happened. At the bottom of the pile: {bw} {bs}, {bl} {ls}.",
+        f"The fantasy gods rattled their little tin again in GW{gw}, and {bw} came out smiling after a {bs}-{ls} win over {bl}.",
+        f"McDraft completed another completely sensible weekend, headlined by {bw} taking down {bl} {bs}-{ls}.",
+        f"GW{gw} arrived, caused several preventable arguments, and left {bw} celebrating a {bs}-{ls} victory over {bl}.",
+    ]
+
+    if pos_prev.get(leader) and pos_prev.get(leader) != 1:
+        opening = _gw_story_choice(rng, new_leader_openers)
+    elif margin >= 20:
+        opening = _gw_story_choice(rng, demolition_openers)
+    else:
+        opening = _gw_story_choice(rng, general_openers)
+
+    beats = []
+    derby_games = [(f, _derby_name(f["team1"], f["team2"])) for f in fixtures]
+    derby_games = [(f, derby) for f, derby in derby_games if derby]
+    if derby_games:
+        fixture, derby = derby_games[0]
+        if fixture["score1"] == fixture["score2"]:
+            beats.append(_gw_story_choice(rng, [
+                f"And {derby} somehow ended with the bragging rights vacuum-packed: {fixture['team1']} and {fixture['team2']} drew {fixture['score1']}-{fixture['score2']}.",
+                f"{derby} produced maximum tension and minimum closure, {fixture['team1']} and {fixture['team2']} finishing dead level at {fixture['score1']}-{fixture['score2']}.",
+                f"Nobody gets to be unbearable after {derby}: {fixture['team1']} and {fixture['team2']} cancelled each other out {fixture['score1']}-{fixture['score2']}.",
+                f"{derby} ended in a diplomatic incident rather than a victory, with {fixture['team1']} and {fixture['team2']} locked at {fixture['score1']}-{fixture['score2']}.",
+                f"The sacred texts of {derby} will record a draw: {fixture['team1']} {fixture['score1']}, {fixture['team2']} {fixture['score2']}. Nobody happy, everybody loud.",
+                f"{derby} refused to choose a side, leaving {fixture['team1']} and {fixture['team2']} stranded together on {fixture['score1']}-{fixture['score2']}.",
+            ]))
+        else:
+            winner = fixture["team1"] if fixture["score1"] > fixture["score2"] else fixture["team2"]
+            loser = fixture["team2"] if winner == fixture["team1"] else fixture["team1"]
+            ws, loser_score = max(fixture["score1"], fixture["score2"]), min(fixture["score1"], fixture["score2"])
+            beats.append(_gw_story_choice(rng, [
+                f"Most importantly, {derby} went to {winner}, who claimed the bragging rights over {loser} {ws}-{loser_score}.",
+                f"There will be no peace after {derby}: {winner} took it {ws}-{loser_score} against {loser} and can dine out on that until the rematch.",
+                f"{derby} supplied its usual dignity and restraint, with {winner} beating {loser} {ws}-{loser_score} to own the bragging rights for now.",
+                f"{winner} now hold the ceremonial keys to {derby} after seeing off {loser} {ws}-{loser_score}; expect this result to be mentioned far beyond its natural lifespan.",
+                f"The latest edition of {derby} belongs to {winner}, {ws}-{loser_score} winners over {loser}. The bragging-rights department is now operating at full capacity.",
+                f"{derby} ended with {winner} on top and {loser} staring at a {ws}-{loser_score} receipt they will be shown repeatedly until further notice.",
+                f"There was blood on the carpet in {derby}, metaphorically speaking: {winner} beat {loser} {ws}-{loser_score} and secured the only currency that matters, bragging rights.",
+                f"{winner} took {derby} {ws}-{loser_score} over {loser}, a result worth three points in the table and approximately nine months of unnecessary references.",
+                f"{derby} has a temporary landlord and it is {winner}, who beat {loser} {ws}-{loser_score} and will absolutely behave normally about it.",
+                f"In the ancient and deeply serious matter of {derby}, {winner} defeated {loser} {ws}-{loser_score}. Historians are already being insufferable.",
+            ]))
+
+    moves = []
+    for manager, position in pos_now.items():
+        if manager in pos_prev and pos_prev[manager] != position:
+            moves.append((pos_prev[manager] - position, manager, pos_prev[manager], position))
+    if moves:
+        climber = max(moves)
+        faller = min(moves)
+        if climber[0] > 0:
+            beats.append(_gw_story_choice(rng, [
+                f"{climber[1]} were the week's big climbers, jumping from {climber[2]}{_ordinal_suffix(climber[2])} to {climber[3]}{_ordinal_suffix(climber[3])}.",
+                f"The lift was working for {climber[1]}, who shot from {climber[2]}{_ordinal_suffix(climber[2])} to {climber[3]}{_ordinal_suffix(climber[3])} in one weekend.",
+                f"{climber[1]} made the table look temporary, vaulting from {climber[2]}{_ordinal_suffix(climber[2])} to {climber[3]}{_ordinal_suffix(climber[3])}.",
+                f"Nobody climbed faster than {climber[1]}, up from {climber[2]}{_ordinal_suffix(climber[2])} to {climber[3]}{_ordinal_suffix(climber[3])} and suddenly looking much taller.",
+                f"{climber[1]} found the express lane, leaping {climber[0]} place{'s' if climber[0] != 1 else ''} to {climber[3]}{_ordinal_suffix(climber[3])}.",
+                f"The week's social mobility award goes to {climber[1]}: {climber[2]}{_ordinal_suffix(climber[2])} became {climber[3]}{_ordinal_suffix(climber[3])} in a hurry.",
+                f"{climber[1]} spent GW{gw} climbing over furniture and rivals alike, moving from {climber[2]}{_ordinal_suffix(climber[2])} to {climber[3]}{_ordinal_suffix(climber[3])}.",
+                f"A very productive bit of ladder work from {climber[1]} carried them from {climber[2]}{_ordinal_suffix(climber[2])} to {climber[3]}{_ordinal_suffix(climber[3])}.",
+            ]))
+        if faller[0] < 0 and faller[1] != climber[1]:
+            beats.append(_gw_story_choice(rng, [
+                f"Going the other way, {faller[1]} slid from {faller[2]}{_ordinal_suffix(faller[2])} to {faller[3]}{_ordinal_suffix(faller[3])}, which is the sort of movement nobody puts in the group chat voluntarily.",
+                f"{faller[1]} took the scenic route downward, dropping from {faller[2]}{_ordinal_suffix(faller[2])} to {faller[3]}{_ordinal_suffix(faller[3])}.",
+                f"The trapdoor opened beneath {faller[1]}, who fell from {faller[2]}{_ordinal_suffix(faller[2])} to {faller[3]}{_ordinal_suffix(faller[3])}.",
+                f"It was a less glamorous weekend for {faller[1]}, sliding from {faller[2]}{_ordinal_suffix(faller[2])} to {faller[3]}{_ordinal_suffix(faller[3])} and discovering gravity is undefeated.",
+                f"{faller[1]} misplaced {abs(faller[0])} league place{'s' if abs(faller[0]) != 1 else ''}, tumbling to {faller[3]}{_ordinal_suffix(faller[3])}.",
+                f"Somebody greased the ladder under {faller[1]}: {faller[2]}{_ordinal_suffix(faller[2])} became {faller[3]}{_ordinal_suffix(faller[3])} by Monday.",
+                f"{faller[1]} went backwards at speed, from {faller[2]}{_ordinal_suffix(faller[2])} to {faller[3]}{_ordinal_suffix(faller[3])}, a journey best undertaken without witnesses.",
+            ]))
+
+    for manager in ranked_now:
+        current_result, count = _manager_result_streak_through(manager, gw)
+        prev_result, prev_count = _manager_result_streak_through(manager, gw - 1) if gw > 1 else (None, 0)
+        if current_result == "W" and prev_result == "L" and prev_count >= 2:
+            beats.append(_gw_story_choice(rng, [
+                f"Relief, finally, for {manager}: victory ended a {prev_count}-match losing streak before it could become a full-blown crisis.",
+                f"{manager} have remembered how winning works, snapping a {prev_count}-game losing run just as the word 'crisis' was being typeset.",
+                f"Pop the tiny champagne: {manager} stopped a {prev_count}-match skid and finally put a W back on the board.",
+                f"The losing streak is dead. {manager} ended {prev_count} straight defeats and may now safely reopen the league table.",
+                f"After {prev_count} consecutive losses, {manager} finally found dry land with a win in GW{gw}.",
+                f"{manager} dragged themselves out of a {prev_count}-game hole with victory, postponing the emergency meeting by at least seven days.",
+                f"A pulse! {manager} ended a {prev_count}-match losing streak and rediscovered the sweet, unfamiliar taste of three points.",
+            ]))
+            break
+        if current_result == "W" and count >= 3:
+            beats.append(_gw_story_choice(rng, [
+                f"{manager} are beginning to look ominous too — that is now {count} wins on the bounce.",
+                f"{manager} have caught fire: {count} straight wins and counting.",
+                f"The hottest streak in town belongs to {manager}, now winners of {count} in a row.",
+                f"{manager} have stacked up {count} consecutive victories and are starting to develop that deeply irritating aura of inevitability.",
+                f"Make it {count} on the spin for {manager}; whatever switch they flicked, somebody should probably unplug it.",
+                f"{manager} keep rolling, a {count}-match winning streak now giving the rest of the league something unpleasant to think about.",
+                f"That is {count} straight for {manager}, who are currently treating form like a subscription service.",
+                f"{manager} have won {count} consecutive games and may soon need to be reminded that humility is technically available.",
+            ]))
+            break
+
+    closest = min(fixtures, key=lambda f: abs(f["score1"] - f["score2"]))
+    close_margin = abs(closest["score1"] - closest["score2"])
+    if close_margin <= 3 and closest is not biggest:
+        if closest["score1"] == closest["score2"]:
+            beats.append(_gw_story_choice(rng, [
+                f"The week's twitchiest finish came between {closest['team1']} and {closest['team2']}, who somehow landed dead level on {closest['score1']}-{closest['score2']}.",
+                f"{closest['team1']} and {closest['team2']} produced a draw so precise it looked engineered, finishing {closest['score1']}-{closest['score2']}.",
+                f"Not even a cigarette paper separated {closest['team1']} and {closest['team2']}: {closest['score1']}-{closest['score2']} and one point each.",
+                f"The universe refused to choose between {closest['team1']} and {closest['team2']}, depositing them both on {closest['score1']} points.",
+            ]))
+        else:
+            cw = closest["team1"] if closest["score1"] > closest["score2"] else closest["team2"]
+            cl = closest["team2"] if cw == closest["team1"] else closest["team1"]
+            cws = max(closest["score1"], closest["score2"])
+            cls = min(closest["score1"], closest["score2"])
+            beats.append(_gw_story_choice(rng, [
+                f"At the other end of the margin scale, {cw} escaped with a {close_margin}-point win over {cl}; that one was decided by fingernails rather than dominance.",
+                f"{cw} pinched the week's squeakiest win, edging {cl} {cws}-{cls} by just {close_margin}.",
+                f"Somewhere a single bonus point is feeling extremely important: {cw} squeezed past {cl} {cws}-{cls}.",
+                f"{cl} came within {close_margin} point{'s' if close_margin != 1 else ''} of changing the entire mood of the week, but {cw} survived {cws}-{cls}.",
+                f"The cardiology fixture was {cw} against {cl}, decided {cws}-{cls} after a margin of only {close_margin}.",
+                f"{cw} got out by the emergency exit against {cl}, sneaking a {cws}-{cls} victory that could hardly have been tighter.",
+                f"A cough in the wrong direction could have changed {cw} v {cl}; instead {cw} held on {cws}-{cls}.",
+                f"{cw} won the fantasy equivalent of a photo finish, pipping {cl} {cws}-{cls}.",
+                f"There was no room for oxygen between {cw} and {cl}: {cws}-{cls} to {cw}, by the skin of several teeth.",
+            ]))
+
+    trade_text = _trade_story_for_gw(gw, rng)
+    if trade_text:
+        beats.append(trade_text)
+
+    standout = _gameweek_player_standout(gw)
+    if standout and standout.get("points", 0) >= 8:
+        beats.append(_gw_story_choice(rng, [
+            f"On the pitch, {standout['name']} was the week's main character, piling up {standout['points']} points for {standout['manager']}.",
+            f"{standout['manager']} got a serious lift from {standout['name']}, whose {standout['points']}-point haul was the individual performance of the round.",
+            f"Player honours belong to {standout['name']}: {standout['points']} points for {standout['manager']} and a sizeable chunk of the week's damage personally accounted for.",
+            f"{standout['name']} turned up carrying a flamethrower, delivering {standout['points']} points for {standout['manager']}.",
+            f"If {standout['manager']} are writing thank-you cards, {standout['name']} gets the first one after a monster {standout['points']}-point haul.",
+            f"The individual wrecking ball was {standout['name']}, who dumped {standout['points']} points into {standout['manager']}'s total.",
+            f"{standout['name']} spent GW{gw} behaving like a cheat code, producing {standout['points']} points for {standout['manager']}.",
+            f"There were useful players and then there was {standout['name']}: {standout['points']} points for {standout['manager']}, thank you very much.",
+            f"{standout['manager']} found a rocket booster in the shape of {standout['name']}, whose {standout['points']} points lit up the round.",
+            f"Top billing among the players goes to {standout['name']}, a {standout['points']}-point menace in {standout['manager']}'s colours.",
+            f"{standout['name']} woke up and chose statistical violence, returning {standout['points']} for {standout['manager']}.",
+            f"The week's fantasy landlord was {standout['name']}, collecting {standout['points']} points and charging {standout['manager']} absolutely no rent.",
+        ]))
+
+    stinker = _starter_stinker(gw)
+    if stinker:
+        pts, player, manager = stinker
+        beats.append(_gw_story_choice(rng, [
+            f"Individual dishonour goes to {player}, whose {pts}-point contribution did precisely nothing for {manager}'s blood pressure.",
+            f"{manager} will not be sending {player} flowers after a miserable {pts}-point showing in the starting XI.",
+            f"Spare a thought for {manager}, who watched {player} serve up {pts} point{'s' if pts != 1 else ''} when selected to actually help.",
+            f"At the opposite end of usefulness, {player} contributed {pts} for {manager}, a performance best described as physically present.",
+            f"{player} dropped a majestic {pts} point{'s' if pts != 1 else ''} into {manager}'s XI, which is technically a contribution.",
+            f"{manager} started {player} and received {pts} point{'s' if pts != 1 else ''} in return, the fantasy equivalent of opening a birthday card with no money in it.",
+            f"A special mention for {player}: {pts} point{'s' if pts != 1 else ''} for {manager} and several minutes of staring blankly at the app.",
+            f"{player} produced {pts} for {manager}, bringing all the explosive force of a damp party popper.",
+            f"{manager}'s faith in {player} was rewarded with {pts} point{'s' if pts != 1 else ''}, because apparently loyalty is a punishable offence.",
+            f"{player} clocked in for {manager}, left {pts} point{'s' if pts != 1 else ''} on the desk and went home.",
+            f"The wooden spoon among starters goes to {player}, whose {pts}-point outing for {manager} had all the nutritional value of packing foam.",
+        ]))
+
+    luck, opp_avg = _luck_through_gw(gw)
+    if luck:
+        lucky = max(luck, key=luck.get)
+        unlucky = min(luck, key=luck.get)
+        if luck[lucky] >= 2.0:
+            beats.append(_gw_story_choice(rng, [
+                f"The fixture gods continue to smile on {lucky}, whose Luck Index sits at +{luck[lucky]:.1f}; results are running noticeably hotter than the weekly scores suggest.",
+                f"{lucky} may wish to buy a lottery ticket: a +{luck[lucky]:.1f} Luck Index says the results have been kinder than the underlying scoring.",
+                f"Fortune currently has {lucky} on speed dial. Their Luck Index is +{luck[lucky]:.1f}, which is beginning to look less like a bounce and more like a sponsorship deal.",
+                f"{lucky} continue to surf the favourable side of variance at +{luck[lucky]:.1f} on the Luck Index. Long may the dark arts continue.",
+                f"There is lucky and there is {lucky}: +{luck[lucky]:.1f} on the index and still finding the soft side of the weekly draw.",
+                f"The fantasy gods have apparently added {lucky} to close friends; a +{luck[lucky]:.1f} Luck Index tells its own suspicious little story.",
+                f"{lucky}'s horseshoe remains securely installed, with the Luck Index now reading +{luck[lucky]:.1f}.",
+            ]))
+        if luck[unlucky] <= -2.0:
+            beats.append(_gw_story_choice(rng, [
+                f"At the opposite end, {unlucky} can feel genuinely aggrieved at {luck[unlucky]:.1f} on the Luck Index, with opponents averaging {opp_avg.get(unlucky, 0):.1f} points against them.",
+                f"If anyone is entitled to shake a fist at the fixture list, it is {unlucky}: {luck[unlucky]:.1f} luck and {opp_avg.get(unlucky, 0):.1f} opponent points per week.",
+                f"{unlucky} appear to have offended a minor deity. Their Luck Index sits at {luck[unlucky]:.1f}, while opponents are averaging {opp_avg.get(unlucky, 0):.1f} against them.",
+                f"Variance has put {unlucky} in a headlock: {luck[unlucky]:.1f} on the Luck Index and an opponent average of {opp_avg.get(unlucky, 0):.1f}.",
+                f"The fixture computer owes {unlucky} an apology card. A {luck[unlucky]:.1f} Luck Index and {opp_avg.get(unlucky, 0):.1f} points against on average is grim reading.",
+                f"{unlucky} continue to dine at the bad-luck buffet, currently {luck[unlucky]:.1f} on the index with opponents averaging {opp_avg.get(unlucky, 0):.1f}.",
+                f"Nobody invite {unlucky} to a casino: the luck meter is at {luck[unlucky]:.1f}, and their opponents are averaging {opp_avg.get(unlucky, 0):.1f} points.",
+            ]))
+
+    free_agents = _free_agents_high_in_chart(gw, 3)
+    if len(free_agents) >= 2:
+        names = ", ".join(name for name, _ in free_agents[:-1]) + f" and {free_agents[-1][0]}"
+        beats.append(_gw_story_choice(rng, [
+            f"Meanwhile the waiver wire is refusing to stay quiet: {names} remain free agents despite sitting among the strongest unowned scorers at this point of the season.",
+            f"There is still value just lying around, with {names} leading a surprisingly healthy group of free agents high up the scoring charts.",
+            f"Recruitment departments, wake up: {names} are still unattached and are making the free-agent pool look far less barren than it has any right to be.",
+            f"The free-agent cupboard is somehow not bare: {names} are still sitting there, scoring points and waiting for somebody to notice.",
+            f"Scouting departments may want to put the kettle down: {names} remain unattached despite elbowing their way up the scoring lists.",
+            f"There are points lying on the pavement. {names} are still free agents and increasingly difficult to explain away.",
+            f"The waiver wire currently contains {names}, which is less 'scraps' and more 'unattended buffet'.",
+            f"Some perfectly usable fantasy footballers remain mysteriously unemployed: {names} are still free and still scoring.",
+            f"If anybody fancies doing some actual recruitment, {names} remain available and are making increasingly persuasive little noises in the scoring charts.",
+            f"The free-agent pool has developed a suspicious bulge around {names}, all still unowned and all doing enough to deserve a raised eyebrow.",
+            f"Waiver-watchers have homework: {names} are still on the shelf, and the shelf is beginning to look embarrassingly well stocked.",
+            f"Apparently nobody wants free points: {names} remain available despite hanging around the upper reaches of the unowned scoring charts.",
+        ]))
+
+    if len(beats) > 7:
+        fixed = beats[:2]
+        rest = beats[2:]
+        rng.shuffle(rest)
+        beats = fixed + rest[:5]
+
+    preview = _next_week_preview(gw, pos_now, rng)
+    sentences = [opening] + beats + ([preview] if preview else [])
+    return " ".join(sentence.strip() for sentence in sentences if sentence and sentence.strip())
+
+def latest_league_storyline_html():
+    if not finished_gws:
+        return '<div class="notice">No completed gameweek story yet.</div>'
+    gw = max(finished_gws)
+    story = league_storyline_for_gw(gw)
+    return f'<div class="storyline-latest"><div class="eyebrow">GW{gw} · THE McDRAFT COLUMN</div><p>{escape_html(story)}</p></div>'
+
+
+def season_summary_html():
+    if not finished_gws:
+        return '<div class="notice">No completed gameweeks yet.</div>'
+    blocks = []
+    for gw in sorted(finished_gws, reverse=True):
+        story = league_storyline_for_gw(gw)
+        blocks.append('<article class="season-story"><div class="season-story-gw">GW' + str(gw) + '</div><div><p>' + escape_html(story) + '</p></div></article>')
+    return ''.join(blocks)
+
+
+def future_fixture_sections():
+    last_finished = max(finished_gws) if finished_gws else 0
+    future_gws = sorted(gw for gw in full_fixture_schedule if gw > last_finished)
+    if not future_gws:
+        return '<div class="notice">No future fixtures available yet.</div>'
+    sections = []
+    for index, gw in enumerate(future_gws):
+        rows = []
+        for fixture in full_fixture_schedule[gw]:
+            derby = _derby_name(fixture["team1"], fixture["team2"])
+            derby_html = f'<div class="fixture-derby">{escape_html(derby)}</div>' if derby else ''
+            rows.append(
+                '<div class="future-fixture-row">'
+                f'<div class="future-fixture-team home">{escape_html(fixture["team1"])}</div>'
+                f'<div class="future-fixture-v">vs{derby_html}</div>'
+                f'<div class="future-fixture-team">{escape_html(fixture["team2"])}</div>'
+                '</div>'
+            )
+        display = "block" if index == 0 else "none"
+        sections.append(f'<div class="future-fixture-slide" id="future-gw-{gw}" style="display:{display};">{"".join(rows)}</div>')
+    return ''.join(sections)
+
+
+future_fixture_gameweeks = sorted(gw for gw in full_fixture_schedule if gw > (max(finished_gws) if finished_gws else 0))
+gameweek_browser_gameweeks = sorted(set(result_gameweeks) | set(full_fixture_schedule.keys()))
+
 def gameweek_summary_sections():
     sections = ""
 
@@ -5287,97 +6011,71 @@ def league_records_html():
 
 
 # ============================================================
-# RESULTS HTML
+# RESULTS / FIXTURE BROWSER HTML
 # ============================================================
 
 results_sections = ""
+latest_completed_for_browser = max(result_gameweeks) if result_gameweeks else None
 
-
-for index, gw in enumerate(
-    result_gameweeks
-):
-
-    display_mode = (
-        "block"
-        if index == len(
-            result_gameweeks
-        ) - 1
-        else "none"
-    )
-
+for gw in gameweek_browser_gameweeks:
+    display_mode = "block" if gw == latest_completed_for_browser else "none"
     fixtures_html = ""
 
-    for fixture in (
-        results_by_gw[gw]
-    ):
+    if gw in results_by_gw:
+        for fixture in results_by_gw[gw]:
+            team1_class = ""
+            team2_class = ""
+            if fixture["result"] == "win1":
+                team1_class, team2_class = "winner", "loser"
+            elif fixture["result"] == "win2":
+                team1_class, team2_class = "loser", "winner"
+            else:
+                team1_class = team2_class = "draw"
 
-        team1_class = ""
-        team2_class = ""
-
-        if fixture["result"] == "win1":
-
-            team1_class = "winner"
-            team2_class = "loser"
-
-        elif fixture["result"] == "win2":
-
-            team1_class = "loser"
-            team2_class = "winner"
-
-        else:
-
-            team1_class = "draw"
-            team2_class = "draw"
-
-        fixtures_html += f"""
-            <div class="fixture">
-
-                <div class="fixture-team {team1_class}">
-
-                    <span class="fixture-manager">
-                        {escape_html(fixture["team1"])}
-                    </span>
-
-                    <span class="fixture-score">
-                        {fixture["score1"]}
-                    </span>
-
+            derby = _derby_name(fixture["team1"], fixture["team2"])
+            derby_html = f'<div class="fixture-derby unified-derby">{escape_html(derby)}</div>' if derby else ''
+            fixtures_html += f"""
+                <div class="fixture">
+                    {derby_html}
+                    <div class="fixture-team {team1_class}">
+                        <span class="fixture-manager">{escape_html(fixture["team1"])}</span>
+                        <span class="fixture-score">{fixture["score1"]}</span>
+                    </div>
+                    <div class="fixture-vs">VS</div>
+                    <div class="fixture-team {team2_class}">
+                        <span class="fixture-score">{fixture["score2"]}</span>
+                        <span class="fixture-manager">{escape_html(fixture["team2"])}</span>
+                    </div>
                 </div>
-
-                <div class="fixture-vs">
-                    VS
+            """
+        title = f"Gameweek {gw} · Results"
+        state_class = "completed-gw"
+    else:
+        for fixture in full_fixture_schedule.get(gw, []):
+            derby = _derby_name(fixture["team1"], fixture["team2"])
+            derby_html = f'<div class="fixture-derby unified-derby">{escape_html(derby)}</div>' if derby else ''
+            fixtures_html += f"""
+                <div class="fixture future-fixture-unified">
+                    {derby_html}
+                    <div class="fixture-team">
+                        <span class="fixture-manager">{escape_html(fixture["team1"])}</span>
+                    </div>
+                    <div class="fixture-vs">VS</div>
+                    <div class="fixture-team">
+                        <span class="fixture-manager">{escape_html(fixture["team2"])}</span>
+                    </div>
                 </div>
+            """
+        title = f"Gameweek {gw} · Upcoming Fixtures"
+        state_class = "future-gw"
 
-                <div class="fixture-team {team2_class}">
-
-                    <span class="fixture-score">
-                        {fixture["score2"]}
-                    </span>
-
-                    <span class="fixture-manager">
-                        {escape_html(fixture["team2"])}
-                    </span>
-
-                </div>
-
-            </div>
-        """
+    if not fixtures_html:
+        fixtures_html = '<div class="notice">No fixtures available for this gameweek.</div>'
 
     results_sections += f"""
-        <div
-            class="results-slide"
-            id="results-gw-{gw}"
-            style="display:{display_mode};"
-        >
-
-            <div class="results-title">
-                Gameweek {gw}
-            </div>
-
-            <div class="fixtures-list">
-                {fixtures_html}
-            </div>
-
+        <div class="results-slide {state_class}" id="results-gw-{gw}" style="display:{display_mode};">
+            <div class="results-title">{title}</div>
+            <div class="fixtures-list">{fixtures_html}</div>
         </div>
     """
 
@@ -6303,35 +7001,30 @@ tbody tr:hover {
     color: #0f1626;
 }
 
+
 /* ============================================================
-   TRANSFER ARCHIVE FILTERS
+   TRANSFER LISTS
    ============================================================ */
 
-function filterTransfers() {
-    const playerInput = document.getElementById("transfer-player-search");
-    const teamSelect = document.getElementById("transfer-team-filter");
-    const rows = document.querySelectorAll(".transfer-archive-row");
-    const empty = document.getElementById("transfer-search-empty");
-
-    if (!rows.length) return;
-
-    const playerQuery = playerInput ? playerInput.value.trim().toLowerCase() : "";
-    const teamQuery = teamSelect ? teamSelect.value.trim().toLowerCase() : "";
-    let visible = 0;
-
-    rows.forEach(function(row) {
-        const player = (row.dataset.player || "").toLowerCase();
-        const teams = (row.dataset.team || "").toLowerCase();
-        const matchesPlayer = !playerQuery || player.includes(playerQuery);
-        const matchesTeam = !teamQuery || teams.includes(teamQuery);
-        const show = matchesPlayer && matchesTeam;
-        row.style.display = show ? "" : "none";
-        if (show) visible += 1;
-    });
-
-    if (empty) empty.style.display = visible ? "none" : "block";
+.recent-transfers-scroll {
+    max-height: 330px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
+.transfer-history-scroll {
+    max-height: 520px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.recent-transfers-scroll thead th,
+.transfer-history-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #111827;
+}
 
 /* ============================================================
    MOBILE TREND CHARTS (H2H points / rank / gw scores)
@@ -6633,6 +7326,27 @@ function filterTransfers() {
 .fixture-team.draw {
     color: var(--text);
 }
+
+
+.power-formula {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(127, 127, 127, 0.08);
+    line-height: 1.5;
+    font-size: 0.92rem;
+}
+.storyline-card p, .season-story p { line-height: 1.65; margin: 10px 0 0; }
+.season-summary-list { display: grid; gap: 14px; }
+.season-story {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 16px;
+    padding: 18px 0;
+    border-bottom: 1px solid rgba(127,127,127,.18);
+}
+.season-story:last-child { border-bottom: 0; }
+.season-story-gw { font-weight: 800; font-size: 1.05rem; align-self: start; }
 
 .results-navigation,
 .totw-navigation {
@@ -7629,6 +8343,22 @@ function filterTransfers() {
     }
 
 }
+.future-fixtures-container { margin-top: 12px; }
+.future-fixture-slide { display: none; }
+.future-fixture-row { display:grid; grid-template-columns:minmax(0,1fr) 110px minmax(0,1fr); gap:12px; align-items:center; padding:13px 6px; border-bottom:1px solid var(--border); }
+.future-fixture-row:last-child { border-bottom:0; }
+.future-fixture-team { font-weight:800; }
+.future-fixture-team.home { text-align:right; }
+.future-fixture-v { text-align:center; font-weight:900; color:var(--muted); }
+.fixture-derby { margin-top:4px; font-size:10px; line-height:1.15; text-transform:uppercase; letter-spacing:.08em; color:var(--text); }
+
+.future-fixture-unified .fixture-team { justify-content:center; }
+.future-fixture-unified .fixture-manager { font-weight:800; }
+.unified-derby { grid-column:1 / -1; text-align:center; margin-bottom:8px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
+.storyline-latest p { font-size:16px; line-height:1.8; }
+.season-story p { font-size:15px; line-height:1.75; }
+@media (max-width:620px) { .future-fixture-row { grid-template-columns:minmax(0,1fr) 78px minmax(0,1fr); gap:8px; } .future-fixture-team{font-size:13px;} .fixture-derby{font-size:8px;} }
+
 """
 
 
@@ -8459,28 +9189,17 @@ function changeTOTW(
     direction
 ) {
 
-    const newIndex =
-        totwIndex +
-        direction;
-
+    const newIndex = resultsIndex + direction;
 
     if (
         newIndex < 0 ||
-        newIndex >=
-            totwGameweeks.length
+        newIndex >= resultsGameweeks.length
     ) {
-
         return;
-
     }
 
-
-    totwIndex =
-        newIndex;
-
-
-    updateTOTW();
-
+    resultsIndex = newIndex;
+    updateResults();
 }
 
 
@@ -8491,154 +9210,57 @@ function changeTOTW(
 const resultsGameweeks =
     __RESULT_GAMEWEEKS__;
 
-
-let resultsIndex =
-    resultsGameweeks.length - 1;
-
+const latestCompletedGameweek = totwGameweeks.length ? Math.max.apply(null, totwGameweeks) : null;
+let resultsIndex = latestCompletedGameweek !== null ? resultsGameweeks.indexOf(latestCompletedGameweek) : 0;
+if (resultsIndex < 0) resultsIndex = Math.max(0, resultsGameweeks.length - 1);
 
 function updateResults() {
+    if (resultsGameweeks.length === 0) return;
 
-    if (
-        resultsGameweeks.length === 0
-    ) {
+    resultsGameweeks.forEach(function(gw) {
+        const slide = document.getElementById("results-gw-" + gw);
+        if (slide) slide.style.display = "none";
+    });
 
-        return;
+    const selectedGW = resultsGameweeks[resultsIndex];
+    const isCompleted = totwGameweeks.indexOf(selectedGW) !== -1;
 
-    }
+    const selectedSlide = document.getElementById("results-gw-" + selectedGW);
+    if (selectedSlide) selectedSlide.style.display = "block";
 
+    const display = document.getElementById("results-gw-display");
+    if (display) display.innerText = "GW" + selectedGW;
 
-    resultsGameweeks.forEach(
-        function(gw) {
+    const summarySlides = document.querySelectorAll(".gw-summary-slide");
+    summarySlides.forEach(function(slide) { slide.style.display = "none"; });
+    const selectedSummary = document.getElementById("summary-gw-" + selectedGW);
+    if (selectedSummary) selectedSummary.style.display = "block";
 
-            const slide =
-                document.getElementById(
-                    "results-gw-" + gw
-                );
+    const summaryCard = document.getElementById("gameweek-summary-card");
+    if (summaryCard) summaryCard.style.display = isCompleted ? "block" : "none";
 
+    const totwCard = document.getElementById("totw-card");
+    if (totwCard) totwCard.style.display = isCompleted ? "block" : "none";
 
-            if (slide) {
-
-                slide.style.display =
-                    "none";
-
-            }
-
+    if (isCompleted) {
+        const matchingTOTWIndex = totwGameweeks.indexOf(selectedGW);
+        if (matchingTOTWIndex !== -1) {
+            totwIndex = matchingTOTWIndex;
+            updateTOTW();
         }
-    );
-
-
-    const selectedGW =
-        resultsGameweeks[
-            resultsIndex
-        ];
-
-
-    const summarySlides =
-        document.querySelectorAll(
-            ".gw-summary-slide"
-        );
-
-    summarySlides.forEach(
-        function(slide) {
-            slide.style.display = "none";
-        }
-    );
-
-    const selectedSummary =
-        document.getElementById(
-            "summary-gw-" + selectedGW
-        );
-
-    if (selectedSummary) {
-        selectedSummary.style.display = "block";
     }
 
-
-    const selectedSlide =
-        document.getElementById(
-            "results-gw-" + selectedGW
-        );
-
-
-    if (selectedSlide) {
-
-        selectedSlide.style.display =
-            "block";
-
-    }
-
-
-    const display =
-        document.getElementById(
-            "results-gw-display"
-        );
-
-
-    if (display) {
-
-        display.innerText =
-            "GW" + selectedGW;
-
-    }
-
-
-    const prev =
-        document.getElementById(
-            "results-prev"
-        );
-
-
-    const next =
-        document.getElementById(
-            "results-next"
-        );
-
-
-    if (prev) {
-
-        prev.disabled =
-            resultsIndex === 0;
-
-    }
-
-
-    if (next) {
-
-        next.disabled =
-            resultsIndex ===
-            resultsGameweeks.length - 1;
-
-    }
-
+    const prev = document.getElementById("results-prev");
+    const next = document.getElementById("results-next");
+    if (prev) prev.disabled = resultsIndex === 0;
+    if (next) next.disabled = resultsIndex === resultsGameweeks.length - 1;
 }
 
-
-function changeResults(
-    direction
-) {
-
-    const newIndex =
-        resultsIndex +
-        direction;
-
-
-    if (
-        newIndex < 0 ||
-        newIndex >=
-            resultsGameweeks.length
-    ) {
-
-        return;
-
-    }
-
-
-    resultsIndex =
-        newIndex;
-
-
+function changeResults(direction) {
+    const newIndex = resultsIndex + direction;
+    if (newIndex < 0 || newIndex >= resultsGameweeks.length) return;
+    resultsIndex = newIndex;
     updateResults();
-
 }
 
 
@@ -8799,6 +9421,32 @@ function renderPlayerDirectoryCard(player) {
                 : '<div class="notice">No draft ownership history has been captured for this player yet.</div>') +
         '</div>' +
     '</div>';
+}
+
+
+function filterTransfers() {
+    const playerInput = document.getElementById("transfer-player-search");
+    const teamSelect = document.getElementById("transfer-team-filter");
+    const rows = document.querySelectorAll(".transfer-archive-row");
+    const empty = document.getElementById("transfer-search-empty");
+
+    const playerQuery = playerInput ? playerInput.value.trim().toLowerCase() : "";
+    const teamQuery = teamSelect ? teamSelect.value.trim().toLowerCase() : "";
+    let visible = 0;
+
+    rows.forEach(function(row) {
+        const player = (row.dataset.player || "").toLowerCase();
+        const teams = (row.dataset.team || "").toLowerCase();
+        const matchesPlayer = !playerQuery || player.includes(playerQuery);
+        const matchesTeam = !teamQuery || teams.includes(teamQuery);
+        const show = matchesPlayer && matchesTeam;
+        row.style.display = show ? "" : "none";
+        if (show) visible += 1;
+    });
+
+    if (empty) {
+        empty.style.display = (rows.length && visible === 0) ? "block" : "none";
+    }
 }
 
 
@@ -9016,6 +9664,10 @@ function initialiseDashboard() {
         initialiseMyTeam();
     });
 
+    safeInit("Future fixtures", function() {
+        updateFutureFixtures();
+    });
+
     safeInit("Team of the Week", function() {
         updateTOTW();
     });
@@ -9172,6 +9824,15 @@ __CSS__
 
             <button
                 class="nav-button"
+                data-page="season-summary"
+                onclick="showPage('season-summary')"
+            >
+                Season Summary
+            </button>
+
+
+            <button
+                class="nav-button"
                 data-page="stats"
                 onclick="showPage('stats')"
             >
@@ -9222,6 +9883,17 @@ __CSS__
                     __POWER_RANKINGS_TABLE__
                 </div>
 
+            </div>
+
+            <div class="card storyline-card">
+                <h2>This Week in McDraft</h2>
+                <p class="card-description">A dramatic league column: table swings, rivalries, trades, luck, player disasters and what comes next. The factual recap remains on Gameweeks.</p>
+                __LATEST_LEAGUE_STORYLINE__
+            </div>
+
+            <div class="card">
+                <h2>Luck Index</h2>
+                __LUCK_INDEX_TABLE__
             </div>
 
 
@@ -9407,7 +10079,7 @@ __CSS__
 
             <!-- GAMEWEEK SUMMARY -->
 
-            <div class="card">
+            <div class="card" id="gameweek-summary-card">
                 <h2>Gameweek Summary</h2>
                 <div class="results-container">
                     __GAMEWEEK_SUMMARY_SECTIONS__
@@ -9464,7 +10136,7 @@ __CSS__
 
             <!-- TEAM OF THE WEEK -->
 
-            <div class="card">
+            <div class="card" id="totw-card">
 
                 <h2>
                     Team of the Week
@@ -9522,6 +10194,23 @@ __CSS__
 
             </div>
 
+        </section>
+
+
+        <!-- ==================================================
+             SEASON SUMMARY
+             ================================================== -->
+
+        <section class="page" id="page-season-summary">
+            <div class="page-heading">
+                <h1>Season Summary</h1>
+                <p>The story of McDraft, one completed gameweek at a time.</p>
+            </div>
+            <div class="card">
+                <h2>Season Diary</h2>
+                <p class="card-description">Newest first. Each chunky weekly column is built from results, table movement, rivalries, trades, player performances, luck and the following week's fixtures.</p>
+                <div class="season-summary-list">__SEASON_SUMMARY__</div>
+            </div>
         </section>
 
 
@@ -10040,8 +10729,26 @@ replacements = {
     "__POWER_RANKINGS_TABLE__":
         power_rankings_table(),
 
+    "__LUCK_INDEX_TABLE__":
+        luck_index_table(),
+
+    "__LATEST_LEAGUE_STORYLINE__":
+        latest_league_storyline_html(),
+
+    "__SEASON_SUMMARY__":
+        season_summary_html(),
+
     "__GAMEWEEK_SUMMARY_SECTIONS__":
         gameweek_summary_sections(),
+
+    "__FUTURE_FIXTURE_SECTIONS__":
+        future_fixture_sections(),
+
+    "__FUTURE_FIXTURE_GAMEWEEKS__":
+        json.dumps(future_fixture_gameweeks),
+
+    "__FIRST_FUTURE_GW__":
+        str(future_fixture_gameweeks[0] if future_fixture_gameweeks else "—"),
 
     "__MANAGER_PROFILE_CARDS__":
         manager_profile_cards(),
@@ -10108,7 +10815,7 @@ replacements = {
             safe_js_json(json.dumps(finished_gws))
         ).replace(
             "__RESULT_GAMEWEEKS__",
-            safe_js_json(json.dumps(result_gameweeks))
+            safe_js_json(json.dumps(gameweek_browser_gameweeks))
         ).replace(
             "__PLAYER_SEARCH_DATA__",
             safe_js_json(player_search_json)
