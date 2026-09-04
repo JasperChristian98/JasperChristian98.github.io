@@ -4208,18 +4208,11 @@ def _trade_grade(trade):
     }
 
 
-def trades_table(gw=None):
-    trades_to_show = normalised_trades
-    if gw is not None:
-        trades_to_show = [
-            trade for trade in normalised_trades
-            if str(trade.get("gw")) == str(gw)
-        ]
-
+def _render_trade_cards(trades_to_show, filterable=False):
     if not trades_to_show:
         return """
             <div class="notice">
-                No trades returned by the Draft API yet.
+                No negotiated trades match this section yet.
             </div>
         """
 
@@ -4238,6 +4231,7 @@ def trades_table(gw=None):
             grade_start_gw = int(trade["gw"])
         except (TypeError, ValueError):
             grade_start_gw = "—"
+
         trade_grade_html = f"""
             <div class="trade-grade">
                 <div class="trade-grade-title">Running Trade Grade <span>· points from GW{grade_start_gw} onward</span></div>
@@ -4249,8 +4243,19 @@ def trades_table(gw=None):
             </div>
         """
 
+        filter_attrs = ""
+        extra_class = ""
+        if filterable:
+            team_search = f"{trade['manager1']} {trade['manager2']}".lower()
+            player_search = " ".join(trade.get("players1", []) + trade.get("players2", [])).lower()
+            extra_class = " historical-trade-card"
+            filter_attrs = (
+                f' data-team="{escape_html(team_search)}"'
+                f' data-player="{escape_html(player_search)}"'
+            )
+
         rows += f"""
-            <div class="trade-card">
+            <div class="trade-card{extra_class}"{filter_attrs}>
                 <div class="trade-card-top">
                     <div>
                         <div class="trade-managers">
@@ -4290,6 +4295,56 @@ def trades_table(gw=None):
         """
 
     return f'<div class="trades-list">{rows}</div>'
+
+
+def trades_table(gw=None):
+    trades_to_show = normalised_trades
+    if gw is not None:
+        trades_to_show = [
+            trade for trade in normalised_trades
+            if str(trade.get("gw")) == str(gw)
+        ]
+
+    if not trades_to_show:
+        gw_text = f" for GW{gw}" if gw is not None else ""
+        return f'<div class="notice">No negotiated trades processed{gw_text} yet.</div>'
+
+    return _render_trade_cards(trades_to_show)
+
+
+def historical_trades_table():
+    """All negotiated trades before the currently displayed transfer GW."""
+    if latest_transfer_gw is None:
+        historical = list(normalised_trades)
+    else:
+        historical = []
+        for trade in normalised_trades:
+            try:
+                trade_gw = int(trade.get("gw"))
+                current_gw = int(latest_transfer_gw)
+            except (TypeError, ValueError):
+                historical.append(trade)
+                continue
+            if trade_gw < current_gw:
+                historical.append(trade)
+
+    historical.sort(
+        key=lambda trade: (
+            -int(trade.get("gw", 0) or 0),
+            str(trade.get("manager1", "")),
+            str(trade.get("manager2", "")),
+        )
+    )
+
+    if not historical:
+        return '<div class="notice">No historical negotiated trades yet.</div>'
+
+    cards = _render_trade_cards(historical, filterable=True)
+    return (
+        cards
+        + '<div id="historical-trade-search-empty" class="notice" '
+          'style="display:none; margin-top:12px;">No historical trades match that team.</div>'
+    )
 
 
 # ============================================================
@@ -6125,6 +6180,152 @@ def _dashboard_live_scoreboard_html():
     return html
 
 
+def _preview_projected_table(winner=None):
+    """Provisional table after giving one team a win; current PF remains the tie-break."""
+    projected_points = {manager: float(league_points.get(manager, 0)) for manager in managers}
+    if winner in projected_points:
+        projected_points[winner] += 3
+
+    ranked = sorted(
+        managers,
+        key=lambda manager: (
+            -projected_points.get(manager, 0),
+            -float(points_for.get(manager, 0)),
+            manager,
+        )
+    )
+    return ranked, {manager: pos for pos, manager in enumerate(ranked, start=1)}, projected_points
+
+
+def _preview_table_pressure(fixtures, rng):
+    """Build lively standings-aware preview beats for close fixtures and possible movement."""
+    if not fixtures or not current_standings:
+        return []
+
+    close = []
+    movement = []
+
+    for fixture in fixtures:
+        team1 = fixture.get("team1", "Unknown")
+        team2 = fixture.get("team2", "Unknown")
+        if team1 not in manager_current_rank or team2 not in manager_current_rank:
+            continue
+
+        rank1 = manager_current_rank[team1]
+        rank2 = manager_current_rank[team2]
+        pts1 = float(league_points.get(team1, 0))
+        pts2 = float(league_points.get(team2, 0))
+        rank_gap = abs(rank1 - rank2)
+        points_gap = abs(pts1 - pts2)
+
+        if rank_gap <= 2 or points_gap <= 3:
+            close.append({
+                "team1": team1,
+                "team2": team2,
+                "rank1": rank1,
+                "rank2": rank2,
+                "pts1": pts1,
+                "pts2": pts2,
+                "rank_gap": rank_gap,
+                "points_gap": points_gap,
+            })
+
+        for team, opponent, old_rank in (
+            (team1, team2, rank1),
+            (team2, team1, rank2),
+        ):
+            _, projected_ranks, projected_points = _preview_projected_table(team)
+            new_rank = projected_ranks.get(team, old_rank)
+            if new_rank < old_rank:
+                movement.append({
+                    "team": team,
+                    "opponent": opponent,
+                    "old_rank": old_rank,
+                    "new_rank": new_rank,
+                    "new_points": projected_points.get(team, 0),
+                    "places": old_rank - new_rank,
+                })
+
+    bits = []
+
+    if close:
+        close.sort(key=lambda row: (row["points_gap"], row["rank_gap"], row["rank1"] + row["rank2"]))
+        fixture = close[0]
+        t1, t2 = fixture["team1"], fixture["team2"]
+        r1, r2 = fixture["rank1"], fixture["rank2"]
+        p1, p2 = fixture["pts1"], fixture["pts2"]
+        if p1 == p2:
+            table_context = f"level on {p1:.0f} league points"
+        else:
+            table_context = f"separated by only {abs(p1-p2):.0f} league point{'s' if abs(p1-p2) != 1 else ''}"
+
+        bits.append(rng.choice([
+            f"The table has a proper knife-edge fixture too: {t1} ({r1}{_ordinal_suffix(r1)}) face {t2} ({r2}{_ordinal_suffix(r2)}), with the pair {table_context}. That is less a fixture and more a small administrative knife fight.",
+            f"Keep one eye on {t1} v {t2}. They sit {r1}{_ordinal_suffix(r1)} and {r2}{_ordinal_suffix(r2)}, {table_context}, so three points here could have the table doing furniture removal by Sunday night.",
+            f"There is barely daylight between {t1} and {t2}: {r1}{_ordinal_suffix(r1)} plays {r2}{_ordinal_suffix(r2)}, {table_context}. A lovely little six-pointer, except technically it is still only worth three. Boring rules.",
+            f"For pure table tension, {t1} against {t2} is filthy. They are {r1}{_ordinal_suffix(r1)} and {r2}{_ordinal_suffix(r2)} and {table_context}; somebody could leave this looking significantly taller in the standings.",
+            f"The standings have thrown up a pressure cooker in {t1} v {t2}: {r1}{_ordinal_suffix(r1)} against {r2}{_ordinal_suffix(r2)}, {table_context}. Expect live-table refreshing of a medically unnecessary frequency.",
+            f"{t1} v {t2} has all the ingredients of a table scrap: {r1}{_ordinal_suffix(r1)} meets {r2}{_ordinal_suffix(r2)}, with them {table_context}. One result could make the standings look very different indeed.",
+            f"Circle {t1} against {t2}. They are packed together in {r1}{_ordinal_suffix(r1)} and {r2}{_ordinal_suffix(r2)}, {table_context}, and neither side has much room for a polite little defeat.",
+            f"This week's congestion charge applies to {t1} and {t2}: {r1}{_ordinal_suffix(r1)} plays {r2}{_ordinal_suffix(r2)}, {table_context}. Someone is getting elbowed out of the queue.",
+            f"There is a wonderfully unpleasant amount riding on {t1} v {t2}. They sit {r1}{_ordinal_suffix(r1)} and {r2}{_ordinal_suffix(r2)}, {table_context}, so even a narrow win could have a very loud effect on the table.",
+            f"If you enjoy league-table claustrophobia, {t1} v {t2} is your fixture: {r1}{_ordinal_suffix(r1)} against {r2}{_ordinal_suffix(r2)}, {table_context}. Absolutely no personal space in there.",
+        ]))
+
+    # Prefer the biggest plausible jump, then teams nearer the top of the table.
+    movement.sort(key=lambda row: (-row["places"], row["new_rank"], row["old_rank"], row["team"]))
+    used = set()
+    movement_bits = []
+    for item in movement:
+        if item["team"] in used:
+            continue
+        used.add(item["team"])
+        team = item["team"]
+        opponent = item["opponent"]
+        old_rank = item["old_rank"]
+        new_rank = item["new_rank"]
+        movement_bits.append(rng.choice([
+            f"If {team} get the job done against {opponent}, they could move provisionally from {old_rank}{_ordinal_suffix(old_rank)} to {new_rank}{_ordinal_suffix(new_rank)}. Suddenly this is not just about winning; it is about nicking somebody else's chair.",
+            f"There is a route up the ladder for {team}: beat {opponent} and the current numbers would lift them provisionally from {old_rank}{_ordinal_suffix(old_rank)} to {new_rank}{_ordinal_suffix(new_rank)}, before the rest of the week's scores and tie-breaks have their say.",
+            f"{team} have tangible upward mobility this week. A win over {opponent} would put them provisionally {new_rank}{_ordinal_suffix(new_rank)}, up from {old_rank}{_ordinal_suffix(old_rank)} on the present table. Tiny result, potentially enormous group-chat energy.",
+            f"Things get spicy for {team}: three points against {opponent} could haul them from {old_rank}{_ordinal_suffix(old_rank)} to a provisional {new_rank}{_ordinal_suffix(new_rank)}. The lift doors are open; they merely need to avoid walking into the wall.",
+            f"{team} can do some serious table-hopping here: victory over {opponent} would move them provisionally from {old_rank}{_ordinal_suffix(old_rank)} to {new_rank}{_ordinal_suffix(new_rank)}. One win, several bruised egos above them.",
+            f"The arithmetic is very friendly to {team}. Beat {opponent} and they could be sitting provisionally {new_rank}{_ordinal_suffix(new_rank)} instead of {old_rank}{_ordinal_suffix(old_rank)} by the time the dust starts settling.",
+            f"There is proper leverage in this one for {team}: take three points from {opponent} and the live picture would bump them from {old_rank}{_ordinal_suffix(old_rank)} to a provisional {new_rank}{_ordinal_suffix(new_rank)}. Efficient little robbery, that.",
+            f"A win would do more than pad the record for {team}; against {opponent} it could send them provisionally up to {new_rank}{_ordinal_suffix(new_rank)} from {old_rank}{_ordinal_suffix(old_rank)}. Suddenly everyone above them is checking the rear-view mirror.",
+            f"{team} have a genuine springboard fixture. Get past {opponent} and the current maths has them climbing from {old_rank}{_ordinal_suffix(old_rank)} to a provisional {new_rank}{_ordinal_suffix(new_rank)}. Mind the ceiling on the way up.",
+        ]))
+        if len(movement_bits) >= 2:
+            break
+
+    if movement_bits:
+        bits.append(" ".join(movement_bits))
+
+    leader = current_standings[0] if current_standings else None
+    if leader:
+        leader_pts = float(league_points.get(leader, 0))
+        challengers = [
+            manager for manager in current_standings[1:4]
+            if leader_pts - float(league_points.get(manager, 0)) <= 3
+        ]
+        if challengers:
+            challenger = challengers[0]
+            gap = leader_pts - float(league_points.get(challenger, 0))
+            gap_text = "level on points" if gap == 0 else f"only {gap:.0f} point{'s' if gap != 1 else ''} back"
+            bits.append(rng.choice([
+                f"And the summit is hardly fortified: {challenger} are {gap_text} behind leaders {leader}. One wobble at the top and the penthouse keys could be changing hands.",
+                f"Upstairs, {leader} cannot exactly put the champagne on ice. {challenger} are {gap_text}, so this gameweek has genuine first-place nuisance potential.",
+                f"The title race is already refusing to behave: {leader} lead, but {challenger} are {gap_text}. A favourable swing of results could turn the top of the table inside out.",
+                f"{leader} have the view from the top, but not much privacy: {challenger} are {gap_text}. One badly timed stumble and the penthouse could become a timeshare.",
+                f"There is no comfort blanket for {leader} this week. {challenger} sit {gap_text}, close enough to turn one ordinary result into a full-blown summit reshuffle.",
+                f"The gap at the top is more suggestion than safety net: {leader} lead with {challenger} {gap_text}. This could get twitchy very quickly.",
+                f"{leader} remain top dogs for now, but {challenger} are {gap_text}. A swing the wrong way and first place could develop a vacancy notice.",
+                f"The summit battle is properly alive: {leader} are in front, {challenger} are {gap_text}, and nobody up there should be getting comfortable enough to put their feet on the desk.",
+            ]))
+
+    return bits
+
+
 def upcoming_gameweek_preview_story():
     """Dramatic preview driven by fixtures, derbies and live market movement."""
     gw = dashboard_target_gw
@@ -6143,6 +6344,11 @@ def upcoming_gameweek_preview_story():
         f"Welcome to the GW{gw} build-up: no football yet, plenty of administrative violence. The waiver wire has fired, managers have gone shopping and the next round is beginning to smell faintly of chaos.",
         f"GW{gw} has not kicked a ball yet and somehow there is already drama. The market is moving, squads are being rewritten and several managers have plainly decided last week's problems were personnel rather than management.",
         f"The shutters are up on GW{gw}. Transfers are moving, free agents are disappearing from shelves and ten managers are simultaneously convincing themselves that this time they have absolutely nailed it.",
+        f"GW{gw} is warming up nicely. The waiver smoke has cleared, the shopping bags are full and every manager has found at least one reason to believe this week will be different.",
+        f"We have entered the dangerous pre-GW{gw} optimism window. Squads have been tinkered with, receipts have been hidden and everybody is temporarily undefeated again.",
+        f"The run-up to GW{gw} is in full swing: deals done, waivers claimed and several deeply questionable masterplans now officially in circulation.",
+        f"Before a single point has been scored in GW{gw}, the league has already produced movement, intrigue and the faint smell of panic-buying. Excellent conditions for nonsense.",
+        f"GW{gw} approaches with the usual cocktail of hope and terrible judgement. The market has spoken; whether it knew what it was saying is another matter entirely.",
     ]
     paragraphs.append(rng.choice(openings))
 
@@ -6160,10 +6366,18 @@ def upcoming_gameweek_preview_story():
             f"Top billing belongs to {derby}, with {t1} and {t2} renewing hostilities. Form, reason and basic human decency may all be suspended until the final score is in.",
             f"The fixture computer has chosen violence: {derby} sends {t1} into {t2}. Expect screenshots, selective memory and forensic interpretation of every point.",
             f"Clear the diary for {derby}. {t1} meet {t2}, and losing this particular fixture tends to have a much longer half-life than an ordinary defeat.",
+            f"The {derby} is back, dragging {t1} and {t2} into another beautifully unnecessary emotional crisis. Three points matter; the screenshots afterwards matter more.",
+            f"No ordinary fixture here: it is {derby}, with {t1} facing {t2}. Expect tactical genius to be claimed retrospectively by whoever wins.",
+            f"{derby} lands in GW{gw}, and {t1} against {t2} comes with enough baggage to require its own carousel at Bristol Airport.",
+            f"Rivalry alert: {derby} pits {t1} against {t2}. Whoever loses can expect the result to be brought up at completely unrelated moments for the foreseeable future.",
+            f"Forget calm, rational fantasy management: {derby} is on the card. {t1} and {t2} are playing for points, pride and control of the narrative.",
         ]))
 
     if derby_bits:
         paragraphs.append(" ".join(derby_bits[:2]))
+
+    table_pressure = _preview_table_pressure(fixtures, rng)
+    paragraphs.extend(table_pressure)
 
     pickups = [m for m in dashboard_market_changes if m.get("move") == "Pickup"]
     transfers = [m for m in dashboard_market_changes if m.get("move") == "Transfer"]
@@ -6176,6 +6390,11 @@ def upcoming_gameweek_preview_story():
             f"{move['player']} has crossed from {move['from_team']} to {move['to_team']}. Somebody will call it inspired recruitment; somebody else is quietly bookmarking this paragraph.",
             f"{move['player']} changes hands, leaving {move['from_team']} for {move['to_team']}. A perfectly sensible transaction right up until the player scores 2 or 14.",
             f"There has been an actual handover: {move['player']} moves from {move['from_team']} to {move['to_team']}. The trade-grade tribunal is already putting on its little wig.",
+            f"{move['to_team']} have prised {move['player']} away from {move['from_team']}. One manager sees upside; the other is already preparing an alternative history of why they never wanted him anyway.",
+            f"A proper piece of business sees {move['player']} go from {move['from_team']} to {move['to_team']}. Sensible roster management, reckless overreach, or both at once? Give it a week.",
+            f"{move['player']} has swapped {move['from_team']} for {move['to_team']}. The paperwork is done; now comes the bit where everyone pretends they knew the exact outcome in advance.",
+            f"Trade traffic: {move['player']} heads from {move['from_team']} to {move['to_team']}. One side will eventually call this a masterstroke and the other will insist context matters.",
+            f"The market has delivered a live one: {move['player']} moves from {move['from_team']} to {move['to_team']}. Somewhere in the league, a future receipt is already being saved.",
         ]))
 
     for move in pickups[:3]:
@@ -6183,14 +6402,23 @@ def upcoming_gameweek_preview_story():
             f"{move['to_team']} have swooped for {move['player']} from free agency, which is either inspired scouting or tomorrow's evidence exhibit.",
             f"{move['to_team']} have grabbed {move['player']} off the wire. New toy acquired; unreasonable expectations activated.",
             f"{move['player']} is off the shelf and into {move['to_team']}. Nothing says 'new gameweek, new me' like immediate emotional dependence on a pickup.",
+            f"{move['to_team']} have taken a punt on {move['player']} from the free-agent pool. Cheap, cheerful and currently undefeated as a decision.",
+            f"Waiver wire business for {move['to_team']}: {move['player']} comes aboard. In twenty-four hours this will either look obvious or completely deranged.",
+            f"{move['player']} has found a home with {move['to_team']}. A tidy bit of scavenging, provided the football gods do not immediately notice.",
+            f"{move['to_team']} have beaten the room to {move['player']}. Whether they have discovered value or simply adopted a new problem remains deliciously unclear.",
+            f"Fresh through the door at {move['to_team']} is {move['player']}. The honeymoon period officially lasts until his first two-pointer.",
         ]))
 
     if drops:
         move = drops[0]
-        market_bits.append(
-            f"{move['player']} has also been cut loose by {move['from_team']}, "
-            "which is either ruthless squad management or the opening scene of a future Hall of Shame entry."
-        )
+        market_bits.append(rng.choice([
+            f"{move['player']} has also been cut loose by {move['from_team']}, which is either ruthless squad management or the opening scene of a future Hall of Shame entry.",
+            f"{move['from_team']} have shown {move['player']} the door. Cold-blooded efficiency if it works; premium-grade regret material if it does not.",
+            f"There is no room at the inn for {move['player']}: {move['from_team']} have sent him back to free agency, where somebody else can now become emotionally attached.",
+            f"{move['player']} has been jettisoned by {move['from_team']}. Every drop looks sensible until the first haul arrives elsewhere.",
+            f"{move['from_team']} have pulled the plug on {move['player']}. The Hall of Shame department has opened a file but, for legal reasons, reached no conclusions.",
+            f"Out goes {move['player']} from {move['from_team']}. Ruthless pruning, panic button, or an act of tremendous foresight? The league will decide loudly.",
+        ]))
 
     if market_bits:
         paragraphs.append(" ".join(market_bits[:5]))
@@ -6209,12 +6437,22 @@ def upcoming_gameweek_preview_story():
             f"And the cupboard is not bare: {name_text} remain among the more interesting free agents. Somewhere, a manager is staring at the app and talking themselves into something reckless.",
             f"Still sitting on the shelf are {name_text}, among the stronger available names. Bargains waiting to happen, or bait. Delicious, stat-shaped bait.",
             f"Free agency still has teeth: {name_text} remain unattached and worth a look before somebody else decides they discovered them first.",
+            f"Meanwhile {name_text} are still wandering around free agency unsupervised. That feels less like depth and more like a dare.",
+            f"There is still value on the pavement: {name_text} remain available. One good fixture is all it takes for restraint to disappear completely.",
+            f"Nobody has claimed {name_text} yet, which means the waiver pool is still carrying a few live grenades with the pins only loosely attached.",
+            f"For anyone already regretting their squad, {name_text} are among the names still sitting in free agency and quietly whispering 'go on then'.",
+            f"The leftovers are suspiciously appetising: {name_text} remain free. This is exactly how perfectly sensible managers end up making 11pm roster decisions.",
         ]))
 
     paragraphs.append(rng.choice([
         f"GW{gw} is therefore set: grudges refreshed, squads tinkered with and confidence dangerously high. All that remains is for the actual football to ruin everybody's plans.",
         f"The pieces are on the board for GW{gw}. Now we wait for ninety minutes of football to make several days of careful squad planning look extremely silly.",
         f"That is the state of play before GW{gw}: rivalry, recruitment and rampant overconfidence. Lovely stuff.",
+        f"So GW{gw} arrives with the table twitching, the market humming and several reputations already halfway onto the barbecue. Bring on the damage.",
+        f"Everything is beautifully poised for GW{gw}: positions to steal, grudges to settle and enough fresh transfers to ensure somebody will look very clever by accident.",
+        f"The preview verdict for GW{gw}: unstable table, active market, inflated confidence. In other words, ideal McDraft conditions.",
+        f"GW{gw} now has all the required ingredients — rivalry, movement and wildly premature certainty. Time for the players to disrespect the spreadsheet.",
+        f"And that is your GW{gw} launchpad. The plans are made, the traps are set and absolutely none of this is guaranteed to survive first kick-off.",
     ]))
 
     return "\n\n".join(paragraphs)
@@ -9929,6 +10167,26 @@ function filterTransfers() {
 }
 
 
+function filterHistoricalTrades() {
+    const teamSelect = document.getElementById("historical-trade-team-filter");
+    const cards = document.querySelectorAll(".historical-trade-card");
+    const empty = document.getElementById("historical-trade-search-empty");
+    const teamQuery = teamSelect ? teamSelect.value.trim().toLowerCase() : "";
+    let visible = 0;
+
+    cards.forEach(function(card) {
+        const teams = (card.dataset.team || "").toLowerCase();
+        const show = !teamQuery || teams.includes(teamQuery);
+        card.style.display = show ? "" : "none";
+        if (show) visible += 1;
+    });
+
+    if (empty) {
+        empty.style.display = (cards.length && visible === 0) ? "block" : "none";
+    }
+}
+
+
 function filterPlayers() {
     const input = document.getElementById("player-search");
     const position = document.getElementById("player-position-filter");
@@ -10866,11 +11124,28 @@ __CSS__
 
             <div class="card">
 
-                <h2>Recent League Trades</h2>
+                <h2>Recent League Trades · GW__LATEST_TRANSFER_GW__</h2>
                 <p class="card-description">
-                    Negotiated trades processed for GW__LATEST_TRANSFER_GW__, with running grades counting points from that GW onward.
+                    Only negotiated trades belonging to the active gameweek live here. The running trade rater starts counting from the gameweek the deal became active.
                 </p>
                 __TRADES_TABLE__
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>Historical Trades</h2>
+                <p class="card-description">
+                    Older negotiated deals and their running trade grades. Filter by either fantasy team involved in the trade.
+                </p>
+                <div class="player-filter-grid transfer-filter-grid">
+                    <select id="historical-trade-team-filter" class="player-filter" onchange="filterHistoricalTrades()">
+                        <option value="">All fantasy teams</option>
+                        __TRANSFER_TEAM_OPTIONS__
+                    </select>
+                </div>
+                __HISTORICAL_TRADES__
 
             </div>
 
@@ -11162,6 +11437,9 @@ replacements = {
 
     "__TRADES_TABLE__":
         trades_table(latest_transfer_gw),
+
+    "__HISTORICAL_TRADES__":
+        historical_trades_table(),
 
     "__LATEST_TRANSFER_GW__":
         str(latest_transfer_gw if latest_transfer_gw is not None else "—"),
