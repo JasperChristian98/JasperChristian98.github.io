@@ -3581,7 +3581,7 @@
               "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 60
+              "minutes": 90
             },
             {
               "element_id": 127,
@@ -3708,7 +3708,7 @@
             }
           ],
           "gw_points": 5,
-          "live_points": 0,
+          "live_points": 5,
           "bench_points": 0,
           "dreamteam_starters": 1
         },
@@ -3823,7 +3823,7 @@
               "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 60
+              "minutes": 63
             },
             {
               "element_id": 491,
@@ -3884,7 +3884,7 @@
             }
           ],
           "gw_points": 13,
-          "live_points": 0,
+          "live_points": 13,
           "bench_points": 0,
           "dreamteam_starters": 1
         },
@@ -3933,7 +3933,7 @@
               "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 60
+              "minutes": 90
             },
             {
               "element_id": 87,
@@ -3977,7 +3977,7 @@
               "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 60
+              "minutes": 90
             },
             {
               "element_id": 454,
@@ -4060,7 +4060,7 @@
             }
           ],
           "gw_points": 8,
-          "live_points": 0,
+          "live_points": 8,
           "bench_points": 0,
           "dreamteam_starters": 2
         },
@@ -4304,10 +4304,10 @@
               "team": "Liverpool",
               "position": "MID",
               "points": 3,
-              "in_dreamteam": true,
+              "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 60
+              "minutes": 63
             },
             {
               "element_id": 480,
@@ -4412,9 +4412,9 @@
             }
           ],
           "gw_points": 3,
-          "live_points": 0,
+          "live_points": 3,
           "bench_points": 0,
-          "dreamteam_starters": 1
+          "dreamteam_starters": 0
         },
         "150925": {
           "manager": "Ollie Gonna Squashya",
@@ -4963,11 +4963,11 @@
               "web_name": "Virgil",
               "team": "Liverpool",
               "position": "DEF",
-              "points": 7,
+              "points": 6,
               "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 60
+              "minutes": 90
             },
             {
               "element_id": 390,
@@ -5011,7 +5011,7 @@
               "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 60
+              "minutes": 90
             },
             {
               "element_id": 452,
@@ -5115,8 +5115,8 @@
               "minutes": 0
             }
           ],
-          "gw_points": 10,
-          "live_points": 0,
+          "gw_points": 9,
+          "live_points": 10,
           "bench_points": 0,
           "dreamteam_starters": 2
         },
@@ -5128,11 +5128,11 @@
               "web_name": "A.Becker",
               "team": "Liverpool",
               "position": "GKP",
-              "points": 6,
+              "points": 8,
               "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 60
+              "minutes": 90
             },
             {
               "element_id": 200,
@@ -5187,7 +5187,7 @@
               "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 60
+              "minutes": 90
             },
             {
               "element_id": 260,
@@ -5277,7 +5277,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 60
+              "minutes": 65
             },
             {
               "element_id": 448,
@@ -5291,15 +5291,15 @@
               "minutes": 0
             }
           ],
-          "gw_points": 17,
-          "live_points": 0,
+          "gw_points": 19,
+          "live_points": 19,
           "bench_points": 2,
           "dreamteam_starters": 2
         }
       }
     }
   },
-  "last_updated": "2026-09-04T20:19:59.548813+00:00",
+  "last_updated": "2026-09-04T22:25:57.415745+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -5624,7 +5624,7 @@
       },
       "3": {
         "points": 5,
-        "minutes": 61,
+        "minutes": 90,
         "opponent": "Ipswich Town",
         "was_home": false
       }
@@ -5683,8 +5683,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 26,
         "opponent": "Ipswich Town",
         "was_home": false
       }
@@ -6024,7 +6024,7 @@
       },
       "3": {
         "points": 13,
-        "minutes": 61,
+        "minutes": 63,
         "opponent": "Ipswich Town",
         "was_home": false
       }
@@ -6284,7 +6284,7 @@
       },
       "3": {
         "points": 3,
-        "minutes": 60,
+        "minutes": 90,
         "opponent": "Ipswich Town",
         "was_home": false
       }
@@ -6404,7 +6404,7 @@
       },
       "3": {
         "points": 3,
-        "minutes": 61,
+        "minutes": 63,
         "opponent": "Ipswich Town",
         "was_home": false
       }
@@ -7963,8 +7963,8 @@
         "was_home": true
       },
       "3": {
-        "points": 7,
-        "minutes": 61,
+        "points": 6,
+        "minutes": 90,
         "opponent": "Ipswich Town",
         "was_home": false
       }
@@ -8044,7 +8044,7 @@
       },
       "3": {
         "points": 3,
-        "minutes": 61,
+        "minutes": 90,
         "opponent": "Ipswich Town",
         "was_home": false
       }
@@ -8243,8 +8243,8 @@
         "was_home": true
       },
       "3": {
-        "points": 7,
-        "minutes": 61,
+        "points": 8,
+        "minutes": 90,
         "opponent": "Ipswich Town",
         "was_home": false
       }
@@ -8324,7 +8324,7 @@
       },
       "3": {
         "points": 11,
-        "minutes": 61,
+        "minutes": 90,
         "opponent": "Ipswich Town",
         "was_home": false
       }
