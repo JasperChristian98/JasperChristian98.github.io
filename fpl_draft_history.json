@@ -3621,11 +3621,11 @@
               "web_name": "Rayan",
               "team": "Bournemouth",
               "position": "MID",
-              "points": 0,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 89
             },
             {
               "element_id": 631,
@@ -3707,7 +3707,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 5,
+          "gw_points": 7,
           "live_points": 5,
           "bench_points": 0,
           "dreamteam_starters": 1
@@ -3764,11 +3764,11 @@
               "web_name": "Hall",
               "team": "Newcastle",
               "position": "DEF",
-              "points": 0,
+              "points": 4,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 89
             },
             {
               "element_id": 40,
@@ -3883,7 +3883,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 13,
+          "gw_points": 17,
           "live_points": 13,
           "bench_points": 0,
           "dreamteam_starters": 1
@@ -3951,11 +3951,11 @@
               "web_name": "Botman",
               "team": "Newcastle",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 397,
@@ -3974,7 +3974,7 @@
               "team": "Liverpool",
               "position": "MID",
               "points": 3,
-              "in_dreamteam": true,
+              "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 90
@@ -3984,11 +3984,11 @@
               "web_name": "Elanga",
               "team": "Newcastle",
               "position": "MID",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 77
             },
             {
               "element_id": 106,
@@ -4019,11 +4019,11 @@
               "web_name": "Petrović",
               "team": "Bournemouth",
               "position": "GKP",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 290,
@@ -4059,10 +4059,10 @@
               "minutes": 0
             }
           ],
-          "gw_points": 8,
+          "gw_points": 10,
           "live_points": 8,
-          "bench_points": 0,
-          "dreamteam_starters": 2
+          "bench_points": 1,
+          "dreamteam_starters": 1
         },
         "88057": {
           "manager": "Backstreet Moyes",
@@ -4149,22 +4149,22 @@
               "web_name": "Scott",
               "team": "Bournemouth",
               "position": "MID",
-              "points": 0,
-              "in_dreamteam": false,
+              "points": 10,
+              "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 453,
               "web_name": "Barnes",
               "team": "Newcastle",
               "position": "MID",
-              "points": 0,
-              "in_dreamteam": false,
+              "points": 12,
+              "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 165,
@@ -4235,10 +4235,10 @@
               "minutes": 0
             }
           ],
-          "gw_points": 0,
+          "gw_points": 22,
           "live_points": 0,
           "bench_points": 0,
-          "dreamteam_starters": 0
+          "dreamteam_starters": 2
         },
         "89446": {
           "manager": "Jaap? Best Stam",
@@ -4281,11 +4281,11 @@
               "web_name": "Thiaw",
               "team": "Newcastle",
               "position": "DEF",
-              "points": 0,
+              "points": -1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 403,
@@ -4358,11 +4358,11 @@
               "web_name": "Evanilson",
               "team": "Bournemouth",
               "position": "FWD",
-              "points": 0,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             }
           ],
           "bench": [
@@ -4393,11 +4393,11 @@
               "web_name": "Hill",
               "team": "Bournemouth",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 201,
@@ -4411,9 +4411,9 @@
               "minutes": 0
             }
           ],
-          "gw_points": 3,
+          "gw_points": 4,
           "live_points": 3,
-          "bench_points": 0,
+          "bench_points": 1,
           "dreamteam_starters": 0
         },
         "150925": {
@@ -4886,11 +4886,11 @@
               "web_name": "Wissa",
               "team": "Newcastle",
               "position": "FWD",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             }
           ],
           "bench": [
@@ -4899,11 +4899,11 @@
               "web_name": "Silva",
               "team": "Bournemouth",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 142,
@@ -4936,12 +4936,12 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             }
           ],
-          "gw_points": 0,
+          "gw_points": 1,
           "live_points": 0,
-          "bench_points": 0,
+          "bench_points": 1,
           "dreamteam_starters": 0
         },
         "209204": {
@@ -5008,7 +5008,7 @@
               "team": "Liverpool",
               "position": "MID",
               "points": 3,
-              "in_dreamteam": true,
+              "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 90
@@ -5051,11 +5051,11 @@
               "web_name": "Dedić",
               "team": "Newcastle",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 26,
@@ -5115,10 +5115,10 @@
               "minutes": 0
             }
           ],
-          "gw_points": 9,
+          "gw_points": 10,
           "live_points": 10,
           "bench_points": 0,
-          "dreamteam_starters": 2
+          "dreamteam_starters": 1
         },
         "259256": {
           "manager": "Jacquet Potato",
@@ -5205,11 +5205,11 @@
               "web_name": "Tavernier",
               "team": "Bournemouth",
               "position": "MID",
-              "points": 0,
-              "in_dreamteam": false,
+              "points": 10,
+              "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 88
             },
             {
               "element_id": 41,
@@ -5291,15 +5291,15 @@
               "minutes": 0
             }
           ],
-          "gw_points": 19,
+          "gw_points": 29,
           "live_points": 19,
           "bench_points": 2,
-          "dreamteam_starters": 2
+          "dreamteam_starters": 3
         }
       }
     }
   },
-  "last_updated": "2026-09-05T10:01:00.052881+00:00",
+  "last_updated": "2026-09-05T13:40:35.980642+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -5943,8 +5943,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 89,
         "opponent": "Newcastle",
         "was_home": false
       }
@@ -6123,8 +6123,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 4,
+        "minutes": 89,
         "opponent": "Bournemouth",
         "was_home": true
       }
@@ -6363,8 +6363,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 90,
         "opponent": "Newcastle",
         "was_home": false
       }
@@ -6583,8 +6583,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 10,
+        "minutes": 90,
         "opponent": "Newcastle",
         "was_home": false
       }
@@ -6683,8 +6683,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 12,
+        "minutes": 90,
         "opponent": "Bournemouth",
         "was_home": true
       }
@@ -6943,8 +6943,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 90,
         "opponent": "Newcastle",
         "was_home": false
       }
@@ -6983,8 +6983,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": -1,
+        "minutes": 90,
         "opponent": "Bournemouth",
         "was_home": true
       }
@@ -7003,8 +7003,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 90,
         "opponent": "Newcastle",
         "was_home": false
       }
@@ -7704,7 +7704,7 @@
       },
       "3": {
         "points": 0,
-        "minutes": 0,
+        "minutes": 90,
         "opponent": "Newcastle",
         "was_home": false
       }
@@ -7823,8 +7823,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 90,
         "opponent": "Bournemouth",
         "was_home": true
       }
@@ -7863,8 +7863,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 90,
         "opponent": "Newcastle",
         "was_home": false
       }
@@ -8383,8 +8383,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 75,
         "opponent": "Newcastle",
         "was_home": false
       }
@@ -8643,8 +8643,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 77,
         "opponent": "Bournemouth",
         "was_home": true
       }
@@ -8823,8 +8823,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 90,
         "opponent": "Bournemouth",
         "was_home": true
       }
@@ -8843,8 +8843,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 10,
+        "minutes": 88,
         "opponent": "Newcastle",
         "was_home": false
       }
