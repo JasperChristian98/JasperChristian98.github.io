@@ -4150,7 +4150,7 @@
               "team": "Bournemouth",
               "position": "MID",
               "points": 10,
-              "in_dreamteam": true,
+              "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 90
@@ -4238,7 +4238,7 @@
           "gw_points": 61,
           "live_points": 61,
           "bench_points": 1,
-          "dreamteam_starters": 3
+          "dreamteam_starters": 2
         },
         "89446": {
           "manager": "Jaap? Best Stam",
@@ -5299,7 +5299,7 @@
       }
     }
   },
-  "last_updated": "2026-09-05T20:57:03.414787+00:00",
+  "last_updated": "2026-09-05T22:43:12.194873+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
