@@ -3708,7 +3708,7 @@
             }
           ],
           "gw_points": 20,
-          "live_points": 5,
+          "live_points": 20,
           "bench_points": 2,
           "dreamteam_starters": 0
         },
@@ -3884,7 +3884,7 @@
             }
           ],
           "gw_points": 25,
-          "live_points": 13,
+          "live_points": 25,
           "bench_points": 12,
           "dreamteam_starters": 1
         },
@@ -4060,7 +4060,7 @@
             }
           ],
           "gw_points": 36,
-          "live_points": 8,
+          "live_points": 36,
           "bench_points": 6,
           "dreamteam_starters": 0
         },
@@ -4083,7 +4083,7 @@
               "web_name": "Guéhi",
               "team": "Man City",
               "position": "DEF",
-              "points": 7,
+              "points": 8,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
@@ -4235,8 +4235,8 @@
               "minutes": 0
             }
           ],
-          "gw_points": 60,
-          "live_points": 0,
+          "gw_points": 61,
+          "live_points": 61,
           "bench_points": 1,
           "dreamteam_starters": 3
         },
@@ -4412,7 +4412,7 @@
             }
           ],
           "gw_points": 36,
-          "live_points": 3,
+          "live_points": 36,
           "bench_points": 4,
           "dreamteam_starters": 2
         },
@@ -4588,7 +4588,7 @@
             }
           ],
           "gw_points": 14,
-          "live_points": 0,
+          "live_points": 20,
           "bench_points": 7,
           "dreamteam_starters": 0
         },
@@ -4764,7 +4764,7 @@
             }
           ],
           "gw_points": 18,
-          "live_points": 0,
+          "live_points": 18,
           "bench_points": 4,
           "dreamteam_starters": 0
         },
@@ -4940,7 +4940,7 @@
             }
           ],
           "gw_points": 11,
-          "live_points": 0,
+          "live_points": 12,
           "bench_points": 1,
           "dreamteam_starters": 0
         },
@@ -5097,7 +5097,7 @@
               "web_name": "Murillo",
               "team": "Nott'm Forest",
               "position": "DEF",
-              "points": 6,
+              "points": 8,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
@@ -5116,8 +5116,8 @@
             }
           ],
           "gw_points": 26,
-          "live_points": 10,
-          "bench_points": 8,
+          "live_points": 26,
+          "bench_points": 10,
           "dreamteam_starters": 0
         },
         "259256": {
@@ -5150,7 +5150,7 @@
               "web_name": "Pedro Porro",
               "team": "Spurs",
               "position": "DEF",
-              "points": 9,
+              "points": 7,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
@@ -5291,15 +5291,15 @@
               "minutes": 0
             }
           ],
-          "gw_points": 43,
-          "live_points": 19,
+          "gw_points": 41,
+          "live_points": 43,
           "bench_points": 3,
           "dreamteam_starters": 2
         }
       }
     }
   },
-  "last_updated": "2026-09-05T18:47:59.350645+00:00",
+  "last_updated": "2026-09-05T20:57:03.414787+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -6103,7 +6103,7 @@
         "was_home": false
       },
       "3": {
-        "points": 4,
+        "points": 2,
         "minutes": 78,
         "opponent": "Crystal Palace",
         "was_home": true
@@ -6223,7 +6223,7 @@
         "was_home": false
       },
       "3": {
-        "points": 6,
+        "points": 7,
         "minutes": 90,
         "opponent": "Spurs",
         "was_home": true
@@ -6463,7 +6463,7 @@
         "was_home": false
       },
       "3": {
-        "points": 7,
+        "points": 8,
         "minutes": 90,
         "opponent": "Coventry City",
         "was_home": true
@@ -7883,7 +7883,7 @@
         "was_home": true
       },
       "3": {
-        "points": 7,
+        "points": 9,
         "minutes": 90,
         "opponent": "Nott'm Forest",
         "was_home": false
@@ -8003,7 +8003,7 @@
         "was_home": false
       },
       "3": {
-        "points": 6,
+        "points": 8,
         "minutes": 89,
         "opponent": "Spurs",
         "was_home": true
@@ -8483,7 +8483,7 @@
         "was_home": true
       },
       "3": {
-        "points": 9,
+        "points": 7,
         "minutes": 90,
         "opponent": "Nott'm Forest",
         "was_home": false
