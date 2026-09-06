@@ -900,6 +900,44 @@ _dashboard_target_event = _dashboard_events.get(dashboard_target_gw, {})
 dashboard_target_started = bool(_dashboard_target_event.get("started", False))
 dashboard_target_finished = bool(_dashboard_target_event.get("finished", False))
 
+# Do not rely on bootstrap-static's `started` flag alone. In practice the
+# Draft/live endpoints can begin returning real scores before that flag is
+# reflected in the dashboard build. Treat the target GW as genuinely live
+# when ANY reliable live signal says football has started.
+_dashboard_live_payload = fetch_json(
+    f"{CLASSIC_BASE}/event/{dashboard_target_gw}/live/"
+) or {}
+
+_dashboard_live_elements = _dashboard_live_payload.get("elements", [])
+
+dashboard_live_player_activity = any(
+    int((row.get("stats") or {}).get("minutes", 0) or 0) > 0
+    or int((row.get("stats") or {}).get("total_points", 0) or 0) != 0
+    for row in _dashboard_live_elements
+    if isinstance(row, dict)
+)
+
+_dashboard_target_matches = [
+    match
+    for match in (league_matches_all or [])
+    if int(match.get("event", 0) or 0) == int(dashboard_target_gw)
+]
+
+dashboard_live_match_activity = any(
+    int(match.get("league_entry_1_points", 0) or 0) != 0
+    or int(match.get("league_entry_2_points", 0) or 0) != 0
+    for match in _dashboard_target_matches
+)
+
+dashboard_target_is_live = (
+    not dashboard_target_finished
+    and (
+        dashboard_target_started
+        or dashboard_live_player_activity
+        or dashboard_live_match_activity
+    )
+)
+
 _dashboard_league_entry_names = history.get("league_entry_id_to_name", {})
 
 def _dashboard_owner_name(owner):
@@ -979,7 +1017,7 @@ for _pid in sorted(_all_market_player_ids):
 
 dashboard_market_active = bool(dashboard_market_changes)
 
-if dashboard_target_started and not dashboard_target_finished:
+if dashboard_target_is_live:
     dashboard_game_state = "live"
 elif dashboard_market_active:
     dashboard_game_state = "upcoming"
@@ -991,7 +1029,9 @@ print(
     f"{dashboard_game_state.upper()} | "
     f"last completed GW={dashboard_last_finished_gw} | "
     f"target GW={dashboard_target_gw} | "
-    f"started={dashboard_target_started} | "
+    f"bootstrap_started={dashboard_target_started} | "
+    f"player_activity={dashboard_live_player_activity} | "
+    f"draft_score_activity={dashboard_live_match_activity} | "
     f"market changes={len(dashboard_market_changes)}"
 )
 
@@ -6146,11 +6186,16 @@ def _dashboard_live_scoreboard_html():
     html = '<div class="fixtures-list">'
 
     for match in raw_matches:
+        entry1 = match.get("league_entry_1")
+        entry2 = match.get("league_entry_2")
+
         team1 = league_entry_id_to_name.get(
-            match.get("league_entry_1"), "Unknown"
+            entry1,
+            league_entry_id_to_name.get(str(entry1), "Unknown")
         )
         team2 = league_entry_id_to_name.get(
-            match.get("league_entry_2"), "Unknown"
+            entry2,
+            league_entry_id_to_name.get(str(entry2), "Unknown")
         )
 
         try:
@@ -6178,6 +6223,145 @@ def _dashboard_live_scoreboard_html():
 
     html += '</div>'
     return html
+
+
+
+def live_gameweek_rundown():
+    """Build a short live editorial rundown from the current Draft H2H scores."""
+    if dashboard_game_state != "live":
+        return ""
+
+    gw = int(dashboard_target_gw)
+    raw_matches = [
+        match for match in (league_matches_all or [])
+        if int(match.get("event", 0) or 0) == gw
+    ]
+
+    if not raw_matches:
+        return f"GW{gw} is underway, but the live Draft score feed has not populated yet."
+
+    fixtures = []
+    for match in raw_matches:
+        e1 = match.get("league_entry_1")
+        e2 = match.get("league_entry_2")
+        team1 = league_entry_id_to_name.get(e1, league_entry_id_to_name.get(str(e1), "Unknown"))
+        team2 = league_entry_id_to_name.get(e2, league_entry_id_to_name.get(str(e2), "Unknown"))
+
+        try:
+            score1 = int(match.get("league_entry_1_points", 0) or 0)
+        except (TypeError, ValueError):
+            score1 = 0
+        try:
+            score2 = int(match.get("league_entry_2_points", 0) or 0)
+        except (TypeError, ValueError):
+            score2 = 0
+
+        fixtures.append({
+            "team1": team1,
+            "team2": team2,
+            "score1": score1,
+            "score2": score2,
+            "margin": abs(score1 - score2),
+            "total": score1 + score2,
+            "derby": _derby_name(team1, team2),
+        })
+
+    rng = random.Random((LEAGUE_ID * 100000) + gw * 3571 + sum(f["total"] for f in fixtures))
+    active = [f for f in fixtures if f["total"] > 0]
+    if not active:
+        return rng.choice([
+            f"GW{gw} is officially live, although the scoreboard is still clearing its throat. Nobody has put a point on the board yet.",
+            f"The curtain is up on GW{gw}, but the scores are still at zero. Calm before the inevitable spreadsheet violence.",
+            f"GW{gw} has begun. The live feed says nil-nil everywhere for now, which is about as peaceful as McDraft ever gets.",
+        ])
+
+    paragraphs = []
+
+    # Opening snapshot: how many ties are currently decided / level.
+    leading = [f for f in active if f["score1"] != f["score2"]]
+    level = [f for f in active if f["score1"] == f["score2"]]
+    paragraphs.append(rng.choice([
+        f"GW{gw} is properly alive now: {len(leading)} of the {len(active)} active ties currently have a leader" + (f", with {len(level)} level" if level else "") + ". The table is moving underneath everybody's feet.",
+        f"The live scores are in for GW{gw}, and McDraft has started doing McDraft things. {len(leading)} matchups currently have someone in front" + (f" while {len(level)} remain dead level" if level else "") + ".",
+        f"We are into the live meat of GW{gw}. {len(leading)} of the active head-to-heads have a leader right now" + (f" and {len(level)} are tied" if level else "") + ", so the provisional table is already getting a proper shake.",
+    ]))
+
+    # Biggest lead and closest contest.
+    if leading:
+        biggest = max(leading, key=lambda f: (f["margin"], f["total"]))
+        if biggest["score1"] > biggest["score2"]:
+            bw, bl, bs, ls = biggest["team1"], biggest["team2"], biggest["score1"], biggest["score2"]
+        else:
+            bw, bl, bs, ls = biggest["team2"], biggest["team1"], biggest["score2"], biggest["score1"]
+        paragraphs.append(rng.choice([
+            f"The biggest gap at the moment belongs to {bw}, who lead {bl} {bs}-{ls}. That one is beginning to look less like a contest and more like paperwork.",
+            f"{bw} are currently dishing out the widest hiding of the round, {bs}-{ls} up on {bl}. Plenty of football left, but the emergency exits are being pointed out.",
+            f"The loudest scoreline so far is {bw} {bs}, {bl} {ls}. A {bs-ls}-point cushion is the sort of thing that makes one manager refresh gleefully and the other suddenly remember they have hobbies.",
+        ]))
+
+        closest = min(leading, key=lambda f: (f["margin"], -f["total"]))
+        if closest is not biggest or len(leading) > 1:
+            if closest["score1"] > closest["score2"]:
+                cw, cl, cs, cls = closest["team1"], closest["team2"], closest["score1"], closest["score2"]
+            else:
+                cw, cl, cs, cls = closest["team2"], closest["team1"], closest["score2"], closest["score1"]
+            paragraphs.append(rng.choice([
+                f"At the squeaky end, {cw} only have {cl} by {cs}-{cls}. One return can still turn that tie inside out.",
+                f"The one to keep refreshing is {cw} against {cl}: just {cs}-{cls} as things stand. That is absolutely not safe territory.",
+                f"Meanwhile {cw} lead {cl} {cs}-{cls} in the tightest live scrap. A single haul could send the whole thing sideways.",
+            ]))
+
+    # Derby callout, if one is live this week.
+    derby_fixtures = [f for f in active if f.get("derby")]
+    if derby_fixtures:
+        d = derby_fixtures[0]
+        if d["score1"] == d["score2"]:
+            derby_line = f"{d['derby']} is locked at {d['score1']}-{d['score2']} between {d['team1']} and {d['team2']}"
+        elif d["score1"] > d["score2"]:
+            derby_line = f"{d['team1']} currently lead {d['team2']} {d['score1']}-{d['score2']} in {d['derby']}"
+        else:
+            derby_line = f"{d['team2']} currently lead {d['team1']} {d['score2']}-{d['score1']} in {d['derby']}"
+        paragraphs.append(rng.choice([
+            f"Derby watch: {derby_line}. Bragging rights are currently being priced in by the minute.",
+            f"And because ordinary stress was apparently insufficient, {derby_line}. Lovely, poisonous stuff.",
+            f"The rivalry desk reports that {derby_line}. Nobody involved will be behaving normally until this is settled.",
+        ]))
+
+    # Apply live results to completed standings to identify the provisional leader.
+    live_lp = {m: float(league_points.get(m, 0)) for m in managers}
+    live_pf = {m: float(points_for.get(m, 0)) for m in managers}
+    for f in fixtures:
+        t1, t2 = f["team1"], f["team2"]
+        if t1 not in live_lp or t2 not in live_lp:
+            continue
+        live_pf[t1] += f["score1"]
+        live_pf[t2] += f["score2"]
+        if f["score1"] > f["score2"]:
+            live_lp[t1] += 3
+        elif f["score2"] > f["score1"]:
+            live_lp[t2] += 3
+        else:
+            live_lp[t1] += 1
+            live_lp[t2] += 1
+
+    ranked_live = sorted(managers, key=lambda m: (-live_lp.get(m, 0), -live_pf.get(m, 0), m.lower()))
+    old_leader = current_standings[0] if current_standings else None
+    new_leader = ranked_live[0] if ranked_live else None
+    if new_leader:
+        if old_leader and new_leader != old_leader:
+            paragraphs.append(rng.choice([
+                f"Most importantly, the live table has a new provisional leader: {new_leader} have climbed above {old_leader}. If every score froze here, the summit would change hands.",
+                f"As it stands, {new_leader} would take over at the top from {old_leader}. The throne is currently being moved while everyone is still playing.",
+                f"The live standings have {new_leader} pinching first place from {old_leader}. Entirely provisional, naturally, which has never stopped anyone celebrating too early.",
+            ]))
+        else:
+            paragraphs.append(rng.choice([
+                f"At the top, {new_leader} still hold the provisional lead in the live table. The chasing pack has not managed to prise them off the summit yet.",
+                f"The live table still has {new_leader} on top. For now, the throne remains exactly where it was.",
+                f"As these scores stand, {new_leader} remain league leaders. Everybody below them is currently negotiating with mathematics.",
+            ]))
+
+    return "\n\n".join(paragraphs)
 
 
 def _preview_projected_table(winner=None):
@@ -6470,11 +6654,21 @@ def homepage_game_state_title():
 
 def homepage_game_state_html():
     if dashboard_game_state == "live":
+        live_story = live_gameweek_rundown()
+        live_story_html = "".join(
+            f"<p>{escape_html(paragraph)}</p>"
+            for paragraph in live_story.split("\n\n")
+            if paragraph.strip()
+        )
         return (
             '<div class="storyline-latest">'
-            f'<div class="eyebrow">LIVE GAMEWEEK · GW{dashboard_target_gw}</div>'
-            '<p>The gameweek is underway. Scores refresh whenever the GitHub job rebuilds the dashboard.</p>'
+            f'<div class="eyebrow">GW{dashboard_target_gw} · LIVE AROUND McDRAFT</div>'
+            f'{live_story_html}'
+            '<h3 style="margin-top:18px;">Live head-to-head scores</h3>'
             f'{_dashboard_live_scoreboard_html()}'
+            '<h3 style="margin-top:22px;">Live league table</h3>'
+            '<p class="card-description">If every current score finished exactly as it stands, this would be the table.</p>'
+            f'{live_as_it_stands_table()}'
             '</div>'
         )
 
@@ -6716,18 +6910,179 @@ def league_records_html():
     )
 
 
+
+def live_as_it_stands_table():
+    """Return a provisional H2H table with the current live GW applied."""
+    if dashboard_game_state != "live":
+        return '<div class="notice">The live table will appear once the gameweek starts.</div>'
+
+    live_lp = {m: float(league_points.get(m, 0)) for m in managers}
+    live_pf = {m: float(points_for.get(m, 0)) for m in managers}
+    live_pa = {m: float(points_against.get(m, 0)) for m in managers}
+    live_w = {m: int(matches_won.get(m, 0)) for m in managers}
+    live_d = {m: int(matches_drawn.get(m, 0)) for m in managers}
+    live_l = {m: int(matches_lost.get(m, 0)) for m in managers}
+
+    raw_matches = [
+        match for match in (league_matches_all or [])
+        if int(match.get("event", 0) or 0) == int(dashboard_target_gw)
+    ]
+
+    if not raw_matches:
+        return '<div class="notice">Waiting for live Draft standings data.</div>'
+
+    for match in raw_matches:
+        e1 = match.get("league_entry_1")
+        e2 = match.get("league_entry_2")
+        t1 = league_entry_id_to_name.get(e1, league_entry_id_to_name.get(str(e1), "Unknown"))
+        t2 = league_entry_id_to_name.get(e2, league_entry_id_to_name.get(str(e2), "Unknown"))
+
+        if t1 == "Unknown" or t2 == "Unknown":
+            continue
+
+        try:
+            p1 = int(match.get("league_entry_1_points", 0) or 0)
+        except (TypeError, ValueError):
+            p1 = 0
+        try:
+            p2 = int(match.get("league_entry_2_points", 0) or 0)
+        except (TypeError, ValueError):
+            p2 = 0
+
+        for team in (t1, t2):
+            live_lp.setdefault(team, 0.0)
+            live_pf.setdefault(team, 0.0)
+            live_pa.setdefault(team, 0.0)
+            live_w.setdefault(team, 0)
+            live_d.setdefault(team, 0)
+            live_l.setdefault(team, 0)
+
+        live_pf[t1] += p1
+        live_pf[t2] += p2
+        live_pa[t1] += p2
+        live_pa[t2] += p1
+
+        # Provisional result: this is deliberately "as it stands".
+        if p1 > p2:
+            live_lp[t1] += 3
+            live_w[t1] += 1
+            live_l[t2] += 1
+        elif p2 > p1:
+            live_lp[t2] += 3
+            live_w[t2] += 1
+            live_l[t1] += 1
+        else:
+            live_lp[t1] += 1
+            live_lp[t2] += 1
+            live_d[t1] += 1
+            live_d[t2] += 1
+
+    ranked = sorted(
+        live_lp,
+        key=lambda m: (-live_lp[m], -live_pf[m], m.lower())
+    )
+
+    previous_positions = {m: i for i, m in enumerate(current_standings, start=1)}
+    rows = ""
+
+    for position, manager in enumerate(ranked, start=1):
+        previous = previous_positions.get(manager, position)
+        movement = previous - position
+        if movement > 0:
+            movement_html = f'<span class="rank-up">↑ {movement}</span>'
+        elif movement < 0:
+            movement_html = f'<span class="rank-down">↓ {abs(movement)}</span>'
+        else:
+            movement_html = '<span class="rank-flat">—</span>'
+
+        rows += f"""
+            <tr>
+                <td class="rank-cell">{position}</td>
+                <td class="manager-name">{escape_html(manager)}</td>
+                <td>{movement_html}</td>
+                <td>{live_lp[manager]:.0f}</td>
+                <td>{live_w[manager]}-{live_d[manager]}-{live_l[manager]}</td>
+                <td>{live_pf[manager]:.0f}</td>
+                <td>{live_pa[manager]:.0f}</td>
+            </tr>
+        """
+
+    return f"""
+        <div class="live-table-banner">AS IT STANDS · GW{dashboard_target_gw}</div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th><th>Manager</th><th>Move</th><th>Pts</th>
+                        <th>W-D-L</th><th>PF</th><th>PA</th>
+                    </tr>
+                </thead>
+                <tbody>{rows}</tbody>
+            </table>
+        </div>
+        <div class="muted" style="margin-top:10px;">Provisional table using the current live head-to-head scores.</div>
+    """
+
+
 # ============================================================
 # RESULTS / FIXTURE BROWSER HTML
 # ============================================================
 
 results_sections = ""
 latest_completed_for_browser = max(result_gameweeks) if result_gameweeks else None
+browser_default_gw = (
+    dashboard_target_gw
+    if dashboard_game_state in ("upcoming", "live") and dashboard_target_gw in gameweek_browser_gameweeks
+    else latest_completed_for_browser
+)
 
 for gw in gameweek_browser_gameweeks:
-    display_mode = "block" if gw == latest_completed_for_browser else "none"
+    display_mode = "block" if gw == browser_default_gw else "none"
     fixtures_html = ""
 
-    if gw in results_by_gw:
+    # During a live gameweek, render the current raw Draft H2H scores rather
+    # than the frozen completed-results archive or scoreless future fixtures.
+    if dashboard_game_state == "live" and int(gw) == int(dashboard_target_gw):
+        live_matches = [
+            match for match in (league_matches_all or [])
+            if int(match.get("event", 0) or 0) == int(gw)
+        ]
+
+        for match in live_matches:
+            e1 = match.get("league_entry_1")
+            e2 = match.get("league_entry_2")
+            team1 = league_entry_id_to_name.get(e1, league_entry_id_to_name.get(str(e1), "Unknown"))
+            team2 = league_entry_id_to_name.get(e2, league_entry_id_to_name.get(str(e2), "Unknown"))
+            try:
+                score1 = int(match.get("league_entry_1_points", 0) or 0)
+            except (TypeError, ValueError):
+                score1 = 0
+            try:
+                score2 = int(match.get("league_entry_2_points", 0) or 0)
+            except (TypeError, ValueError):
+                score2 = 0
+
+            derby = _derby_name(team1, team2)
+            derby_html = f'<div class="fixture-derby unified-derby">{escape_html(derby)}</div>' if derby else ''
+            fixtures_html += f"""
+                <div class="fixture">
+                    {derby_html}
+                    <div class="fixture-team">
+                        <span class="fixture-manager">{escape_html(team1)}</span>
+                        <span class="fixture-score">{score1}</span>
+                    </div>
+                    <div class="fixture-vs">LIVE</div>
+                    <div class="fixture-team">
+                        <span class="fixture-score">{score2}</span>
+                        <span class="fixture-manager">{escape_html(team2)}</span>
+                    </div>
+                </div>
+            """
+
+        title = f"Gameweek {gw} · Live"
+        state_class = "live-gw"
+
+    elif gw in results_by_gw:
         for fixture in results_by_gw[gw]:
             team1_class = ""
             team2_class = ""
@@ -7090,9 +7445,9 @@ for index, player in enumerate(
 # ============================================================
 
 latest_results_gw = (
-    result_gameweeks[-1]
-    if result_gameweeks
-    else None
+    dashboard_target_gw
+    if dashboard_game_state in ("upcoming", "live")
+    else (result_gameweeks[-1] if result_gameweeks else None)
 )
 
 
@@ -10823,6 +11178,10 @@ __CSS__
                 </div>
             </div>
 
+            <!-- LIVE AS-IT-STANDS TABLE -->
+
+            __LIVE_AS_IT_STANDS_CARD__
+
             <!-- RESULTS -->
 
             <div class="card">
@@ -11518,6 +11877,12 @@ replacements = {
 
     "__LEAGUE_RECORDS__":
         league_records_html(),
+
+    "__LIVE_AS_IT_STANDS_CARD__": (
+        f'''<div class="card live-standings-card"><h2>Live League Table</h2><p class="card-description">If every current score finished exactly as it stands, this is the table.</p>{live_as_it_stands_table()}</div>'''
+        if dashboard_game_state == "live"
+        else ""
+    ),
 
     "__RESULTS_SECTIONS__":
         results_sections,
