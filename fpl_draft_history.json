@@ -3548,7 +3548,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 90
             },
             {
               "element_id": 115,
@@ -3610,11 +3610,11 @@
               "web_name": "Saka",
               "team": "Arsenal",
               "position": "MID",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 67,
@@ -3654,11 +3654,11 @@
               "web_name": "Šeško",
               "team": "Man Utd",
               "position": "FWD",
-              "points": 0,
+              "points": 5,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 20
             }
           ],
           "bench": [
@@ -3707,7 +3707,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 21,
+          "gw_points": 27,
           "live_points": 20,
           "bench_points": 2,
           "dreamteam_starters": 0
@@ -3720,11 +3720,11 @@
               "web_name": "Raya",
               "team": "Arsenal",
               "position": "GKP",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 387,
@@ -3775,22 +3775,22 @@
               "web_name": "Rogers",
               "team": "Chelsea",
               "position": "MID",
-              "points": 0,
+              "points": 7,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 7,
               "web_name": "Lewis-Skelly",
               "team": "Arsenal",
               "position": "MID",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 43,
@@ -3801,7 +3801,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 90
             },
             {
               "element_id": 124,
@@ -3883,7 +3883,7 @@
               "minutes": 70
             }
           ],
-          "gw_points": 27,
+          "gw_points": 36,
           "live_points": 25,
           "bench_points": 12,
           "dreamteam_starters": 1
@@ -3918,11 +3918,11 @@
               "web_name": "Tarkowski",
               "team": "Everton",
               "position": "DEF",
-              "points": 1,
+              "points": 3,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 90
             },
             {
               "element_id": 362,
@@ -4059,7 +4059,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 37,
+          "gw_points": 39,
           "live_points": 36,
           "bench_points": 6,
           "dreamteam_starters": 0
@@ -4116,11 +4116,11 @@
               "web_name": "Branthwaite",
               "team": "Everton",
               "position": "DEF",
-              "points": 2,
+              "points": 3,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 90
             },
             {
               "element_id": 399,
@@ -4175,18 +4175,18 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 249,
               "web_name": "Barry",
               "team": "Everton",
               "position": "FWD",
-              "points": 1,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 90
             }
           ],
           "bench": [
@@ -4206,11 +4206,11 @@
               "web_name": "Grealish",
               "team": "Everton",
               "position": "MID",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 24
             },
             {
               "element_id": 490,
@@ -4232,12 +4232,12 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 83
             }
           ],
-          "gw_points": 64,
+          "gw_points": 66,
           "live_points": 61,
-          "bench_points": 2,
+          "bench_points": 3,
           "dreamteam_starters": 2
         },
         "89446": {
@@ -4259,11 +4259,11 @@
               "web_name": "Calafiori",
               "team": "Arsenal",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 504,
@@ -4371,11 +4371,11 @@
               "web_name": "Martinez",
               "team": "Chelsea",
               "position": "GKP",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 86,
@@ -4411,9 +4411,9 @@
               "minutes": 31
             }
           ],
-          "gw_points": 36,
+          "gw_points": 37,
           "live_points": 36,
-          "bench_points": 4,
+          "bench_points": 5,
           "dreamteam_starters": 2
         },
         "150925": {
@@ -4435,11 +4435,11 @@
               "web_name": "Gabriel",
               "team": "Arsenal",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 84,
@@ -4468,22 +4468,22 @@
               "web_name": "B.Fernandes",
               "team": "Man Utd",
               "position": "MID",
-              "points": 1,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 90
             },
             {
               "element_id": 13,
               "web_name": "Rice",
               "team": "Arsenal",
               "position": "MID",
-              "points": 0,
+              "points": 4,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 155,
@@ -4587,7 +4587,7 @@
               "minutes": 90
             }
           ],
-          "gw_points": 15,
+          "gw_points": 21,
           "live_points": 20,
           "bench_points": 7,
           "dreamteam_starters": 0
@@ -4648,40 +4648,40 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 427,
               "web_name": "Mbeumo",
               "team": "Man Utd",
               "position": "MID",
-              "points": 1,
+              "points": 8,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 90
             },
             {
               "element_id": 15,
               "web_name": "Ødegaard",
               "team": "Arsenal",
               "position": "MID",
-              "points": 0,
+              "points": 9,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 236,
               "web_name": "Dewsbury-Hall",
               "team": "Everton",
               "position": "MID",
-              "points": 1,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 90
             },
             {
               "element_id": 295,
@@ -4749,7 +4749,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 90
             },
             {
               "element_id": 6,
@@ -4763,7 +4763,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 20,
+          "gw_points": 37,
           "live_points": 18,
           "bench_points": 5,
           "dreamteam_starters": 0
@@ -4820,11 +4820,11 @@
               "web_name": "Cunha",
               "team": "Man Utd",
               "position": "MID",
-              "points": 1,
+              "points": 3,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 69
             },
             {
               "element_id": 554,
@@ -4864,11 +4864,11 @@
               "web_name": "Garner",
               "team": "Everton",
               "position": "MID",
-              "points": 3,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 76
             },
             {
               "element_id": 25,
@@ -4914,7 +4914,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 527,
@@ -4939,7 +4939,7 @@
               "minutes": 90
             }
           ],
-          "gw_points": 15,
+          "gw_points": 16,
           "live_points": 12,
           "bench_points": 1,
           "dreamteam_starters": 0
@@ -5040,11 +5040,11 @@
               "web_name": "Neto",
               "team": "Chelsea",
               "position": "MID",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 593,
@@ -5062,11 +5062,11 @@
               "web_name": "Havertz",
               "team": "Arsenal",
               "position": "FWD",
-              "points": 0,
+              "points": 7,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             }
           ],
           "bench": [
@@ -5075,11 +5075,11 @@
               "web_name": "Lammens",
               "team": "Man Utd",
               "position": "GKP",
-              "points": 1,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 45
+              "minutes": 90
             },
             {
               "element_id": 167,
@@ -5115,9 +5115,9 @@
               "minutes": 0
             }
           ],
-          "gw_points": 26,
+          "gw_points": 34,
           "live_points": 26,
-          "bench_points": 11,
+          "bench_points": 12,
           "dreamteam_starters": 0
         },
         "259256": {
@@ -5143,7 +5143,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 499,
@@ -5161,22 +5161,22 @@
               "web_name": "White",
               "team": "Arsenal",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 31,
               "web_name": "Konsa",
               "team": "Arsenal",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 52
             },
             {
               "element_id": 367,
@@ -5291,7 +5291,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 41,
+          "gw_points": 43,
           "live_points": 43,
           "bench_points": 3,
           "dreamteam_starters": 2
@@ -5299,7 +5299,7 @@
       }
     }
   },
-  "last_updated": "2026-09-06T13:56:45.929134+00:00",
+  "last_updated": "2026-09-06T16:46:28.843593+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -5544,7 +5544,7 @@
       },
       "3": {
         "points": 1,
-        "minutes": 45,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": true
       }
@@ -5583,8 +5583,8 @@
         "was_home": true
       },
       "3": {
-        "points": 1,
-        "minutes": 45,
+        "points": 4,
+        "minutes": 90,
         "opponent": "Everton",
         "was_home": false
       }
@@ -5663,8 +5663,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 53,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -5723,8 +5723,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 5,
+        "minutes": 20,
         "opponent": "Everton",
         "was_home": false
       }
@@ -5843,8 +5843,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 53,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -5923,8 +5923,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 7,
+        "minutes": 53,
         "opponent": "Arsenal",
         "was_home": false
       }
@@ -5964,7 +5964,7 @@
       },
       "3": {
         "points": 2,
-        "minutes": 45,
+        "minutes": 90,
         "opponent": "Everton",
         "was_home": false
       }
@@ -6183,8 +6183,8 @@
         "was_home": false
       },
       "3": {
-        "points": 1,
-        "minutes": 45,
+        "points": 3,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": true
       }
@@ -6303,8 +6303,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 20,
         "opponent": "Everton",
         "was_home": false
       }
@@ -6503,8 +6503,8 @@
         "was_home": false
       },
       "3": {
-        "points": 2,
-        "minutes": 45,
+        "points": 3,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": true
       }
@@ -6524,7 +6524,7 @@
       },
       "3": {
         "points": 1,
-        "minutes": 45,
+        "minutes": 83,
         "opponent": "Everton",
         "was_home": false
       }
@@ -6624,7 +6624,7 @@
       },
       "3": {
         "points": 0,
-        "minutes": 0,
+        "minutes": 53,
         "opponent": "Arsenal",
         "was_home": false
       }
@@ -6643,8 +6643,8 @@
         "was_home": false
       },
       "3": {
-        "points": 1,
-        "minutes": 45,
+        "points": 2,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": true
       }
@@ -6703,8 +6703,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 24,
         "opponent": "Man Utd",
         "was_home": true
       }
@@ -6763,8 +6763,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 52,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -7063,8 +7063,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 53,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -7123,8 +7123,8 @@
         "was_home": true
       },
       "3": {
-        "points": 1,
-        "minutes": 45,
+        "points": 2,
+        "minutes": 90,
         "opponent": "Everton",
         "was_home": false
       }
@@ -7143,8 +7143,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 4,
+        "minutes": 53,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -7263,8 +7263,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 52,
         "opponent": "Arsenal",
         "was_home": false
       }
@@ -7404,7 +7404,7 @@
       },
       "3": {
         "points": 1,
-        "minutes": 45,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": true
       }
@@ -7424,7 +7424,7 @@
       },
       "3": {
         "points": 0,
-        "minutes": 0,
+        "minutes": 53,
         "opponent": "Arsenal",
         "was_home": false
       }
@@ -7443,8 +7443,8 @@
         "was_home": true
       },
       "3": {
-        "points": 1,
-        "minutes": 45,
+        "points": 8,
+        "minutes": 90,
         "opponent": "Everton",
         "was_home": false
       }
@@ -7463,8 +7463,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 9,
+        "minutes": 53,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -7483,8 +7483,8 @@
         "was_home": false
       },
       "3": {
-        "points": 1,
-        "minutes": 45,
+        "points": 2,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": true
       }
@@ -7664,7 +7664,7 @@
       },
       "3": {
         "points": 0,
-        "minutes": 0,
+        "minutes": 52,
         "opponent": "Arsenal",
         "was_home": false
       }
@@ -7723,8 +7723,8 @@
         "was_home": true
       },
       "3": {
-        "points": 1,
-        "minutes": 45,
+        "points": 3,
+        "minutes": 69,
         "opponent": "Everton",
         "was_home": false
       }
@@ -7803,8 +7803,8 @@
         "was_home": false
       },
       "3": {
-        "points": 3,
-        "minutes": 45,
+        "points": 2,
+        "minutes": 76,
         "opponent": "Man Utd",
         "was_home": true
       }
@@ -7943,8 +7943,8 @@
         "was_home": true
       },
       "3": {
-        "points": 1,
-        "minutes": 45,
+        "points": 2,
+        "minutes": 90,
         "opponent": "Everton",
         "was_home": false
       }
@@ -8083,8 +8083,8 @@
         "was_home": true
       },
       "3": {
-        "points": 1,
-        "minutes": 45,
+        "points": 3,
+        "minutes": 69,
         "opponent": "Everton",
         "was_home": false
       }
@@ -8103,8 +8103,8 @@
         "was_home": true
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 48,
         "opponent": "Arsenal",
         "was_home": false
       }
@@ -8143,8 +8143,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 7,
+        "minutes": 53,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -8264,7 +8264,7 @@
       },
       "3": {
         "points": 0,
-        "minutes": 0,
+        "minutes": 53,
         "opponent": "Arsenal",
         "was_home": false
       }
@@ -8283,8 +8283,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 53,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -8303,8 +8303,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 53,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -8583,8 +8583,8 @@
         "was_home": false
       },
       "3": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 52,
         "opponent": "Chelsea",
         "was_home": true
       }
