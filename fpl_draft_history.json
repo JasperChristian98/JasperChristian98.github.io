@@ -5313,7 +5313,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 76
+              "minutes": 90
             },
             {
               "element_id": 115,
@@ -5401,7 +5401,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 13
+              "minutes": 27
             },
             {
               "element_id": 222,
@@ -5665,7 +5665,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 76
+              "minutes": 90
             },
             {
               "element_id": 391,
@@ -5687,7 +5687,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 76
+              "minutes": 90
             },
             {
               "element_id": 362,
@@ -5863,7 +5863,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 76
+              "minutes": 90
             },
             {
               "element_id": 204,
@@ -5885,7 +5885,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 11
+              "minutes": 25
             },
             {
               "element_id": 399,
@@ -5951,7 +5951,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 76
+              "minutes": 90
             }
           ],
           "bench": [
@@ -5971,11 +5971,11 @@
               "web_name": "Van Hecke",
               "team": "Spurs",
               "position": "DEF",
-              "points": 6,
+              "points": 8,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 76
+              "minutes": 90
             },
             {
               "element_id": 490,
@@ -6002,7 +6002,7 @@
           ],
           "gw_points": 26,
           "live_points": 0,
-          "bench_points": 7,
+          "bench_points": 9,
           "dreamteam_starters": 1
         },
         "89446": {
@@ -6050,7 +6050,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 76
+              "minutes": 90
             },
             {
               "element_id": 588,
@@ -6162,7 +6162,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 76
+              "minutes": 90
             },
             {
               "element_id": 201,
@@ -6376,11 +6376,11 @@
               "web_name": "Mykolenko",
               "team": "Everton",
               "position": "DEF",
-              "points": 9,
+              "points": 11,
               "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 76
+              "minutes": 90
             },
             {
               "element_id": 116,
@@ -6457,7 +6457,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 76
+              "minutes": 90
             },
             {
               "element_id": 401,
@@ -6528,7 +6528,7 @@
               "minutes": 81
             }
           ],
-          "gw_points": 25,
+          "gw_points": 27,
           "live_points": 0,
           "bench_points": 6,
           "dreamteam_starters": 1
@@ -7064,7 +7064,7 @@
       }
     }
   },
-  "last_updated": "2026-09-12T18:07:32.741578+00:00",
+  "last_updated": "2026-09-12T18:46:36.337887+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -7350,7 +7350,7 @@
       },
       "4": {
         "points": 6,
-        "minutes": 77,
+        "minutes": 90,
         "opponent": "Spurs",
         "was_home": false
       }
@@ -7688,7 +7688,7 @@
       },
       "4": {
         "points": 1,
-        "minutes": 14,
+        "minutes": 27,
         "opponent": "Everton",
         "was_home": true
       }
@@ -7921,8 +7921,8 @@
         "was_home": false
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 13,
         "opponent": "Everton",
         "was_home": true
       }
@@ -8130,7 +8130,7 @@
       },
       "4": {
         "points": 7,
-        "minutes": 77,
+        "minutes": 90,
         "opponent": "Everton",
         "was_home": true
       }
@@ -8182,7 +8182,7 @@
       },
       "4": {
         "points": 8,
-        "minutes": 78,
+        "minutes": 90,
         "opponent": "Spurs",
         "was_home": false
       }
@@ -8571,8 +8571,8 @@
         "was_home": false
       },
       "4": {
-        "points": 6,
-        "minutes": 77,
+        "points": 8,
+        "minutes": 90,
         "opponent": "Everton",
         "was_home": true
       }
@@ -8598,7 +8598,7 @@
       },
       "4": {
         "points": 6,
-        "minutes": 76,
+        "minutes": 90,
         "opponent": "Spurs",
         "was_home": false
       }
@@ -8780,7 +8780,7 @@
       },
       "4": {
         "points": 2,
-        "minutes": 77,
+        "minutes": 90,
         "opponent": "Spurs",
         "was_home": false
       }
@@ -8858,7 +8858,7 @@
       },
       "4": {
         "points": 1,
-        "minutes": 11,
+        "minutes": 25,
         "opponent": "Spurs",
         "was_home": false
       }
@@ -9274,7 +9274,7 @@
       },
       "4": {
         "points": 3,
-        "minutes": 76,
+        "minutes": 90,
         "opponent": "Everton",
         "was_home": true
       }
@@ -9767,8 +9767,8 @@
         "was_home": true
       },
       "4": {
-        "points": 9,
-        "minutes": 77,
+        "points": 11,
+        "minutes": 90,
         "opponent": "Spurs",
         "was_home": false
       }
@@ -9872,7 +9872,7 @@
       },
       "4": {
         "points": 2,
-        "minutes": 77,
+        "minutes": 90,
         "opponent": "Spurs",
         "was_home": false
       }
@@ -10054,7 +10054,7 @@
       },
       "4": {
         "points": 1,
-        "minutes": 1,
+        "minutes": 15,
         "opponent": "Spurs",
         "was_home": false
       }
@@ -10287,8 +10287,8 @@
         "was_home": true
       },
       "4": {
-        "points": 5,
-        "minutes": 76,
+        "points": 4,
+        "minutes": 90,
         "opponent": "Spurs",
         "was_home": false
       }
@@ -10392,7 +10392,7 @@
       },
       "4": {
         "points": 6,
-        "minutes": 77,
+        "minutes": 90,
         "opponent": "Everton",
         "was_home": true
       }
