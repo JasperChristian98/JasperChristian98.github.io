@@ -5409,7 +5409,7 @@
               "team": "Crystal Palace",
               "position": "FWD",
               "points": 8,
-              "in_dreamteam": true,
+              "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 83
@@ -5473,9 +5473,9 @@
             }
           ],
           "gw_points": 28,
-          "live_points": 0,
+          "live_points": 28,
           "bench_points": 12,
-          "dreamteam_starters": 1
+          "dreamteam_starters": 0
         },
         "87744": {
           "manager": "Kamararama FC",
@@ -5649,7 +5649,7 @@
             }
           ],
           "gw_points": 26,
-          "live_points": 0,
+          "live_points": 26,
           "bench_points": 10,
           "dreamteam_starters": 1
         },
@@ -5825,7 +5825,7 @@
             }
           ],
           "gw_points": 28,
-          "live_points": 0,
+          "live_points": 28,
           "bench_points": 4,
           "dreamteam_starters": 1
         },
@@ -6001,7 +6001,7 @@
             }
           ],
           "gw_points": 26,
-          "live_points": 0,
+          "live_points": 26,
           "bench_points": 11,
           "dreamteam_starters": 1
         },
@@ -6069,7 +6069,7 @@
               "team": "Nott'm Forest",
               "position": "MID",
               "points": 8,
-              "in_dreamteam": false,
+              "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 90
@@ -6177,9 +6177,9 @@
             }
           ],
           "gw_points": 40,
-          "live_points": 0,
+          "live_points": 40,
           "bench_points": 8,
-          "dreamteam_starters": 0
+          "dreamteam_starters": 1
         },
         "150925": {
           "manager": "Ollie Gonna Squashya",
@@ -6353,7 +6353,7 @@
             }
           ],
           "gw_points": 17,
-          "live_points": 0,
+          "live_points": 18,
           "bench_points": 0,
           "dreamteam_starters": 1
         },
@@ -6529,7 +6529,7 @@
             }
           ],
           "gw_points": 30,
-          "live_points": 0,
+          "live_points": 30,
           "bench_points": 6,
           "dreamteam_starters": 1
         },
@@ -6705,7 +6705,7 @@
             }
           ],
           "gw_points": 26,
-          "live_points": 0,
+          "live_points": 29,
           "bench_points": 6,
           "dreamteam_starters": 1
         },
@@ -6881,7 +6881,7 @@
             }
           ],
           "gw_points": 29,
-          "live_points": 0,
+          "live_points": 32,
           "bench_points": 6,
           "dreamteam_starters": 0
         },
@@ -7057,14 +7057,14 @@
             }
           ],
           "gw_points": 28,
-          "live_points": 0,
+          "live_points": 28,
           "bench_points": 13,
           "dreamteam_starters": 1
         }
       }
     }
   },
-  "last_updated": "2026-09-12T21:14:19.303856+00:00",
+  "last_updated": "2026-09-12T23:46:15.569117+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
