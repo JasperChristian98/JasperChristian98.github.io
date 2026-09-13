@@ -5423,7 +5423,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 20
+              "minutes": 23
             }
           ],
           "bench": [
@@ -5473,7 +5473,7 @@
             }
           ],
           "gw_points": 43,
-          "live_points": 28,
+          "live_points": 43,
           "bench_points": 12,
           "dreamteam_starters": 1
         },
@@ -5533,7 +5533,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 5
+              "minutes": 8
             },
             {
               "element_id": 40,
@@ -5649,7 +5649,7 @@
             }
           ],
           "gw_points": 44,
-          "live_points": 26,
+          "live_points": 44,
           "bench_points": 10,
           "dreamteam_starters": 2
         },
@@ -5676,7 +5676,7 @@
               "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 87
+              "minutes": 90
             },
             {
               "element_id": 229,
@@ -5731,7 +5731,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 87
+              "minutes": 90
             },
             {
               "element_id": 366,
@@ -5825,7 +5825,7 @@
             }
           ],
           "gw_points": 42,
-          "live_points": 28,
+          "live_points": 42,
           "bench_points": 4,
           "dreamteam_starters": 1
         },
@@ -5852,7 +5852,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 87
+              "minutes": 90
             },
             {
               "element_id": 230,
@@ -5907,7 +5907,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 42
+              "minutes": 45
             },
             {
               "element_id": 69,
@@ -5997,11 +5997,11 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 87
+              "minutes": 90
             }
           ],
           "gw_points": 34,
-          "live_points": 26,
+          "live_points": 34,
           "bench_points": 13,
           "dreamteam_starters": 1
         },
@@ -6116,7 +6116,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 87
+              "minutes": 90
             },
             {
               "element_id": 79,
@@ -6177,7 +6177,7 @@
             }
           ],
           "gw_points": 52,
-          "live_points": 40,
+          "live_points": 52,
           "bench_points": 10,
           "dreamteam_starters": 0
         },
@@ -6237,7 +6237,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 87
+              "minutes": 90
             },
             {
               "element_id": 13,
@@ -6266,11 +6266,11 @@
               "web_name": "Anderson",
               "team": "Man City",
               "position": "MID",
-              "points": 3,
+              "points": 5,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 87
+              "minutes": 90
             },
             {
               "element_id": 16,
@@ -6352,8 +6352,8 @@
               "minutes": 0
             }
           ],
-          "gw_points": 24,
-          "live_points": 18,
+          "gw_points": 26,
+          "live_points": 27,
           "bench_points": 10,
           "dreamteam_starters": 0
         },
@@ -6514,7 +6514,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 87
+              "minutes": 90
             },
             {
               "element_id": 295,
@@ -6529,7 +6529,7 @@
             }
           ],
           "gw_points": 42,
-          "live_points": 30,
+          "live_points": 42,
           "bench_points": 8,
           "dreamteam_starters": 2
         },
@@ -6541,11 +6541,11 @@
               "web_name": "Donnarumma",
               "team": "Man City",
               "position": "GKP",
-              "points": 6,
+              "points": 7,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 87
+              "minutes": 90
             },
             {
               "element_id": 144,
@@ -6589,7 +6589,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 87
+              "minutes": 90
             },
             {
               "element_id": 554,
@@ -6704,8 +6704,8 @@
               "minutes": 6
             }
           ],
-          "gw_points": 34,
-          "live_points": 29,
+          "gw_points": 35,
+          "live_points": 38,
           "bench_points": 6,
           "dreamteam_starters": 1
         },
@@ -6743,7 +6743,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 87
+              "minutes": 90
             },
             {
               "element_id": 36,
@@ -6844,7 +6844,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 87
+              "minutes": 90
             },
             {
               "element_id": 53,
@@ -6881,7 +6881,7 @@
             }
           ],
           "gw_points": 42,
-          "live_points": 32,
+          "live_points": 45,
           "bench_points": 8,
           "dreamteam_starters": 0
         },
@@ -7057,14 +7057,14 @@
             }
           ],
           "gw_points": 28,
-          "live_points": 28,
+          "live_points": 29,
           "bench_points": 13,
           "dreamteam_starters": 0
         }
       }
     }
   },
-  "last_updated": "2026-09-13T17:17:40.890863+00:00",
+  "last_updated": "2026-09-13T19:12:46.905974+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -7584,7 +7584,7 @@
       },
       "4": {
         "points": 1,
-        "minutes": 18,
+        "minutes": 23,
         "opponent": "Man City",
         "was_home": true
       }
@@ -7766,7 +7766,7 @@
       },
       "4": {
         "points": 1,
-        "minutes": 6,
+        "minutes": 8,
         "opponent": "Man Utd",
         "was_home": false
       }
@@ -8156,7 +8156,7 @@
       },
       "4": {
         "points": 11,
-        "minutes": 87,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": false
       }
@@ -8208,7 +8208,7 @@
       },
       "4": {
         "points": 9,
-        "minutes": 76,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": false
       }
@@ -8286,7 +8286,7 @@
       },
       "4": {
         "points": 3,
-        "minutes": 86,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": false
       }
@@ -8337,8 +8337,8 @@
         "was_home": false
       },
       "4": {
-        "points": 2,
-        "minutes": 88,
+        "points": 4,
+        "minutes": 90,
         "opponent": "Man City",
         "was_home": true
       }
@@ -8546,7 +8546,7 @@
       },
       "4": {
         "points": 6,
-        "minutes": 87,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": false
       }
@@ -8624,7 +8624,7 @@
       },
       "4": {
         "points": 2,
-        "minutes": 86,
+        "minutes": 90,
         "opponent": "Man City",
         "was_home": true
       }
@@ -8676,7 +8676,7 @@
       },
       "4": {
         "points": 1,
-        "minutes": 42,
+        "minutes": 45,
         "opponent": "Man Utd",
         "was_home": false
       }
@@ -9144,7 +9144,7 @@
       },
       "4": {
         "points": 8,
-        "minutes": 88,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": false
       }
@@ -9404,7 +9404,7 @@
       },
       "4": {
         "points": 2,
-        "minutes": 88,
+        "minutes": 90,
         "opponent": "Man City",
         "was_home": true
       }
@@ -9481,8 +9481,8 @@
         "was_home": true
       },
       "4": {
-        "points": 3,
-        "minutes": 87,
+        "points": 5,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": false
       }
@@ -9820,7 +9820,7 @@
       },
       "4": {
         "points": 2,
-        "minutes": 87,
+        "minutes": 90,
         "opponent": "Man City",
         "was_home": true
       }
@@ -10079,8 +10079,8 @@
         "was_home": true
       },
       "4": {
-        "points": 6,
-        "minutes": 88,
+        "points": 7,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": false
       }
@@ -10184,7 +10184,7 @@
       },
       "4": {
         "points": 2,
-        "minutes": 86,
+        "minutes": 90,
         "opponent": "Man City",
         "was_home": true
       }
@@ -10470,7 +10470,7 @@
       },
       "4": {
         "points": 2,
-        "minutes": 88,
+        "minutes": 90,
         "opponent": "Man City",
         "was_home": true
       }
@@ -10522,7 +10522,7 @@
       },
       "4": {
         "points": 6,
-        "minutes": 83,
+        "minutes": 90,
         "opponent": "Man Utd",
         "was_home": false
       }
