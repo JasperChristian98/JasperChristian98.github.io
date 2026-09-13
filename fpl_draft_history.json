@@ -6112,7 +6112,7 @@
               "web_name": "Haaland",
               "team": "Man City",
               "position": "FWD",
-              "points": 8,
+              "points": 9,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
@@ -6176,7 +6176,7 @@
               "minutes": 90
             }
           ],
-          "gw_points": 52,
+          "gw_points": 53,
           "live_points": 52,
           "bench_points": 10,
           "dreamteam_starters": 0
@@ -7064,7 +7064,7 @@
       }
     }
   },
-  "last_updated": "2026-09-13T19:12:46.905974+00:00",
+  "last_updated": "2026-09-13T20:23:08.028134+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -9143,7 +9143,7 @@
         "was_home": true
       },
       "4": {
-        "points": 8,
+        "points": 9,
         "minutes": 90,
         "opponent": "Man Utd",
         "was_home": false
