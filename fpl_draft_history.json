@@ -5320,11 +5320,11 @@
               "web_name": "De Cuyper",
               "team": "Brighton",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 43
             },
             {
               "element_id": 358,
@@ -5353,11 +5353,11 @@
               "web_name": "Gomez",
               "team": "Brighton",
               "position": "MID",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 43
             },
             {
               "element_id": 12,
@@ -5472,7 +5472,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 28,
+          "gw_points": 30,
           "live_points": 28,
           "bench_points": 12,
           "dreamteam_starters": 0
@@ -5562,11 +5562,11 @@
               "web_name": "Groß",
               "team": "Brighton",
               "position": "MID",
-              "points": 0,
+              "points": 6,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 43
             },
             {
               "element_id": 7,
@@ -5584,11 +5584,11 @@
               "web_name": "Awoniyi",
               "team": "Coventry City",
               "position": "FWD",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 43
             },
             {
               "element_id": 379,
@@ -5648,7 +5648,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 26,
+          "gw_points": 33,
           "live_points": 26,
           "bench_points": 10,
           "dreamteam_starters": 1
@@ -6035,11 +6035,11 @@
               "web_name": "Vuskovic",
               "team": "Brighton",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 43
             },
             {
               "element_id": 503,
@@ -6176,7 +6176,7 @@
               "minutes": 90
             }
           ],
-          "gw_points": 40,
+          "gw_points": 41,
           "live_points": 40,
           "bench_points": 8,
           "dreamteam_starters": 1
@@ -6323,22 +6323,22 @@
               "web_name": "Kostoulas",
               "team": "Brighton",
               "position": "FWD",
-              "points": 0,
+              "points": 8,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 43
             },
             {
               "element_id": 173,
               "web_name": "Thomas",
               "team": "Coventry City",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 43
             },
             {
               "element_id": 84,
@@ -6354,7 +6354,7 @@
           ],
           "gw_points": 17,
           "live_points": 18,
-          "bench_points": 0,
+          "bench_points": 9,
           "dreamteam_starters": 1
         },
         "204850": {
@@ -6387,11 +6387,11 @@
               "web_name": "Dunk",
               "team": "Brighton",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 43
             },
             {
               "element_id": 202,
@@ -6488,11 +6488,11 @@
               "web_name": "Rushworth",
               "team": "Coventry City",
               "position": "GKP",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 43
             },
             {
               "element_id": 469,
@@ -6528,9 +6528,9 @@
               "minutes": 81
             }
           ],
-          "gw_points": 30,
+          "gw_points": 31,
           "live_points": 30,
-          "bench_points": 6,
+          "bench_points": 7,
           "dreamteam_starters": 1
         },
         "205209": {
@@ -6717,11 +6717,11 @@
               "web_name": "Verbruggen",
               "team": "Brighton",
               "position": "GKP",
-              "points": 0,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 43
             },
             {
               "element_id": 356,
@@ -6880,7 +6880,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 28,
+          "gw_points": 30,
           "live_points": 32,
           "bench_points": 6,
           "dreamteam_starters": 0
@@ -7064,7 +7064,7 @@
       }
     }
   },
-  "last_updated": "2026-09-13T03:24:18.441491+00:00",
+  "last_updated": "2026-09-13T13:46:25.524491+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -7661,8 +7661,8 @@
         "was_home": false
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 32,
         "opponent": "Brighton",
         "was_home": true
       }
@@ -8987,8 +8987,8 @@
         "was_home": true
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 44,
         "opponent": "Coventry City",
         "was_home": false
       }
@@ -9975,8 +9975,8 @@
         "was_home": false
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 32,
         "opponent": "Brighton",
         "was_home": true
       }
@@ -10417,8 +10417,8 @@
         "was_home": true
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 44,
         "opponent": "Coventry City",
         "was_home": false
       }
@@ -10755,8 +10755,8 @@
         "was_home": true
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 44,
         "opponent": "Coventry City",
         "was_home": false
       }
@@ -11275,8 +11275,8 @@
         "was_home": true
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 44,
         "opponent": "Coventry City",
         "was_home": false
       }
@@ -11665,8 +11665,8 @@
         "was_home": true
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 42,
         "opponent": "Coventry City",
         "was_home": false
       }
@@ -11731,8 +11731,8 @@
         "was_home": true
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 6,
+        "minutes": 44,
         "opponent": "Coventry City",
         "was_home": false
       }
@@ -11887,8 +11887,8 @@
         "was_home": true
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 40,
         "opponent": "Coventry City",
         "was_home": false
       }
