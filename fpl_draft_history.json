@@ -6783,7 +6783,7 @@
               "web_name": "Bruno G.",
               "team": "Arsenal",
               "position": "MID",
-              "points": 8,
+              "points": 7,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
@@ -6880,7 +6880,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 29,
+          "gw_points": 28,
           "live_points": 32,
           "bench_points": 6,
           "dreamteam_starters": 0
@@ -7064,7 +7064,7 @@
       }
     }
   },
-  "last_updated": "2026-09-12T23:46:15.569117+00:00",
+  "last_updated": "2026-09-13T03:24:18.441491+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -10625,7 +10625,7 @@
         "was_home": true
       },
       "4": {
-        "points": 8,
+        "points": 7,
         "minutes": 45,
         "opponent": "Sunderland",
         "was_home": false
