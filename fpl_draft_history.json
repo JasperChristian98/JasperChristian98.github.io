@@ -5496,11 +5496,11 @@
               "web_name": "Bogle",
               "team": "Leeds",
               "position": "DEF",
-              "points": 0,
-              "in_dreamteam": false,
+              "points": 15,
+              "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 82
             },
             {
               "element_id": 357,
@@ -5522,7 +5522,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 387,
@@ -5648,10 +5648,10 @@
               "minutes": 0
             }
           ],
-          "gw_points": 44,
+          "gw_points": 59,
           "live_points": 44,
           "bench_points": 10,
-          "dreamteam_starters": 2
+          "dreamteam_starters": 3
         },
         "87907": {
           "manager": "PAUer Rangers",
@@ -5673,7 +5673,7 @@
               "team": "Man City",
               "position": "DEF",
               "points": 11,
-              "in_dreamteam": true,
+              "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 90
@@ -5705,22 +5705,22 @@
               "web_name": "Muharemović",
               "team": "Leeds",
               "position": "DEF",
-              "points": 0,
+              "points": 7,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 447,
               "web_name": "Botman",
               "team": "Newcastle",
               "position": "DEF",
-              "points": 0,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 397,
@@ -5760,11 +5760,11 @@
               "web_name": "Stach",
               "team": "Leeds",
               "position": "MID",
-              "points": 0,
+              "points": 3,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 87
             },
             {
               "element_id": 106,
@@ -5824,10 +5824,10 @@
               "minutes": 0
             }
           ],
-          "gw_points": 42,
+          "gw_points": 54,
           "live_points": 42,
           "bench_points": 4,
-          "dreamteam_starters": 1
+          "dreamteam_starters": 0
         },
         "88057": {
           "manager": "Backstreet Moyes",
@@ -5925,11 +5925,11 @@
               "web_name": "Barnes",
               "team": "Newcastle",
               "position": "MID",
-              "points": 0,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 165,
@@ -6000,7 +6000,7 @@
               "minutes": 90
             }
           ],
-          "gw_points": 34,
+          "gw_points": 36,
           "live_points": 34,
           "bench_points": 13,
           "dreamteam_starters": 1
@@ -6312,11 +6312,11 @@
               "web_name": "Trafford",
               "team": "Leeds",
               "position": "GKP",
-              "points": 0,
+              "points": 3,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 138,
@@ -6354,7 +6354,7 @@
           ],
           "gw_points": 26,
           "live_points": 27,
-          "bench_points": 10,
+          "bench_points": 13,
           "dreamteam_starters": 0
         },
         "204850": {
@@ -6651,11 +6651,11 @@
               "web_name": "Wissa",
               "team": "Newcastle",
               "position": "FWD",
-              "points": 0,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             }
           ],
           "bench": [
@@ -6704,7 +6704,7 @@
               "minutes": 6
             }
           ],
-          "gw_points": 35,
+          "gw_points": 37,
           "live_points": 38,
           "bench_points": 6,
           "dreamteam_starters": 1
@@ -6820,7 +6820,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 57
             },
             {
               "element_id": 26,
@@ -6959,11 +6959,11 @@
               "web_name": "Wilson",
               "team": "Leeds",
               "position": "MID",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 18
             },
             {
               "element_id": 68,
@@ -7003,11 +7003,11 @@
               "web_name": "Calvert-Lewin",
               "team": "Leeds",
               "position": "FWD",
-              "points": 0,
+              "points": 10,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 77
             }
           ],
           "bench": [
@@ -7056,7 +7056,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 28,
+          "gw_points": 39,
           "live_points": 29,
           "bench_points": 13,
           "dreamteam_starters": 0
@@ -7064,7 +7064,7 @@
       }
     }
   },
-  "last_updated": "2026-09-14T17:47:24.199319+00:00",
+  "last_updated": "2026-09-14T21:32:51.550172+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -8104,7 +8104,7 @@
       },
       "4": {
         "points": 0,
-        "minutes": 0,
+        "minutes": 90,
         "opponent": "Leeds",
         "was_home": false
       }
@@ -8831,8 +8831,8 @@
         "was_home": true
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 90,
         "opponent": "Leeds",
         "was_home": false
       }
@@ -9221,8 +9221,8 @@
         "was_home": true
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 90,
         "opponent": "Leeds",
         "was_home": false
       }
@@ -9299,8 +9299,8 @@
         "was_home": false
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 3,
+        "minutes": 90,
         "opponent": "Newcastle",
         "was_home": true
       }
@@ -10313,8 +10313,8 @@
         "was_home": true
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 90,
         "opponent": "Leeds",
         "was_home": false
       }
@@ -10989,8 +10989,8 @@
         "was_home": false
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 18,
         "opponent": "Newcastle",
         "was_home": true
       }
@@ -11119,8 +11119,8 @@
         "was_home": false
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 10,
+        "minutes": 77,
         "opponent": "Newcastle",
         "was_home": true
       }
@@ -11405,8 +11405,8 @@
         "was_home": false
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 3,
+        "minutes": 87,
         "opponent": "Newcastle",
         "was_home": true
       }
@@ -11614,7 +11614,7 @@
       },
       "4": {
         "points": 0,
-        "minutes": 0,
+        "minutes": 57,
         "opponent": "Leeds",
         "was_home": false
       }
@@ -11783,8 +11783,8 @@
         "was_home": true
       },
       "4": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 90,
         "opponent": "Leeds",
         "was_home": false
       }
