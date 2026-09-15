@@ -5649,7 +5649,7 @@
             }
           ],
           "gw_points": 59,
-          "live_points": 44,
+          "live_points": 59,
           "bench_points": 10,
           "dreamteam_starters": 3
         },
@@ -5825,7 +5825,7 @@
             }
           ],
           "gw_points": 54,
-          "live_points": 42,
+          "live_points": 54,
           "bench_points": 4,
           "dreamteam_starters": 0
         },
@@ -6001,7 +6001,7 @@
             }
           ],
           "gw_points": 36,
-          "live_points": 34,
+          "live_points": 36,
           "bench_points": 13,
           "dreamteam_starters": 1
         },
@@ -6177,7 +6177,7 @@
             }
           ],
           "gw_points": 53,
-          "live_points": 52,
+          "live_points": 53,
           "bench_points": 10,
           "dreamteam_starters": 0
         },
@@ -6705,7 +6705,7 @@
             }
           ],
           "gw_points": 37,
-          "live_points": 38,
+          "live_points": 40,
           "bench_points": 6,
           "dreamteam_starters": 1
         },
@@ -7057,14 +7057,14 @@
             }
           ],
           "gw_points": 39,
-          "live_points": 29,
+          "live_points": 40,
           "bench_points": 13,
           "dreamteam_starters": 0
         }
       }
     }
   },
-  "last_updated": "2026-09-14T21:32:51.550172+00:00",
+  "last_updated": "2026-09-15T00:19:31.259059+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
