@@ -2388,6 +2388,17 @@ current_standings = sorted(
     )
 )
 
+# Cumulative fantasy points scored by manager across captured match weeks.
+# This is deliberately separate from H2H league points: it shows raw scoring
+# output accumulating through the season, regardless of whether those points
+# happened to produce a win, draw or loss.
+cumulative_score_history = defaultdict(list)
+for manager in managers:
+    running_total = 0
+    for gw, score in sorted(raw_score_by_gw.get(manager, []), key=lambda item: item[0]):
+        running_total += int(score or 0)
+        cumulative_score_history[manager].append((gw, running_total))
+
 
 # ============================================================
 # OFFICIAL SCORE LOOKUP (source of truth = history["matches"])
@@ -3003,21 +3014,17 @@ for manager in managers:
 # ============================================================
 # POWER RANKINGS
 #
-# Deliberately excludes actual results (league points, W-D-L) -
-# the point is a ranking that can disagree with the real table.
-# Each component is min-max normalised to 0-100 within the league
-# so it stays relative to this league's own spread rather than an
-# arbitrary fixed scale:
+# A blended measure of underlying scoring strength, recent form, squad
+# management and actual league position.  League position now matters,
+# but it does not dominate the model, so a team can still rank above or
+# below its table place when the underlying performances justify it.
 #
-#   Recent Form      (40%) - average of the last 5 gw_scores entries
-#                             (fewer early in the season - same
-#                             graceful degradation used elsewhere)
-#   Season Quality   (35%) - avg_points, the season-to-date average
-#   Squad Management (25%) - average selection efficiency
+#   Recent Form      (30%) - average of the last 5 gw_scores entries
+#   Season Quality   (25%) - avg_points, the season-to-date average
+#   Squad Management (15%) - average selection efficiency
+#   League Position  (30%) - current H2H table rank (1st = strongest)
 #
-# Only the resulting rank position is surfaced on the dashboard,
-# not the underlying score - this is an editorial "who's actually
-# playing well" call, not a stat with a defensible absolute value.
+# Every component is mapped to 0-100 before weighting.
 
 # ============================================================
 # LUCK INDEX
@@ -3121,11 +3128,25 @@ norm_recent_form = _normalize_0_100(recent_form_points)
 norm_season_quality = _normalize_0_100(season_quality_points)
 norm_squad_management = _normalize_0_100(squad_management_points)
 
+# Convert league position directly to a 0-100 component.  With ten teams,
+# 1st receives 100, 10th receives 0, and the positions between are evenly
+# spaced. This deliberately uses table *position* rather than league points
+# so the component reflects the user's requested standing in the league.
+_manager_count = max(len(managers), 1)
+if _manager_count == 1:
+    norm_league_position = {manager: 100.0 for manager in managers}
+else:
+    norm_league_position = {
+        manager: ((_manager_count - manager_current_rank.get(manager, _manager_count)) / (_manager_count - 1)) * 100
+        for manager in managers
+    }
+
 power_score = {
     manager: (
-        norm_recent_form.get(manager, 0) * 0.40
-        + norm_season_quality.get(manager, 0) * 0.35
-        + norm_squad_management.get(manager, 0) * 0.25
+        norm_recent_form.get(manager, 0) * 0.30
+        + norm_season_quality.get(manager, 0) * 0.25
+        + norm_squad_management.get(manager, 0) * 0.15
+        + norm_league_position.get(manager, 0) * 0.30
     )
     for manager in managers
 }
@@ -4496,6 +4517,11 @@ chart_scores_json = json.dumps(
     ensure_ascii=False
 )
 
+chart_cumulative_json = json.dumps(
+    serialize_history(cumulative_score_history),
+    ensure_ascii=False
+)
+
 manager_order_json = json.dumps(
     current_standings,
     ensure_ascii=False
@@ -4679,6 +4705,8 @@ def standings_table():
                 <td>{matches_won[manager]}-{matches_drawn[manager]}-{matches_lost[manager]}</td>
                 <td>{points_for[manager]:.0f}</td>
                 <td>{points_against[manager]:.0f}</td>
+                <td><b>{season_prediction.get(manager, {}).get("median_finish", position)}{_ordinal_suffix(season_prediction.get(manager, {}).get("median_finish", position))}</b></td>
+                <td>{mathematical_finish_range.get(manager, {}).get("text", "—")}</td>
             </tr>
         """
 
@@ -4695,6 +4723,8 @@ def standings_table():
                         <th>W-D-L</th>
                         <th>Pts For</th>
                         <th>Pts Against</th>
+                        <th>Pred. Finish</th>
+                        <th>Possible Finish</th>
                     </tr>
                 </thead>
                 <tbody>{rows}</tbody>
@@ -4724,17 +4754,18 @@ def power_rankings_table():
                 <td>{norm_recent_form.get(manager, 0):.0f}</td>
                 <td>{norm_season_quality.get(manager, 0):.0f}</td>
                 <td>{norm_squad_management.get(manager, 0):.0f}</td>
+                <td>{norm_league_position.get(manager, 0):.0f}</td>
                 <td>{movement_html}</td>
             </tr>
         '''
 
     return f'''
         <div class="power-formula">
-            <b>Power score:</b> 40% recent 5GW scoring + 35% season scoring quality + 25% squad-management efficiency. Every component is normalised 0–100 within this league.
+            <b>Power score:</b> 30% recent 5GW scoring + 25% season scoring quality + 15% squad-management efficiency + 30% current league position. Components are normalised to 0–100.
         </div>
         <div class="table-wrap">
             <table>
-                <thead><tr><th>#</th><th>Manager</th><th>Power</th><th>5GW Form</th><th>Season</th><th>Management</th><th>vs Table</th></tr></thead>
+                <thead><tr><th>#</th><th>Manager</th><th>Power</th><th>5GW Form</th><th>Season</th><th>Management</th><th>Table</th><th>vs Table</th></tr></thead>
                 <tbody>{rows}</tbody>
             </table>
         </div>
@@ -5536,7 +5567,248 @@ def _all_schedule_by_gw():
 full_fixture_schedule = _all_schedule_by_gw()
 
 
+# ============================================================
+# MATHEMATICAL FINISH RANGE
+# ============================================================
+# Separate from the prediction model: this uses current league points plus
+# the maximum 3 points still available from each remaining H2H fixture.
+
+def _build_mathematical_finish_ranges():
+    remaining_games = {manager: 0 for manager in managers}
+    completed_gws = set(int(gw) for gw in finished_gws)
+
+    for gw, fixtures in full_fixture_schedule.items():
+        if int(gw) in completed_gws:
+            continue
+        for fixture in fixtures:
+            t1 = fixture.get("team1")
+            t2 = fixture.get("team2")
+            if t1 in remaining_games:
+                remaining_games[t1] += 1
+            if t2 in remaining_games:
+                remaining_games[t2] += 1
+
+    max_points = {
+        manager: float(league_points.get(manager, 0)) + 3 * remaining_games.get(manager, 0)
+        for manager in managers
+    }
+    min_points = {manager: float(league_points.get(manager, 0)) for manager in managers}
+
+    ranges = {}
+    total_teams = len(managers)
+    for manager in managers:
+        best = 1 + sum(
+            1 for other in managers
+            if other != manager and min_points[other] > max_points[manager]
+        )
+        worst = 1 + sum(
+            1 for other in managers
+            if other != manager and max_points[other] >= min_points[manager]
+        )
+        worst = min(total_teams, worst)
+        ranges[manager] = {
+            "best": best,
+            "worst": worst,
+            "text": f"{_ordinal_text(best)}–{_ordinal_text(worst)}",
+            "remaining_games": remaining_games.get(manager, 0),
+            "max_league_points": max_points[manager],
+        }
+    return ranges
+
+
+# ============================================================
+# REST-OF-SEASON PREDICTION MODEL
+# ============================================================
+
+def _prediction_percentile(values, pct):
+    if not values:
+        return None
+    values = sorted(values)
+    if len(values) == 1:
+        return values[0]
+    idx = (len(values) - 1) * float(pct)
+    lo = int(idx)
+    hi = min(lo + 1, len(values) - 1)
+    frac = idx - lo
+    return values[lo] * (1 - frac) + values[hi] * frac
+
+
 def _ordinal_suffix(n):
+    n = int(n)
+    if 10 <= n % 100 <= 20:
+        return "th"
+    return {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
+
+def _ordinal_text(n):
+    n = int(n)
+    return f"{n}{_ordinal_suffix(n)}"
+
+
+def _build_season_prediction(simulations=7500, seed=17288):
+    if not managers:
+        return {}, []
+
+    historical_scores = {
+        manager: [int(score or 0) for _, score in sorted(raw_score_by_gw.get(manager, []))]
+        for manager in managers
+    }
+    all_scores = [score for scores in historical_scores.values() for score in scores]
+    league_mean = statistics.mean(all_scores) if all_scores else 45.0
+    league_sd = statistics.pstdev(all_scores) if len(all_scores) >= 2 else 12.0
+    league_sd = max(league_sd, 6.0)
+
+    scoring_profile = {}
+    for manager in managers:
+        scores = historical_scores.get(manager, [])
+        season_mean = statistics.mean(scores) if scores else league_mean
+        recent = scores[-5:]
+        recent_mean = statistics.mean(recent) if recent else season_mean
+        team_sd = statistics.pstdev(scores) if len(scores) >= 2 else league_sd
+        expected = (0.55 * season_mean) + (0.35 * recent_mean) + (0.10 * league_mean)
+        volatility = max((0.65 * team_sd) + (0.35 * league_sd), 5.0)
+        scoring_profile[manager] = {
+            "expected_score": expected,
+            "volatility": volatility,
+        }
+
+    completed_gws = set(int(gw) for gw in finished_gws)
+    remaining_fixtures = []
+    for gw, fixtures in sorted(full_fixture_schedule.items()):
+        if int(gw) in completed_gws:
+            continue
+        for fixture in fixtures:
+            t1 = fixture.get("team1")
+            t2 = fixture.get("team2")
+            if t1 in managers and t2 in managers:
+                remaining_fixtures.append((int(gw), t1, t2))
+
+    finish_samples = {m: [] for m in managers}
+    lp_samples = {m: [] for m in managers}
+    pf_samples = {m: [] for m in managers}
+    w_samples = {m: [] for m in managers}
+    d_samples = {m: [] for m in managers}
+    l_samples = {m: [] for m in managers}
+    rng = random.Random(seed)
+
+    for _ in range(simulations):
+        sim_lp = {m: float(league_points.get(m, 0)) for m in managers}
+        sim_pf = {m: float(points_for.get(m, 0)) for m in managers}
+        sim_w = {m: int(matches_won.get(m, 0)) for m in managers}
+        sim_d = {m: int(matches_drawn.get(m, 0)) for m in managers}
+        sim_l = {m: int(matches_lost.get(m, 0)) for m in managers}
+        week_shock = {}
+
+        for gw, t1, t2 in remaining_fixtures:
+            if gw not in week_shock:
+                week_shock[gw] = rng.gauss(0, league_sd * 0.18)
+            p1 = scoring_profile[t1]
+            p2 = scoring_profile[t2]
+            s1 = max(0, round(rng.gauss(p1["expected_score"] + week_shock[gw], p1["volatility"])))
+            s2 = max(0, round(rng.gauss(p2["expected_score"] + week_shock[gw], p2["volatility"])))
+            sim_pf[t1] += s1
+            sim_pf[t2] += s2
+            if s1 > s2:
+                sim_lp[t1] += 3; sim_w[t1] += 1; sim_l[t2] += 1
+            elif s2 > s1:
+                sim_lp[t2] += 3; sim_w[t2] += 1; sim_l[t1] += 1
+            else:
+                sim_lp[t1] += 1; sim_lp[t2] += 1; sim_d[t1] += 1; sim_d[t2] += 1
+
+        ranking = sorted(managers, key=lambda m: (-sim_lp[m], -sim_pf[m], m))
+        positions = {m: i for i, m in enumerate(ranking, start=1)}
+        for m in managers:
+            finish_samples[m].append(positions[m])
+            lp_samples[m].append(sim_lp[m]); pf_samples[m].append(sim_pf[m])
+            w_samples[m].append(sim_w[m]); d_samples[m].append(sim_d[m]); l_samples[m].append(sim_l[m])
+
+    prediction = {}
+    for m in managers:
+        finishes = finish_samples[m]
+        counts = {pos: finishes.count(pos) for pos in range(1, len(managers) + 1)}
+        median_finish = int(round(_prediction_percentile(finishes, 0.50)))
+        p10 = max(1, int(round(_prediction_percentile(finishes, 0.10))))
+        p90 = min(len(managers), int(round(_prediction_percentile(finishes, 0.90))))
+        lo, hi = min(p10, p90), max(p10, p90)
+        prediction[m] = {
+            "median_finish": median_finish,
+            "forecast_range_text": f"{_ordinal_text(lo)}–{_ordinal_text(hi)}",
+            "position_pct": {pos: 100.0 * counts.get(pos, 0) / simulations for pos in range(1, len(managers) + 1)},
+            "expected_league_points": statistics.mean(lp_samples[m]),
+            "expected_points_for": statistics.mean(pf_samples[m]),
+            "expected_wins": statistics.mean(w_samples[m]),
+            "expected_draws": statistics.mean(d_samples[m]),
+            "expected_losses": statistics.mean(l_samples[m]),
+            "champion_pct": 100.0 * counts.get(1, 0) / simulations,
+            "top3_pct": 100.0 * sum(counts.get(pos, 0) for pos in range(1, min(3, len(managers)) + 1)) / simulations,
+            "bottom3_pct": 100.0 * sum(counts.get(pos, 0) for pos in range(max(1, len(managers) - 2), len(managers) + 1)) / simulations,
+        }
+
+    ordered = sorted(managers, key=lambda m: (prediction[m]["median_finish"], -prediction[m]["expected_league_points"], m))
+    return prediction, ordered
+
+
+season_prediction, predicted_finish_order = _build_season_prediction()
+mathematical_finish_range = _build_mathematical_finish_ranges()
+
+
+def season_prediction_table():
+    if not season_prediction:
+        return '<div class="notice">Not enough data to build a season prediction yet.</div>'
+    rows = ""
+    for manager in predicted_finish_order:
+        p = season_prediction[manager]
+        rows += f'''
+<tr>
+<td class="rank-cell">{p["median_finish"]}</td>
+<td class="manager-name">{escape_html(manager)}</td>
+<td>{manager_current_rank.get(manager, "—")}</td>
+<td><b>{p["expected_league_points"]:.1f}</b></td>
+<td>{p["expected_wins"]:.1f}-{p["expected_draws"]:.1f}-{p["expected_losses"]:.1f}</td>
+<td>{p["expected_points_for"]:.0f}</td>
+<td>{p["forecast_range_text"]}</td>
+<td>{p["champion_pct"]:.1f}%</td>
+<td>{p["top3_pct"]:.1f}%</td>
+<td>{p["bottom3_pct"]:.1f}%</td>
+</tr>'''
+    return f'''
+<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Weekly scoring expectation blends 55% season average, 35% last-five form and 10% regression to the league mean, with observed scoring volatility. Forecast Range is the central 80% of simulated finishes and is separate from the mathematical Possible Finish shown in the league table.</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Pred.</th><th>Manager</th><th>Now</th><th>Exp. League Pts</th><th>Exp. W-D-L</th><th>Exp. Pts For</th><th>Forecast Range</th><th>1st</th><th>Top 3</th><th>Bottom 3</th></tr></thead>
+<tbody>{rows}</tbody></table></div>'''
+
+
+
+def position_probability_table():
+    if not season_prediction:
+        return '<div class="notice">Not enough data to calculate finishing-position probabilities yet.</div>'
+
+    header_positions = "".join(
+        f"<th>{_ordinal_text(pos)}</th>"
+        for pos in range(1, len(managers) + 1)
+    )
+
+    rows = ""
+    for manager in current_standings:
+        probs = season_prediction.get(manager, {}).get("position_pct", {})
+        cells = "".join(
+            f'<td><b>{probs.get(pos, 0.0):.1f}%</b></td>'
+            for pos in range(1, len(managers) + 1)
+        )
+        rows += f'''
+<tr>
+<td class="manager-name">{escape_html(manager)}</td>
+{cells}
+</tr>'''
+
+    return f'''
+<div class="power-formula"><b>How to read it:</b> each row sums to roughly 100%. These are model probabilities from the same 7,500 schedule-aware simulations — unlike Possible Finish, which is purely mathematical.</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Manager</th>{header_positions}</tr></thead>
+<tbody>{rows}</tbody></table></div>'''
+
+
+def _ordinal_suffix_unused_old(n):
     n = int(n)
     if 10 <= n % 100 <= 20:
         return "th"
@@ -9611,13 +9883,15 @@ function showPage(
 const TREND_DATA = {
     h2h: __CHART_H2H_DATA__,
     rank: __CHART_RANK_DATA__,
-    scores: __CHART_SCORES_DATA__
+    scores: __CHART_SCORES_DATA__,
+    cumulative: __CHART_CUMULATIVE_DATA__
 };
 
 const TREND_CONFIG = {
     h2h: { invert: true, fixedRange: null, deltaGood: "up" },
     rank: { invert: false, fixedRange: null, deltaGood: "down" },
-    scores: { invert: true, fixedRange: null, deltaGood: "up" }
+    scores: { invert: true, fixedRange: null, deltaGood: "up" },
+    cumulative: { invert: true, fixedRange: null, deltaGood: "up" }
 };
 
 const MANAGER_ORDER = __MANAGER_ORDER__;
@@ -9949,7 +10223,7 @@ function renderTrendReadout(key) {
 }
 
 function initAllTrendCharts() {
-    ["h2h", "rank", "scores"].forEach(initTrendChart);
+    ["h2h", "rank", "scores", "cumulative"].forEach(initTrendChart);
 
     window.addEventListener("resize", function() {
         // SVG scales via viewBox automatically; nothing to recompute.
@@ -10971,7 +11245,7 @@ __CSS__
 
                 <div class="card">
                     <h2>Power Rankings</h2>
-                    <p class="card-description">Recent form, season quality and squad management — not the actual results. This can disagree with the table above on purpose.</p>
+                    <p class="card-description">Recent form, season scoring, squad management and league position blended into one rating. It can still disagree with the table when underlying performance points elsewhere.</p>
                     __POWER_RANKINGS_TABLE__
                 </div>
 
@@ -10986,6 +11260,18 @@ __CSS__
             <div class="card">
                 <h2>Luck Index</h2>
                 __LUCK_INDEX_TABLE__
+            </div>
+
+            <div class="card">
+                <h2>Rest-of-Season Prediction</h2>
+                <p class="card-description">A schedule-aware Monte Carlo forecast of the remaining season. Model estimate, not destiny — one monster haul can still make a right bloody mess of it.</p>
+                __SEASON_PREDICTION_TABLE__
+            </div>
+
+            <div class="card">
+                <h2>Finish Probability Matrix</h2>
+                <p class="card-description">The model's percentage chance of each manager finishing in every league position, from 1st to 10th.</p>
+                __POSITION_PROBABILITY_TABLE__
             </div>
 
 
@@ -11017,6 +11303,19 @@ __CSS__
 
                 </div>
 
+
+                <div class="card trend-chart-card full">
+
+                    <h2>
+                        Cumulative Points Scored
+                    </h2>
+
+                    <p class="card-description">Raw fantasy points accumulated through the season — useful for seeing sustained scoring strength independently of H2H results.</p>
+                    <div class="chip-row" id="chips-cumulative"></div>
+                    <div class="trend-chart-svg-wrap" id="chart-cumulative"></div>
+                    <div id="legend-cumulative"></div>
+
+                </div>
 
                 <div class="card trend-chart-card full">
 
@@ -11848,6 +12147,12 @@ replacements = {
     "__LUCK_INDEX_TABLE__":
         luck_index_table(),
 
+    "__SEASON_PREDICTION_TABLE__":
+        season_prediction_table(),
+
+    "__POSITION_PROBABILITY_TABLE__":
+        position_probability_table(),
+
     "__LATEST_LEAGUE_STORYLINE__":
         latest_league_storyline_html(),
 
@@ -11971,6 +12276,9 @@ replacements = {
         ).replace(
             "__CHART_SCORES_DATA__",
             safe_js_json(chart_scores_json)
+        ).replace(
+            "__CHART_CUMULATIVE_DATA__",
+            safe_js_json(chart_cumulative_json)
         ).replace(
             "__MANAGER_ORDER__",
             safe_js_json(manager_order_json)
