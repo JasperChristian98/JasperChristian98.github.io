@@ -981,6 +981,10 @@ _dashboard_live_payload = fetch_json(
 
 _dashboard_live_elements = _dashboard_live_payload.get("elements", [])
 
+_dashboard_pl_fixtures = fetch_json(
+    f"{CLASSIC_BASE}/fixtures/?event={dashboard_target_gw}"
+) or []
+
 dashboard_live_player_activity = any(
     int((row.get("stats") or {}).get("minutes", 0) or 0) > 0
     or int((row.get("stats") or {}).get("total_points", 0) or 0) != 0
@@ -3079,6 +3083,131 @@ for manager in managers:
             max(r["efficiency"] for r in records)
             if records else 0
         )
+    }
+
+
+
+
+# ============================================================
+# MANAGER STYLE PROFILES
+# ============================================================
+# Behavioural tags derived from actual season activity. These are descriptive
+# rather than quality grades: thresholds are centred on league averages so the
+# profile describes HOW a manager plays, not whether they are objectively good.
+
+_manager_completed_weeks = max(len(finished_gws), 1)
+
+manager_move_counts = {manager: {"pickups": 0, "drops": 0, "trades_in": 0, "trades_out": 0} for manager in managers}
+for _move in transfer_movements:
+    _kind = _move.get("move")
+    _from = _move.get("from_team")
+    _to = _move.get("to_team")
+    if _kind == "Pickup" and _to in manager_move_counts:
+        manager_move_counts[_to]["pickups"] += 1
+    elif _kind == "Drop" and _from in manager_move_counts:
+        manager_move_counts[_from]["drops"] += 1
+    elif _kind == "Transfer":
+        if _to in manager_move_counts:
+            manager_move_counts[_to]["trades_in"] += 1
+        if _from in manager_move_counts:
+            manager_move_counts[_from]["trades_out"] += 1
+
+_manager_activity_per_gw = {
+    manager: (
+        manager_move_counts[manager]["pickups"]
+        + manager_move_counts[manager]["trades_in"]
+    ) / _manager_completed_weeks
+    for manager in managers
+}
+_manager_bench_per_gw = {
+    manager: float(total_bench_wasted.get(manager, 0) or 0) / _manager_completed_weeks
+    for manager in managers
+}
+_manager_efficiency = {
+    manager: float(manager_selection.get(manager, {}).get("efficiency", 0) or 0)
+    for manager in managers
+}
+_manager_consistency = {
+    manager: float(consistency.get(manager, 0) or 0)
+    for manager in managers
+}
+_manager_dreamteam_per_gw = {
+    manager: float(total_dreamteam.get(manager, 0) or 0) / _manager_completed_weeks
+    for manager in managers
+}
+
+def _mean_metric(values):
+    vals = list(values.values())
+    return statistics.mean(vals) if vals else 0.0
+
+_style_avg_activity = _mean_metric(_manager_activity_per_gw)
+_style_avg_bench = _mean_metric(_manager_bench_per_gw)
+_style_avg_eff = _mean_metric(_manager_efficiency)
+_style_avg_consistency = _mean_metric(_manager_consistency)
+_style_avg_dreamteam = _mean_metric(_manager_dreamteam_per_gw)
+
+def manager_style_profile(manager):
+    activity = _manager_activity_per_gw.get(manager, 0.0)
+    bench_pg = _manager_bench_per_gw.get(manager, 0.0)
+    eff = _manager_efficiency.get(manager, 0.0)
+    vol = _manager_consistency.get(manager, 0.0)
+    dt_pg = _manager_dreamteam_per_gw.get(manager, 0.0)
+    pickups = manager_move_counts.get(manager, {}).get("pickups", 0)
+    trades = manager_move_counts.get(manager, {}).get("trades_in", 0)
+
+    recent_scores = [float(points) for _, points in gw_scores.get(manager, [])][-3:]
+    recent_avg = statistics.mean(recent_scores) if recent_scores else float(avg_points.get(manager, 0) or 0)
+    season_avg = float(avg_points.get(manager, 0) or 0)
+
+    candidates = []
+
+    if activity >= max(0.65, _style_avg_activity * 1.30):
+        candidates.append((3.0, "Waiver Hawk", "Makes roster changes aggressively and keeps working the market."))
+    elif activity <= min(0.30, _style_avg_activity * 0.65 if _style_avg_activity else 0.30):
+        candidates.append((2.4, "Patient Planner", "Prefers stability and gives players longer runs before changing course."))
+
+    if trades >= max(2, pickups):
+        candidates.append((2.7, "Deal Maker", "Uses manager-to-manager trades as a meaningful part of squad building."))
+
+    if eff >= max(92.0, _style_avg_eff + 2.0):
+        candidates.append((3.2, "XI Surgeon", "Consistently converts a high share of the squad's available points into the starting XI."))
+    elif eff <= min(84.0, _style_avg_eff - 3.0):
+        candidates.append((2.8, "Selection Gambler", "Leaves more points outside the optimal XI than most managers."))
+
+    if bench_pg >= max(6.0, _style_avg_bench * 1.25):
+        candidates.append((2.6, "Bench Gambler", "Carries productive depth but frequently leaves useful points on the bench."))
+    elif bench_pg <= min(3.0, _style_avg_bench * 0.70 if _style_avg_bench else 3.0):
+        candidates.append((2.1, "Lean Bench", "Gets relatively little scoring stranded among the substitutes."))
+
+    if len(gw_scores.get(manager, [])) >= 3:
+        if vol <= min(7.0, _style_avg_consistency * 0.80 if _style_avg_consistency else 7.0):
+            candidates.append((2.5, "Steady Hand", "Weekly scoring has been relatively consistent with fewer wild swings."))
+        elif vol >= max(11.0, _style_avg_consistency * 1.20):
+            candidates.append((2.5, "Chaos Merchant", "High weekly variance: dangerous ceiling, but the floor can disappear without warning."))
+
+    if len(recent_scores) >= 2 and recent_avg >= season_avg + 4.0:
+        candidates.append((2.4, "On the Charge", "Recent scoring is running clearly above the season baseline."))
+    elif len(recent_scores) >= 2 and recent_avg <= season_avg - 4.0:
+        candidates.append((2.0, "Searching for Form", "Recent scoring has slipped below the team's season baseline."))
+
+    if dt_pg >= max(0.8, _style_avg_dreamteam * 1.25):
+        candidates.append((2.3, "Ceiling Chaser", "Regularly gets high-upside players into the XI when they hit."))
+
+    if not candidates:
+        candidates.append((1.0, "Balanced Operator", "No extreme behavioural tendency yet; activity, selection and volatility are close to league norms."))
+
+    candidates.sort(key=lambda item: (-item[0], item[1]))
+    chosen = candidates[:3]
+
+    return {
+        "tags": [{"name": name, "description": desc} for _, name, desc in chosen],
+        "activity_per_gw": activity,
+        "pickups": pickups,
+        "trades": trades,
+        "efficiency": eff,
+        "bench_per_gw": bench_pg,
+        "volatility": vol,
+        "recent_avg": recent_avg,
     }
 
 
@@ -5441,6 +5570,27 @@ def manager_team_card(manager, card_index):
     starter_html = "".join(f'<div class="squad-row"><span>{escape_html(p.get("web_name", "Unknown"))}</span><b>{p.get("points", 0)}</b></div>' for p in sorted(starters, key=lambda x: int(x.get("points", 0) or 0), reverse=True)) or '<div class="muted">No starting XI captured.</div>'
     bench_html = "".join(f'<div class="squad-row bench-row"><span>{escape_html(p.get("web_name", "Unknown"))}</span><b>{p.get("points", 0)}</b></div>' for p in sorted(bench, key=lambda x: int(x.get("points", 0) or 0), reverse=True)) or '<div class="muted">No bench captured.</div>'
     rank = manager_current_rank.get(manager, "—")
+    style = manager_style_profile(manager)
+    style_tags_html = "".join(
+        '<span class="manager-style-tag" title="{}">{}</span>'.format(
+            escape_html(tag["description"]), escape_html(tag["name"])
+        )
+        for tag in style["tags"]
+    )
+    style_descriptions_html = "".join(
+        '<div class="manager-style-explainer"><b>{}</b><span>{}</span></div>'.format(
+            escape_html(tag["name"]), escape_html(tag["description"])
+        )
+        for tag in style["tags"]
+    )
+    style_metrics_html = (
+        '<div class="manager-style-metrics">'
+        f'<span><b>{style["activity_per_gw"]:.2f}</b> moves/GW</span>'
+        f'<span><b>{style["efficiency"]:.1f}%</b> XI efficiency</span>'
+        f'<span><b>{style["bench_per_gw"]:.1f}</b> bench pts/GW</span>'
+        f'<span><b>{style["volatility"]:.1f}</b> score volatility</span>'
+        '</div>'
+    )
     return f"""
         <div class="my-team-card" data-manager-index="{card_index}" style="display:none;">
             <div class="my-team-grid">
@@ -5458,6 +5608,11 @@ def manager_team_card(manager, card_index):
                         <div class="stat-card"><div class="stat-label">Avg Score</div><div class="stat-value">{avg_points.get(manager, 0):.1f}</div><div class="stat-description">Per gameweek</div></div>
                         <div class="stat-card"><div class="stat-label">Selection Efficiency</div><div class="stat-value">{selection.get("efficiency", 0):.1f}%</div><div class="stat-description">Latest GW optimal XI</div></div>
                         <div class="stat-card"><div class="stat-label">Points Missed</div><div class="stat-value">{manager_selection.get(manager, {}).get("missed", 0)}</div><div class="stat-description">Against optimal XIs</div></div>
+                    </div>
+                    <div class="manager-style-card">
+                        <div class="manager-style-header"><div><div class="eyebrow">MANAGER STYLE</div><h3>Season profile</h3></div><div class="manager-style-tags">{style_tags_html}</div></div>
+                        {style_descriptions_html}
+                        {style_metrics_html}
                     </div>
                 </div>
                 <div class="squad-card"><h3>Latest Squad</h3><div class="squad-columns"><div><div class="squad-heading">Starting XI</div>{starter_html}</div><div><div class="squad-heading">Bench</div>{bench_html}</div></div></div>
@@ -5636,6 +5791,22 @@ def _all_schedule_by_gw():
 
 
 full_fixture_schedule = _all_schedule_by_gw()
+
+# Fixture odds belong only to the next UNPLAYED gameweek. If a gameweek is
+# already live, skip it and project the following one instead.
+_fixture_odds_after_gw = (
+    int(dashboard_target_gw or 0)
+    if dashboard_target_is_live
+    else int(dashboard_last_finished_gw or 0)
+)
+fixture_prediction_gw = next(
+    (
+        gw for gw in sorted(full_fixture_schedule)
+        if int(gw) > _fixture_odds_after_gw
+        and any(not fixture.get("finished") for fixture in full_fixture_schedule.get(gw, []))
+    ),
+    None,
+)
 
 
 # ============================================================
@@ -5909,6 +6080,7 @@ def _build_current_squad_strength():
             "depth_bonus": depth_bonus,
             "formation": formation,
             "squad_size": len(projected_players),
+            "players": projected_players,
             "squad_draft_rank_total": squad_draft_rank_total,
         }
 
@@ -6048,6 +6220,7 @@ def _build_season_prediction(simulations=7500, seed=17288):
             "top3_pct": 100.0 * sum(counts.get(pos, 0) for pos in range(1, min(3, len(managers)) + 1)) / simulations,
             "bottom3_pct": 100.0 * sum(counts.get(pos, 0) for pos in range(max(1, len(managers) - 2), len(managers) + 1)) / simulations,
             "model_weekly_score": scoring_profile[m]["expected_score"],
+            "model_volatility": scoring_profile[m]["volatility"],
             "squad_score": scoring_profile[m]["squad_score"],
             "optimal_xi": scoring_profile[m]["optimal_xi"],
             "selection_efficiency": scoring_profile[m]["selection_efficiency"],
@@ -6060,6 +6233,408 @@ def _build_season_prediction(simulations=7500, seed=17288):
 
 season_prediction, predicted_finish_order = _build_season_prediction()
 mathematical_finish_range = _build_mathematical_finish_ranges()
+
+
+
+
+# ============================================================
+# PROJECTED FIXTURE ODDS
+# ============================================================
+# Uses the same weekly score distributions as the season Monte Carlo model.
+# These are pre-GW probabilities: completed results are never re-simulated.
+
+def _fixture_odds_for_match(team1, team2, simulations=10000, seed=17288):
+    p1 = season_prediction.get(team1, {})
+    p2 = season_prediction.get(team2, {})
+    if not p1 or not p2:
+        return None
+
+    mu1 = float(p1.get("model_weekly_score", 45.0) or 45.0)
+    mu2 = float(p2.get("model_weekly_score", 45.0) or 45.0)
+    sd1 = max(float(p1.get("model_volatility", 10.0) or 10.0), 4.0)
+    sd2 = max(float(p2.get("model_volatility", 10.0) or 10.0), 4.0)
+
+    stable = sum((i + 1) * ord(ch) for i, ch in enumerate(f"{team1}|{team2}"))
+    rng = random.Random(int(seed) + stable)
+    league_week_sd = statistics.mean([sd1, sd2]) * 0.18
+
+    wins1 = draws = wins2 = 0
+    score1_samples = []
+    score2_samples = []
+    for _ in range(simulations):
+        shared = rng.gauss(0, league_week_sd)
+        s1 = max(0, round(rng.gauss(mu1 + shared, sd1)))
+        s2 = max(0, round(rng.gauss(mu2 + shared, sd2)))
+        score1_samples.append(s1)
+        score2_samples.append(s2)
+        if s1 > s2:
+            wins1 += 1
+        elif s2 > s1:
+            wins2 += 1
+        else:
+            draws += 1
+
+    return {
+        "team1_win": 100.0 * wins1 / simulations,
+        "draw": 100.0 * draws / simulations,
+        "team2_win": 100.0 * wins2 / simulations,
+        "team1_mean": statistics.mean(score1_samples),
+        "team2_mean": statistics.mean(score2_samples),
+        "team1_low": _prediction_percentile(score1_samples, 0.10),
+        "team1_high": _prediction_percentile(score1_samples, 0.90),
+        "team2_low": _prediction_percentile(score2_samples, 0.10),
+        "team2_high": _prediction_percentile(score2_samples, 0.90),
+    }
+
+
+def projected_fixture_odds_table():
+    target_gw = int(fixture_prediction_gw or 0)
+    fixtures = [
+        f for f in full_fixture_schedule.get(target_gw, [])
+        if f.get("team1") in managers and f.get("team2") in managers
+    ]
+    if not fixtures:
+        return '<div class="notice">No upcoming fixtures available for projection.</div>'
+
+    rows = ""
+    for fixture in fixtures:
+        t1 = fixture["team1"]
+        t2 = fixture["team2"]
+        odds = _fixture_odds_for_match(t1, t2)
+        if not odds:
+            continue
+        rows += f'''
+<tr>
+<td class="manager-name">{escape_html(t1)}</td>
+<td><b>{odds["team1_win"]:.1f}%</b></td>
+<td>{odds["draw"]:.1f}%</td>
+<td><b>{odds["team2_win"]:.1f}%</b></td>
+<td class="manager-name">{escape_html(t2)}</td>
+<td>{odds["team1_mean"]:.1f}–{odds["team2_mean"]:.1f}</td>
+<td>{odds["team1_low"]:.0f}–{odds["team1_high"]:.0f} / {odds["team2_low"]:.0f}–{odds["team2_high"]:.0f}</td>
+</tr>'''
+
+    return f'''
+<div class="table-wrap"><table>
+<thead><tr><th>Team</th><th>Win</th><th>Draw</th><th>Win</th><th>Team</th><th>Avg Score</th><th>80% Score Range</th></tr></thead>
+<tbody>{rows}</tbody></table></div>'''
+
+
+# ============================================================
+# LIVE FIXTURE WIN PROBABILITIES
+# ============================================================
+# Current Draft H2H scores are locked in. Only unresolved contribution from
+# the selected XI is simulated. Premier League fixture status determines how
+# much football each starter still has available this gameweek.
+
+def _live_element_stats_lookup():
+    out = {}
+    for row in _dashboard_live_elements:
+        if not isinstance(row, dict) or row.get("id") is None:
+            continue
+        stats = row.get("stats") or {}
+        out[int(row["id"])] = {
+            "points": float(stats.get("total_points", 0) or 0),
+            "minutes": float(stats.get("minutes", 0) or 0),
+        }
+    return out
+
+
+def _club_fixture_remaining_fraction(club_id):
+    fixtures = [
+        f for f in _dashboard_pl_fixtures
+        if int(f.get("team_h", 0) or 0) == int(club_id or 0)
+        or int(f.get("team_a", 0) or 0) == int(club_id or 0)
+    ]
+    if not fixtures:
+        return 0.0, "unknown"
+
+    fractions = []
+    states = []
+    for f in fixtures:
+        if f.get("finished") or f.get("finished_provisional"):
+            fractions.append(0.0)
+            states.append("finished")
+        elif f.get("started"):
+            try:
+                mins = float(f.get("minutes", 0) or 0)
+            except (TypeError, ValueError):
+                mins = 0.0
+            fractions.append(max(0.0, min(1.0, (90.0 - mins) / 90.0)))
+            states.append("live")
+        else:
+            fractions.append(1.0)
+            states.append("upcoming")
+
+    frac = sum(fractions) / max(len(fractions), 1)
+    if any(state == "upcoming" for state in states):
+        state = "upcoming"
+    elif any(state == "live" for state in states):
+        state = "live"
+    else:
+        state = "finished"
+    return frac, state
+
+
+def _live_manager_remaining_profile(manager):
+    snapshot = history.get("gameweeks", {}).get(str(dashboard_target_gw), {})
+    team_data = next(
+        (td for td in snapshot.get("teams", {}).values() if td.get("manager") == manager),
+        None,
+    )
+    if not team_data:
+        return {"mean": 0.0, "sd": 1.5, "players_left": 0, "details": []}
+
+    projection_by_id = {
+        int(p.get("id")): float(p.get("projection", 0) or 0)
+        for p in current_squad_strength.get(manager, {}).get("players", [])
+        if p.get("id") is not None
+    }
+    live_stats = _live_element_stats_lookup()
+
+    total_mean = 0.0
+    variances = []
+    details = []
+    players_left = 0
+
+    for player in team_data.get("starters", []):
+        pid = player.get("element_id")
+        if pid is None:
+            continue
+        pid = int(pid)
+        meta = elements.get(pid, {})
+        remaining_fraction, state = _club_fixture_remaining_fraction(meta.get("team"))
+        if remaining_fraction <= 0:
+            continue
+
+        projection = projection_by_id.get(pid)
+        if projection is None:
+            projection = float(meta.get("total_points", 0) or 0) / max(len(finished_gws), 1)
+
+        player_live = live_stats.get(pid, {"points": 0.0, "minutes": 0.0})
+        live_minutes = float(player_live.get("minutes", 0) or 0)
+        appearance_factor = 0.35 if state == "live" and live_minutes <= 0 else 1.0
+
+        remaining_mean = max(0.0, projection * remaining_fraction * appearance_factor)
+        if remaining_mean <= 0.05:
+            continue
+
+        player_sd = max(1.2, 1.15 * (remaining_mean ** 0.65))
+        total_mean += remaining_mean
+        variances.append(player_sd ** 2)
+        players_left += 1
+        details.append({
+            "name": player.get("web_name") or meta.get("web_name", f"Player {pid}"),
+            "state": state,
+            "remaining_mean": remaining_mean,
+        })
+
+    base_team_sd = float(season_prediction.get(manager, {}).get("model_volatility", 9.0) or 9.0)
+    model_weekly = max(float(season_prediction.get(manager, {}).get("model_weekly_score", 45.0) or 45.0), 1.0)
+    unresolved_scale = min(1.0, total_mean / model_weekly)
+    team_residual_var = (base_team_sd * 0.25 * unresolved_scale) ** 2
+    total_sd = max(1.5, math.sqrt(sum(variances) + team_residual_var))
+
+    return {"mean": total_mean, "sd": total_sd, "players_left": players_left, "details": details}
+
+
+def _live_fixture_odds_for_match(match, simulations=12000, seed=17288):
+    e1 = match.get("league_entry_1")
+    e2 = match.get("league_entry_2")
+    t1 = league_entry_id_to_name.get(e1, league_entry_id_to_name.get(str(e1), "Unknown"))
+    t2 = league_entry_id_to_name.get(e2, league_entry_id_to_name.get(str(e2), "Unknown"))
+    try:
+        current1 = int(match.get("league_entry_1_points", 0) or 0)
+    except (TypeError, ValueError):
+        current1 = 0
+    try:
+        current2 = int(match.get("league_entry_2_points", 0) or 0)
+    except (TypeError, ValueError):
+        current2 = 0
+
+    r1 = _live_manager_remaining_profile(t1)
+    r2 = _live_manager_remaining_profile(t2)
+    stable = sum((i + 1) * ord(ch) for i, ch in enumerate(f"LIVE|{dashboard_target_gw}|{t1}|{t2}"))
+    rng = random.Random(int(seed) + stable + current1 * 31 + current2 * 37)
+
+    wins1 = draws = wins2 = 0
+    finals1, finals2 = [], []
+    shared_sd = 0.10 * statistics.mean([r1["sd"], r2["sd"]])
+
+    for _ in range(simulations):
+        shared = rng.gauss(0, shared_sd)
+        rem1 = max(0, round(rng.gauss(r1["mean"] + shared, r1["sd"])))
+        rem2 = max(0, round(rng.gauss(r2["mean"] + shared, r2["sd"])))
+        final1 = current1 + rem1
+        final2 = current2 + rem2
+        finals1.append(final1)
+        finals2.append(final2)
+        if final1 > final2:
+            wins1 += 1
+        elif final2 > final1:
+            wins2 += 1
+        else:
+            draws += 1
+
+    return {
+        "team1": t1, "team2": t2,
+        "current1": current1, "current2": current2,
+        "team1_win": 100.0 * wins1 / simulations,
+        "draw": 100.0 * draws / simulations,
+        "team2_win": 100.0 * wins2 / simulations,
+        "players_left1": r1["players_left"], "players_left2": r2["players_left"],
+        "final1_mean": statistics.mean(finals1), "final2_mean": statistics.mean(finals2),
+    }
+
+
+def live_fixture_odds_table():
+    if dashboard_game_state != "live":
+        return ""
+    matches = [
+        m for m in (league_matches_all or [])
+        if int(m.get("event", 0) or 0) == int(dashboard_target_gw)
+    ]
+    if not matches:
+        return '<div class="notice">Live fixtures are not available yet.</div>'
+
+    rows = ""
+    for match in matches:
+        odds = _live_fixture_odds_for_match(match)
+        rows += f"""<tr>
+<td class="manager-name">{escape_html(odds['team1'])}</td>
+<td>{odds['current1']}</td>
+<td>{odds['players_left1']}</td>
+<td><b>{odds['team1_win']:.1f}%</b></td>
+<td>{odds['draw']:.1f}%</td>
+<td><b>{odds['team2_win']:.1f}%</b></td>
+<td>{odds['players_left2']}</td>
+<td>{odds['current2']}</td>
+<td class="manager-name">{escape_html(odds['team2'])}</td>
+<td>{odds['final1_mean']:.1f}–{odds['final2_mean']:.1f}</td>
+</tr>"""
+
+    return f"""<div class="table-wrap"><table>
+<thead><tr><th>Team</th><th>Now</th><th>Left</th><th>Win</th><th>Draw</th><th>Win</th><th>Left</th><th>Now</th><th>Team</th><th>Projected Final</th></tr></thead>
+<tbody>{rows}</tbody></table></div>"""
+
+
+# ============================================================
+# SQUAD PEDIGREE
+# ============================================================
+# Composite 0-5★ rating using four transparent signals:
+#   30% last-3-GW scoring form
+#   30% current squad draft-rank total (lower is better)
+#   20% recent H2H W-D-L form
+#   20% number of current top-50 original draft picks
+# Every component uses fixed bands rather than a forced league ranking.
+
+
+def _star_text(stars):
+    full = int(stars)
+    half = abs(stars - full - 0.5) < 1e-9
+    return ("★" * full) + ("½" if half else "") + ("☆" * max(0, 5 - full - (1 if half else 0)))
+
+
+def _round_half_star(value):
+    return min(5.0, max(0.0, round(float(value) * 2.0) / 2.0))
+
+
+def _form_stars_from_3gw_average(avg_score):
+    if avg_score is None:
+        return 2.5
+    bands = [
+        (28, 0.0), (33, 0.5), (38, 1.0), (43, 1.5), (48, 2.0),
+        (53, 2.5), (58, 3.0), (63, 3.5), (68, 4.0), (73, 4.5),
+        (999, 5.0),
+    ]
+    for ceiling, stars in bands:
+        if avg_score < ceiling:
+            return stars
+    return 5.0
+
+
+def _draft_total_stars(total_rank):
+    bands = [
+        (700, 5.0), (825, 4.5), (950, 4.0), (1075, 3.5), (1200, 3.0),
+        (1325, 2.5), (1450, 2.0), (1575, 1.5), (1700, 1.0), (1850, 0.5),
+        (99999, 0.0),
+    ]
+    for ceiling, stars in bands:
+        if total_rank <= ceiling:
+            return stars
+    return 0.0
+
+
+def _wdl_form_stars(form):
+    recent = list(form or [])[-5:]
+    if not recent:
+        return 2.5
+    points = sum(3 if r == "W" else 1 if r == "D" else 0 for r in recent)
+    max_points = 3 * len(recent)
+    return 5.0 * points / max_points if max_points else 2.5
+
+
+def _top50_stars(count):
+    return min(5.0, max(0.0, float(count)))
+
+
+def squad_pedigree_table():
+    rows_data = []
+    for manager in managers:
+        p = season_prediction.get(manager, {})
+        players = current_squad_strength.get(manager, {}).get("players", [])
+        total = int(p.get("squad_draft_rank_total", UNDRAFTED_PLAYER_RANK * 15) or UNDRAFTED_PLAYER_RANK * 15)
+
+        recent_scores = [
+            float(score or 0)
+            for _, score in sorted(raw_score_by_gw.get(manager, []))[-3:]
+        ]
+        form_3gw = statistics.mean(recent_scores) if recent_scores else None
+        scoring_stars = _form_stars_from_3gw_average(form_3gw)
+        draft_stars = _draft_total_stars(total)
+        wdl_stars = _wdl_form_stars(manager_form_data.get(manager, []))
+
+        undrafted_count = sum(
+            1 for player in players
+            if int(player.get("draft_rank", UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK) >= UNDRAFTED_PLAYER_RANK
+        )
+        top50 = sum(
+            1 for player in players
+            if int(player.get("draft_rank", UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK) <= 50
+        )
+        top50_stars = _top50_stars(top50)
+
+        composite = (
+            0.30 * scoring_stars
+            + 0.30 * draft_stars
+            + 0.20 * wdl_stars
+            + 0.20 * top50_stars
+        )
+        expanded = 2.5 + (composite - 2.5) * 1.25
+        stars = _round_half_star(expanded)
+
+        recent_wdl = "".join(manager_form_data.get(manager, [])[-5:]) or "—"
+        rows_data.append((stars, total, manager, form_3gw, recent_wdl, top50, undrafted_count))
+
+    rows_data.sort(key=lambda row: (-row[0], row[1], row[2]))
+    rows = ""
+    for stars, total, manager, form_3gw, recent_wdl, top50, undrafted_count in rows_data:
+        form_text = f"{form_3gw:.1f}" if form_3gw is not None else "—"
+        rows += f"""
+<tr>
+<td class=\"manager-name\">{escape_html(manager)}</td>
+<td><b>{_star_text(stars)}</b> <span class=\"muted\">{stars:.1f}</span></td>
+<td>{form_text}</td>
+<td>{escape_html(recent_wdl)}</td>
+<td><b>{total}</b></td>
+<td>{top50}</td>
+<td>{undrafted_count}</td>
+</tr>"""
+
+    return f"""
+<div class=\"table-wrap\"><table>
+<thead><tr><th>Manager</th><th>Pedigree</th><th>3GW Pts</th><th>W-D-L Form</th><th>Draft Rank Total ↓</th><th>Top-50 Picks</th><th>Undrafted</th></tr></thead>
+<tbody>{rows}</tbody></table></div>"""
 
 
 def season_prediction_table():
@@ -6085,7 +6660,6 @@ def season_prediction_table():
 <td>{p["bottom3_pct"]:.1f}%</td>
 </tr>'''
     return f'''
-<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Weekly scoring expectation is 45% current squad strength, 35% exponentially weighted last-three form, 10% season team scoring and 10% regression to the league mean. The latest result carries twice the weight of the oldest result in that three-GW window, and early-season score volatility is deliberately inflated before tapering towards observed levels by GW10. Squad strength builds the best legal projected XI from each player's recent/season output plus their <b>original McDraft pick</b> as a decaying pre-season prior. Original picks retain ranks 1–150 and every undrafted player is rank <b>151</b>. <b>Draft Rank Total</b> sums the current roster's ranks, so lower indicates stronger pre-season pedigree. The XI is then discounted by that manager's historically observed selection efficiency; bench depth adds only a small resilience bonus. Waivers and trades therefore move the forecast immediately, while a player's original draft prior follows them to their new team. Forecast Range is the central 80% of simulated finishes and is separate from mathematical Possible Finish.</div>
 <div class="table-wrap"><table>
 <thead><tr><th>Pred.</th><th>Manager</th><th>Now</th><th>Exp. League Pts</th><th>Exp. W-D-L</th><th>Exp. Pts For</th><th>Squad XI</th><th>Draft Rank Total ↓</th><th>Pick Eff.</th><th>Forecast Range</th><th>1st</th><th>Top 3</th><th>Bottom 3</th></tr></thead>
 <tbody>{rows}</tbody></table></div>'''
@@ -6115,7 +6689,6 @@ def position_probability_table():
 </tr>'''
 
     return f'''
-<div class="power-formula"><b>How to read it:</b> each row sums to roughly 100%. These are model probabilities from the same 7,500 schedule-aware simulations — unlike Possible Finish, which is purely mathematical.</div>
 <div class="table-wrap"><table>
 <thead><tr><th>Manager</th>{header_positions}</tr></thead>
 <tbody>{rows}</tbody></table></div>'''
@@ -7293,13 +7866,13 @@ def season_summary_html():
 
 def future_fixture_sections():
     last_finished = max(finished_gws) if finished_gws else 0
-    future_gws = sorted(gw for gw in full_fixture_schedule if gw > last_finished)
+    future_gws = [gw for gw in range(1, 39) if gw > last_finished]
     if not future_gws:
         return '<div class="notice">No future fixtures available yet.</div>'
     sections = []
     for index, gw in enumerate(future_gws):
         rows = []
-        for fixture in full_fixture_schedule[gw]:
+        for fixture in full_fixture_schedule.get(gw, []):
             derby = _derby_name(fixture["team1"], fixture["team2"])
             derby_html = f'<div class="fixture-derby">{escape_html(derby)}</div>' if derby else ''
             rows.append(
@@ -7309,13 +7882,28 @@ def future_fixture_sections():
                 f'<div class="future-fixture-team">{escape_html(fixture["team2"])}</div>'
                 '</div>'
             )
+        if not rows:
+            rows.append('<div class="notice">Fixture data is not available for this gameweek yet.</div>')
         display = "block" if index == 0 else "none"
         sections.append(f'<div class="future-fixture-slide" id="future-gw-{gw}" style="display:{display};">{"".join(rows)}</div>')
     return ''.join(sections)
 
 
-future_fixture_gameweeks = sorted(gw for gw in full_fixture_schedule if gw > (max(finished_gws) if finished_gws else 0))
-gameweek_browser_gameweeks = sorted(set(result_gameweeks) | set(full_fixture_schedule.keys()))
+# Keep the Gameweek browser independent from prediction/live-odds filtering.
+# FPL seasons have 38 gameweeks, so every GW remains browseable even if a
+# particular API response temporarily omits a future fixture block. Where
+# schedule data exists it is rendered; otherwise the browser shows a small
+# availability notice rather than removing the gameweek entirely.
+_SEASON_GAMEWEEKS = list(range(1, 39))
+future_fixture_gameweeks = [
+    gw for gw in _SEASON_GAMEWEEKS
+    if gw > (max(finished_gws) if finished_gws else 0)
+]
+gameweek_browser_gameweeks = sorted(
+    set(_SEASON_GAMEWEEKS)
+    | set(result_gameweeks)
+    | set(full_fixture_schedule.keys())
+)
 
 def gameweek_summary_sections():
     sections = ""
@@ -7610,9 +8198,95 @@ def live_as_it_stands_table():
 
 
 # ============================================================
+
 # RESULTS / FIXTURE BROWSER HTML
 # ============================================================
 
+def _fixture_team_snapshot(gw, manager):
+    snapshot = history.get("gameweeks", {}).get(str(gw), {})
+    for team_data in snapshot.get("teams", {}).values():
+        if team_data.get("manager") == manager:
+            return team_data
+    return None
+
+
+def _fixture_player_status(player, gw, is_live=False):
+    if not is_live or int(gw) != int(dashboard_target_gw):
+        return "FT" if int(gw) in finished_gws else ""
+    pid = player.get("element_id")
+    if pid is None:
+        return ""
+    meta = elements.get(int(pid), {})
+    _, state = _club_fixture_remaining_fraction(meta.get("team"))
+    return {"finished": "FT", "live": "LIVE", "upcoming": "TO PLAY"}.get(state, "")
+
+
+def _fixture_xi_pitch(gw, manager, is_live=False):
+    team_data = _fixture_team_snapshot(gw, manager)
+    if not team_data:
+        return '<div class="notice">Selected XI was not captured for this team.</div>'
+
+    starters = list(team_data.get("starters", []) or [])
+    by_pos = {"GKP": [], "DEF": [], "MID": [], "FWD": []}
+    for player in starters:
+        pos = player.get("position", "")
+        if pos in by_pos:
+            by_pos[pos].append(player)
+
+    formation = f"{len(by_pos['DEF'])}-{len(by_pos['MID'])}-{len(by_pos['FWD'])}"
+
+    def chip(player):
+        name = escape_html(player.get("web_name", "Unknown"))
+        try:
+            pts = int(player.get("points", 0) or 0)
+        except (TypeError, ValueError):
+            pts = 0
+        status = _fixture_player_status(player, gw, is_live)
+        state_class = status.lower().replace(" ", "-")
+        status_html = (
+            f'<span class="fixture-player-state fixture-player-state-{state_class}">{status}</span>'
+            if status else ""
+        )
+        return (
+            '<div class="chip fixture-xi-chip">'
+            f'<div class="chip-name">{name}</div>'
+            f'<div class="chip-sub">{pts} pts {status_html}</div>'
+            '</div>'
+        )
+
+    total = sum(int(p.get("points", 0) or 0) for p in starters)
+    return (
+        '<div class="fixture-xi-heading">'
+        f'<strong>{escape_html(manager)}</strong>'
+        f'<span>{formation} · {total} XI pts</span>'
+        '</div>'
+        '<div class="pitch fixture-xi-pitch">'
+        f'<div class="row">{"".join(chip(p) for p in by_pos["FWD"])}</div>'
+        f'<div class="row">{"".join(chip(p) for p in by_pos["MID"])}</div>'
+        f'<div class="row">{"".join(chip(p) for p in by_pos["DEF"])}</div>'
+        f'<div class="row">{"".join(chip(p) for p in by_pos["GKP"])}</div>'
+        '</div>'
+    )
+
+
+def _fixture_detail_panel(detail_id, gw, team1, score1, team2, score2, is_live=False):
+    state = "LIVE" if is_live else "FINAL"
+    return (
+        f'<section class="fixture-detail-panel" id="{detail_id}" hidden>'
+        '<div class="fixture-detail-scoreline">'
+        f'<div><strong>{escape_html(team1)}</strong><span>{score1}</span></div>'
+        f'<div class="fixture-detail-state">GW{gw} · {state}</div>'
+        f'<div><span>{score2}</span><strong>{escape_html(team2)}</strong></div>'
+        '</div>'
+        '<div class="fixture-xi-grid">'
+        f'<div>{_fixture_xi_pitch(gw, team1, is_live=is_live)}</div>'
+        f'<div>{_fixture_xi_pitch(gw, team2, is_live=is_live)}</div>'
+        '</div>'
+        '</section>'
+    )
+
+
+fixture_detail_sections = ""
 results_sections = ""
 latest_completed_for_browser = max(result_gameweeks) if result_gameweeks else None
 browser_default_gw = (
@@ -7649,14 +8323,16 @@ for gw in gameweek_browser_gameweeks:
 
             derby = _derby_name(team1, team2)
             derby_html = f'<div class="fixture-derby unified-derby">{escape_html(derby)}</div>' if derby else ''
+            detail_id = f"fixture-detail-gw{gw}-live-{e1}-{e2}"
+            fixture_detail_sections += _fixture_detail_panel(detail_id, gw, team1, score1, team2, score2, is_live=True)
             fixtures_html += f"""
-                <div class="fixture">
+                <div class="fixture fixture-clickable" data-fixture-detail="{detail_id}" role="button" tabindex="0" aria-label="Open {escape_html(team1)} versus {escape_html(team2)} lineups">
                     {derby_html}
                     <div class="fixture-team">
                         <span class="fixture-manager">{escape_html(team1)}</span>
                         <span class="fixture-score">{score1}</span>
                     </div>
-                    <div class="fixture-vs">LIVE</div>
+                    <div class="fixture-vs">LIVE<br><small>View XI</small></div>
                     <div class="fixture-team">
                         <span class="fixture-score">{score2}</span>
                         <span class="fixture-manager">{escape_html(team2)}</span>
@@ -7680,14 +8356,18 @@ for gw in gameweek_browser_gameweeks:
 
             derby = _derby_name(fixture["team1"], fixture["team2"])
             derby_html = f'<div class="fixture-derby unified-derby">{escape_html(derby)}</div>' if derby else ''
+            detail_id = f"fixture-detail-gw{gw}-{escape_html(fixture['team1']).replace(' ', '-')}-{escape_html(fixture['team2']).replace(' ', '-')}"
+            fixture_detail_sections += _fixture_detail_panel(
+                detail_id, gw, fixture["team1"], fixture["score1"], fixture["team2"], fixture["score2"], is_live=False
+            )
             fixtures_html += f"""
-                <div class="fixture">
+                <div class="fixture fixture-clickable" data-fixture-detail="{detail_id}" role="button" tabindex="0" aria-label="Open {escape_html(fixture['team1'])} versus {escape_html(fixture['team2'])} lineups">
                     {derby_html}
                     <div class="fixture-team {team1_class}">
                         <span class="fixture-manager">{escape_html(fixture["team1"])}</span>
                         <span class="fixture-score">{fixture["score1"]}</span>
                     </div>
-                    <div class="fixture-vs">VS</div>
+                    <div class="fixture-vs">VS<br><small>View XI</small></div>
                     <div class="fixture-team {team2_class}">
                         <span class="fixture-score">{fixture["score2"]}</span>
                         <span class="fixture-manager">{escape_html(fixture["team2"])}</span>
@@ -8517,6 +9197,34 @@ tbody tr:hover {
 .squad-row b { color: white; }
 .bench-row { color: var(--muted); }
 
+
+.manager-style-card {
+    margin-top: 14px;
+    background: #172033;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px;
+}
+.manager-style-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; }
+.manager-style-header h3 { margin:3px 0 0; color:white; font-size:16px; }
+.manager-style-tags { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; }
+.manager-style-tag {
+    display:inline-flex; align-items:center;
+    border:1px solid rgba(96,165,250,.35);
+    background:rgba(96,165,250,.10);
+    color:#bfdbfe;
+    border-radius:999px;
+    padding:5px 8px;
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.2px;
+}
+.manager-style-explainer { display:grid; grid-template-columns:minmax(100px,.28fr) 1fr; gap:10px; padding:7px 0; border-top:1px solid var(--border); font-size:11px; }
+.manager-style-explainer b { color:white; }
+.manager-style-explainer span { color:var(--muted); line-height:1.45; }
+.manager-style-metrics { display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:10px; padding-top:10px; border-top:1px solid var(--border); color:var(--muted); font-size:10px; }
+.manager-style-metrics b { color:var(--accent); }
+
 .gw-summary-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -9046,6 +9754,32 @@ tbody tr:hover {
     font-weight: 750;
 }
 
+
+
+.fixture-clickable { cursor:pointer; transition:border-color .15s ease, transform .15s ease, background .15s ease; }
+.fixture-clickable:hover,.fixture-clickable:focus-visible { border-color:var(--border-light); background:#1b263b; outline:none; transform:translateY(-1px); }
+.fixture-vs small { display:inline-block; margin-top:3px; font-size:9px; color:var(--muted); }
+.fixture-detail-overlay { position:fixed; inset:0; z-index:10000; background:rgba(3,7,18,.88); padding:24px; overflow:auto; }
+.fixture-detail-overlay[hidden],.fixture-detail-panel[hidden] { display:none; }
+.fixture-detail-dialog { position:relative; width:min(1180px,100%); margin:0 auto; background:var(--card); border:1px solid var(--border-light); border-radius:16px; padding:26px; }
+.fixture-detail-close { position:absolute; right:14px; top:12px; border:0; background:transparent; color:white; font-size:30px; cursor:pointer; line-height:1; }
+.fixture-detail-scoreline { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:18px; padding:4px 42px 20px 0; }
+.fixture-detail-scoreline>div:first-child,.fixture-detail-scoreline>div:last-child { display:flex; align-items:baseline; gap:12px; font-size:18px; }
+.fixture-detail-scoreline>div:last-child { justify-content:flex-end; }
+.fixture-detail-scoreline span { font-size:30px; font-weight:850; color:white; }
+.fixture-detail-state { color:var(--muted); font-size:12px; font-weight:750; text-align:center; }
+.fixture-xi-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; }
+.fixture-xi-heading { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:9px; }
+.fixture-xi-heading strong { color:white; font-size:16px; }
+.fixture-xi-heading span { color:var(--muted); font-size:12px; }
+.fixture-xi-pitch { min-height:390px; padding:24px 12px; gap:20px; }
+.fixture-xi-chip { min-width:84px; padding:8px 9px; }
+.fixture-player-state { display:inline-block; margin-left:3px; font-size:8px; font-weight:850; letter-spacing:.04em; }
+.fixture-player-state-live { color:#dc2626; }.fixture-player-state-to-play { color:#2563eb; }.fixture-player-state-ft { color:#64748b; }
+@media (max-width:820px) {
+  .fixture-detail-overlay{padding:10px}.fixture-detail-dialog{padding:18px 12px}.fixture-xi-grid{grid-template-columns:1fr;gap:26px}
+  .fixture-detail-scoreline{padding-right:34px;gap:8px}.fixture-detail-scoreline strong{font-size:13px}.fixture-detail-scoreline span{font-size:24px}.fixture-xi-pitch{min-height:360px}
+}
 
 /* ============================================================
    TEAM OF THE WEEK
@@ -10867,6 +11601,9 @@ const resultsGameweeks =
 
 const latestCompletedGameweek = totwGameweeks.length ? Math.max.apply(null, totwGameweeks) : null;
 const dashboardDisplayGameweek = __DASHBOARD_DISPLAY_GW__;
+const fixturePredictionGameweek = __FIXTURE_PREDICTION_GW__;
+const dashboardGameState = "__DASHBOARD_GAME_STATE__";
+const dashboardTargetGameweek = __DASHBOARD_TARGET_GW__;
 let resultsIndex = resultsGameweeks.indexOf(dashboardDisplayGameweek);
 if (resultsIndex < 0 && latestCompletedGameweek !== null) {
     resultsIndex = resultsGameweeks.indexOf(latestCompletedGameweek);
@@ -10897,6 +11634,15 @@ function updateResults() {
 
     const summaryCard = document.getElementById("gameweek-summary-card");
     if (summaryCard) summaryCard.style.display = isCompleted ? "block" : "none";
+
+    const fixtureOddsCard = document.getElementById("fixture-odds-card");
+    const upcomingFixtureOdds = document.getElementById("upcoming-fixture-odds");
+    const liveFixtureOdds = document.getElementById("live-fixture-odds");
+    const showLiveOdds = dashboardGameState === "live" && selectedGW === dashboardTargetGameweek;
+    const showUpcomingOdds = selectedGW === fixturePredictionGameweek;
+    if (fixtureOddsCard) fixtureOddsCard.style.display = (showLiveOdds || showUpcomingOdds) ? "block" : "none";
+    if (liveFixtureOdds) liveFixtureOdds.style.display = showLiveOdds ? "block" : "none";
+    if (upcomingFixtureOdds) upcomingFixtureOdds.style.display = showUpcomingOdds ? "block" : "none";
 
     const totwCard = document.getElementById("totw-card");
     if (totwCard) totwCard.style.display = isCompleted ? "block" : "none";
@@ -11334,6 +12080,41 @@ function safeInit(label, fn) {
     }
 }
 
+
+function closeFixtureDetail() {
+    const overlay = document.getElementById("fixture-detail-overlay");
+    if (!overlay) return;
+    overlay.hidden = true;
+    overlay.setAttribute("aria-hidden", "true");
+    overlay.querySelectorAll(".fixture-detail-panel").forEach(panel => panel.hidden = true);
+    document.body.style.overflow = "";
+}
+function openFixtureDetail(detailId) {
+    const overlay = document.getElementById("fixture-detail-overlay");
+    const panel = document.getElementById(detailId);
+    if (!overlay || !panel) return;
+    overlay.querySelectorAll(".fixture-detail-panel").forEach(item => item.hidden = true);
+    panel.hidden = false;
+    overlay.hidden = false;
+    overlay.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    const closeButton = document.getElementById("fixture-detail-close");
+    if (closeButton) closeButton.focus();
+}
+function initialiseFixtureDrilldown() {
+    document.querySelectorAll(".fixture-clickable[data-fixture-detail]").forEach(function(card) {
+        card.addEventListener("click", () => openFixtureDetail(card.dataset.fixtureDetail));
+        card.addEventListener("keydown", function(event) {
+            if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openFixtureDetail(card.dataset.fixtureDetail); }
+        });
+    });
+    const closeButton = document.getElementById("fixture-detail-close");
+    if (closeButton) closeButton.addEventListener("click", closeFixtureDetail);
+    const overlay = document.getElementById("fixture-detail-overlay");
+    if (overlay) overlay.addEventListener("click", event => { if (event.target === overlay) closeFixtureDetail(); });
+    document.addEventListener("keydown", event => { if (event.key === "Escape") closeFixtureDetail(); });
+}
+
 function initialiseDashboard() {
     safeInit("page navigation", function() {
         showPage("overview");
@@ -11354,6 +12135,8 @@ function initialiseDashboard() {
     safeInit("Results", function() {
         updateResults();
     });
+
+    safeInit("Fixture drilldown", initialiseFixtureDrilldown);
 
     safeInit("My Team charts", function() {
         renderMyTeamStatsCharts();
@@ -11558,7 +12341,6 @@ __CSS__
 
                 <div class="card">
                     <h2>Power Rankings</h2>
-                    <p class="card-description">Recent form, season scoring, squad management and league position blended into one rating. It can still disagree with the table when underlying performance points elsewhere.</p>
                     __POWER_RANKINGS_TABLE__
                 </div>
 
@@ -11566,7 +12348,6 @@ __CSS__
 
             <div class="card storyline-card">
                 <h2>__HOME_GAME_STATE_TITLE__</h2>
-                <p class="card-description">Completed recap, upcoming market preview or live head-to-head scoreboard — this panel changes automatically with the gameweek.</p>
                 __HOME_GAME_STATE_PANEL__
             </div>
 
@@ -11577,14 +12358,17 @@ __CSS__
 
             <div class="card">
                 <h2>Rest-of-Season Prediction</h2>
-                <p class="card-description">A schedule-aware Monte Carlo forecast of the remaining season. Model estimate, not destiny — one monster haul can still make a right bloody mess of it.</p>
                 __SEASON_PREDICTION_TABLE__
             </div>
 
             <div class="card">
                 <h2>Finish Probability Matrix</h2>
-                <p class="card-description">The model's percentage chance of each manager finishing in every league position, from 1st to 10th.</p>
                 __POSITION_PROBABILITY_TABLE__
+            </div>
+
+            <div class="card">
+                <h2>Squad Pedigree</h2>
+                __SQUAD_PEDIGREE_TABLE__
             </div>
 
 
@@ -11623,7 +12407,6 @@ __CSS__
                         Cumulative Points Scored
                     </h2>
 
-                    <p class="card-description">Raw fantasy points accumulated through the season — useful for seeing sustained scoring strength independently of H2H results.</p>
                     <div class="chip-row" id="chips-cumulative"></div>
                     <div class="trend-chart-svg-wrap" id="chart-cumulative"></div>
                     <div id="legend-cumulative"></div>
@@ -11736,21 +12519,16 @@ __CSS__
 
                 <div class="card">
                     <h2>Head-to-Head Record</h2>
-                    <p class="card-description">
-                        Your record against every other manager in the league.
-                    </p>
                     <div id="myteam-h2h-record"></div>
                 </div>
 
                 <div class="card trend-chart-card">
                     <h2>Score By Gameweek</h2>
-                    <p class="card-description">Your points, gameweek by gameweek.</p>
                     <div class="trend-chart-svg-wrap" id="myteam-chart-scores"></div>
                 </div>
 
                 <div class="card trend-chart-card">
                     <h2>League Position By Gameweek</h2>
-                    <p class="card-description">Where you've sat in the table over the season.</p>
                     <div class="trend-chart-svg-wrap" id="myteam-chart-rank"></div>
                 </div>
 
@@ -11787,6 +12565,19 @@ __CSS__
                 <h2>Gameweek Summary</h2>
                 <div class="results-container">
                     __GAMEWEEK_SUMMARY_SECTIONS__
+                </div>
+            </div>
+
+            <!-- PROJECTED FIXTURE ODDS -->
+
+            <div class="card" id="fixture-odds-card" style="display:none;">
+                <div id="upcoming-fixture-odds">
+                    <h2>Projected Fixture Odds</h2>
+                    __PROJECTED_FIXTURE_ODDS__
+                </div>
+                <div id="live-fixture-odds" style="display:none;">
+                    <h2>Live Win Probabilities</h2>
+                    __LIVE_FIXTURE_ODDS__
                 </div>
             </div>
 
@@ -11841,6 +12632,14 @@ __CSS__
 
             </div>
 
+
+            <!-- FIXTURE XI DRILLDOWN -->
+            <div class="fixture-detail-overlay" id="fixture-detail-overlay" hidden aria-hidden="true">
+                <div class="fixture-detail-dialog" role="dialog" aria-modal="true" aria-label="Fixture lineups">
+                    <button type="button" class="fixture-detail-close" id="fixture-detail-close" aria-label="Close fixture lineups">×</button>
+                    <div id="fixture-detail-panels">__FIXTURE_DETAIL_SECTIONS__</div>
+                </div>
+            </div>
 
             <!-- TEAM OF THE WEEK -->
 
@@ -12466,6 +13265,15 @@ replacements = {
     "__POSITION_PROBABILITY_TABLE__":
         position_probability_table(),
 
+    "__SQUAD_PEDIGREE_TABLE__":
+        squad_pedigree_table(),
+
+    "__PROJECTED_FIXTURE_ODDS__":
+        projected_fixture_odds_table(),
+
+    "__LIVE_FIXTURE_ODDS__":
+        live_fixture_odds_table(),
+
     "__LATEST_LEAGUE_STORYLINE__":
         latest_league_storyline_html(),
 
@@ -12497,13 +13305,16 @@ replacements = {
         league_records_html(),
 
     "__LIVE_AS_IT_STANDS_CARD__": (
-        f'''<div class="card live-standings-card"><h2>Live League Table</h2><p class="card-description">If every current score finished exactly as it stands, this is the table.</p>{live_as_it_stands_table()}</div>'''
+        f'''<div class="card live-standings-card"><h2>Live League Table</h2>{live_as_it_stands_table()}</div>'''
         if dashboard_game_state == "live"
         else ""
     ),
 
     "__RESULTS_SECTIONS__":
         results_sections,
+
+    "__FIXTURE_DETAIL_SECTIONS__":
+        fixture_detail_sections,
 
     "__LATEST_RESULTS_GW__":
         str(
@@ -12565,6 +13376,15 @@ replacements = {
         ).replace(
             "__DASHBOARD_DISPLAY_GW__",
             str(dashboard_display_gw or 0)
+        ).replace(
+            "__FIXTURE_PREDICTION_GW__",
+            str(fixture_prediction_gw or 0)
+        ).replace(
+            "__DASHBOARD_GAME_STATE__",
+            dashboard_game_state
+        ).replace(
+            "__DASHBOARD_TARGET_GW__",
+            str(dashboard_target_gw or 0)
         ).replace(
             "__PLAYER_SEARCH_DATA__",
             safe_js_json(player_search_json)
