@@ -5645,6 +5645,154 @@ def _ordinal_text(n):
     return f"{n}{_ordinal_suffix(n)}"
 
 
+
+# ============================================================
+# CURRENT SQUAD STRENGTH / MANAGER XI ABILITY
+# ============================================================
+# Player expectation is intentionally conservative: recent output matters most,
+# but it is blended with season output and a position-level baseline so one hot
+# week does not turn a player into prime Ronaldo. Current ownership comes from
+# Draft element-status, so waivers/trades change the forecast immediately.
+
+def _current_roster_by_manager():
+    rosters = {manager: [] for manager in managers}
+    for player_id, owner in current_owner_by_player.items():
+        manager = _dashboard_owner_name(owner)
+        if manager in rosters:
+            rosters[manager].append(int(player_id))
+    return rosters
+
+
+def _player_weekly_projection(player_id, position_baselines, league_player_mean):
+    history_points = player_form.get(player_id, {}) or {}
+    season_scores = [float(history_points.get(gw, 0) or 0) for gw in finished_gws]
+    recent_gws = finished_gws[-5:]
+    recent_scores = [float(history_points.get(gw, 0) or 0) for gw in recent_gws]
+
+    # Fallback for a player who has only just entered Draft ownership and has
+    # therefore never appeared in our ownership-driven player history.
+    if season_scores:
+        season_mean = statistics.mean(season_scores)
+    else:
+        total_points = float(elements.get(player_id, {}).get("total_points", 0) or 0)
+        season_mean = total_points / max(len(finished_gws), 1)
+
+    recent_mean = statistics.mean(recent_scores) if recent_scores else season_mean
+    position = positions_lookup.get(elements.get(player_id, {}).get("element_type"), "")
+    position_mean = position_baselines.get(position, league_player_mean)
+
+    sample = len(finished_gws)
+    # Early season: lean a little harder on the positional baseline.
+    if sample < 5:
+        projection = (0.45 * recent_mean) + (0.30 * season_mean) + (0.25 * position_mean)
+    else:
+        projection = (0.50 * recent_mean) + (0.35 * season_mean) + (0.15 * position_mean)
+
+    return max(0.0, projection)
+
+
+def _best_projected_xi(projected_players):
+    by_pos = defaultdict(list)
+    for player in projected_players:
+        by_pos[player["position"]].append(player)
+    for pos in by_pos:
+        by_pos[pos].sort(key=lambda p: p["projection"], reverse=True)
+
+    best = None
+    for formation in LEGAL_FORMATIONS:
+        selected = []
+        possible = True
+        for pos, required in formation.items():
+            candidates = by_pos.get(pos, [])
+            if len(candidates) < required:
+                possible = False
+                break
+            selected.extend(candidates[:required])
+        if not possible:
+            continue
+        total = sum(p["projection"] for p in selected)
+        if best is None or total > best["total"]:
+            best = {"formation": formation, "players": selected, "total": total}
+    return best
+
+
+def _build_current_squad_strength():
+    rosters = _current_roster_by_manager()
+
+    # Positional baselines across the live player database. Use season PPG per
+    # completed GW as a stable regression anchor.
+    positional_values = defaultdict(list)
+    all_player_values = []
+    for pid, meta in elements.items():
+        position = positions_lookup.get(meta.get("element_type"), "")
+        val = float(meta.get("total_points", 0) or 0) / max(len(finished_gws), 1)
+        positional_values[position].append(val)
+        all_player_values.append(val)
+
+    league_player_mean = statistics.mean(all_player_values) if all_player_values else 2.5
+    position_baselines = {
+        pos: statistics.mean(vals) if vals else league_player_mean
+        for pos, vals in positional_values.items()
+    }
+
+    eff_values = [
+        float(manager_selection.get(m, {}).get("efficiency", 0) or 0)
+        for m in managers
+        if manager_selection.get(m, {}).get("efficiency", 0)
+    ]
+    league_eff = statistics.mean(eff_values) if eff_values else 90.0
+
+    strength = {}
+    for manager in managers:
+        projected_players = []
+        for pid in rosters.get(manager, []):
+            meta = elements.get(pid, {})
+            pos = positions_lookup.get(meta.get("element_type"), "")
+            projected_players.append({
+                "id": pid,
+                "name": meta.get("web_name", f"Player {pid}"),
+                "position": pos,
+                "projection": _player_weekly_projection(pid, position_baselines, league_player_mean),
+            })
+
+        best = _best_projected_xi(projected_players)
+        if best:
+            selected_ids = {p["id"] for p in best["players"]}
+            optimal_xi = best["total"]
+            bench_projections = sorted(
+                [p["projection"] for p in projected_players if p["id"] not in selected_ids],
+                reverse=True,
+            )
+            # Small resilience bonus only: depth should not outweigh the XI.
+            depth_bonus = 0.05 * sum(bench_projections[:4])
+            formation = f"{best['formation']['DEF']}-{best['formation']['MID']}-{best['formation']['FWD']}"
+        else:
+            optimal_xi = 0.0
+            depth_bonus = 0.0
+            formation = "—"
+
+        raw_eff = float(manager_selection.get(manager, {}).get("efficiency", league_eff) or league_eff)
+        # Shrink manager ability towards league average, especially useful early
+        # in the season when only a handful of selection decisions exist.
+        shrunk_eff = (0.70 * raw_eff) + (0.30 * league_eff)
+        selection_factor = min(1.0, max(0.75, shrunk_eff / 100.0))
+        managed_xi = (optimal_xi * selection_factor) + depth_bonus
+
+        strength[manager] = {
+            "optimal_xi": optimal_xi,
+            "managed_xi": managed_xi,
+            "selection_efficiency": shrunk_eff,
+            "raw_selection_efficiency": raw_eff,
+            "depth_bonus": depth_bonus,
+            "formation": formation,
+            "squad_size": len(projected_players),
+        }
+
+    return strength
+
+
+current_squad_strength = _build_current_squad_strength()
+
 def _build_season_prediction(simulations=7500, seed=17288):
     if not managers:
         return {}, []
@@ -5662,14 +5810,46 @@ def _build_season_prediction(simulations=7500, seed=17288):
     for manager in managers:
         scores = historical_scores.get(manager, [])
         season_mean = statistics.mean(scores) if scores else league_mean
-        recent = scores[-5:]
-        recent_mean = statistics.mean(recent) if recent else season_mean
+
+        # React quickly to what has happened lately. The last three completed
+        # gameweeks are exponentially weighted, with the newest result carrying
+        # twice the weight of the oldest. This deliberately makes the forecast
+        # less sticky than a flat last-five average.
+        recent = scores[-3:]
+        if recent:
+            recent_weights = [1.0, 1.5, 2.0][-len(recent):]
+            recent_mean = sum(score * weight for score, weight in zip(recent, recent_weights)) / sum(recent_weights)
+        else:
+            recent_mean = season_mean
+
         team_sd = statistics.pstdev(scores) if len(scores) >= 2 else league_sd
-        expected = (0.55 * season_mean) + (0.35 * recent_mean) + (0.10 * league_mean)
-        volatility = max((0.65 * team_sd) + (0.35 * league_sd), 5.0)
+        squad = current_squad_strength.get(manager, {})
+        squad_score = float(squad.get("managed_xi", recent_mean) or recent_mean)
+
+        # Less-sticky forecast: current squad + very recent form dominate.
+        # Season-long scoring is now only a light anchor, so a major result or
+        # squad change can materially move probabilities after the next refresh.
+        expected = (
+            (0.45 * squad_score)
+            + (0.35 * recent_mean)
+            + (0.10 * season_mean)
+            + (0.10 * league_mean)
+        )
+
+        # Fantasy scoring is noisy, especially early in the season. Inflate
+        # uncertainty when the sample is small, then taper towards the observed
+        # team/league volatility by GW10. This prevents early leaders becoming
+        # implausibly certain favourites after only a handful of results.
+        completed_count = len(scores)
+        early_uncertainty = 1.0 + (0.35 * max(0, 10 - completed_count) / 9.0)
+        base_volatility = max((0.60 * team_sd) + (0.40 * league_sd), 6.0)
+        volatility = base_volatility * early_uncertainty
         scoring_profile[manager] = {
             "expected_score": expected,
             "volatility": volatility,
+            "squad_score": squad_score,
+            "optimal_xi": float(squad.get("optimal_xi", squad_score) or squad_score),
+            "selection_efficiency": float(squad.get("selection_efficiency", 100.0) or 100.0),
         }
 
     completed_gws = set(int(gw) for gw in finished_gws)
@@ -5742,6 +5922,10 @@ def _build_season_prediction(simulations=7500, seed=17288):
             "champion_pct": 100.0 * counts.get(1, 0) / simulations,
             "top3_pct": 100.0 * sum(counts.get(pos, 0) for pos in range(1, min(3, len(managers)) + 1)) / simulations,
             "bottom3_pct": 100.0 * sum(counts.get(pos, 0) for pos in range(max(1, len(managers) - 2), len(managers) + 1)) / simulations,
+            "model_weekly_score": scoring_profile[m]["expected_score"],
+            "squad_score": scoring_profile[m]["squad_score"],
+            "optimal_xi": scoring_profile[m]["optimal_xi"],
+            "selection_efficiency": scoring_profile[m]["selection_efficiency"],
         }
 
     ordered = sorted(managers, key=lambda m: (prediction[m]["median_finish"], -prediction[m]["expected_league_points"], m))
@@ -5766,15 +5950,17 @@ def season_prediction_table():
 <td><b>{p["expected_league_points"]:.1f}</b></td>
 <td>{p["expected_wins"]:.1f}-{p["expected_draws"]:.1f}-{p["expected_losses"]:.1f}</td>
 <td>{p["expected_points_for"]:.0f}</td>
+<td>{p["squad_score"]:.1f}</td>
+<td>{p["selection_efficiency"]:.1f}%</td>
 <td>{p["forecast_range_text"]}</td>
 <td>{p["champion_pct"]:.1f}%</td>
 <td>{p["top3_pct"]:.1f}%</td>
 <td>{p["bottom3_pct"]:.1f}%</td>
 </tr>'''
     return f'''
-<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Weekly scoring expectation blends 55% season average, 35% last-five form and 10% regression to the league mean, with observed scoring volatility. Forecast Range is the central 80% of simulated finishes and is separate from the mathematical Possible Finish shown in the league table.</div>
+<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Weekly scoring expectation is 45% current squad strength, 35% exponentially weighted last-three form, 10% season team scoring and 10% regression to the league mean. The latest result carries twice the weight of the oldest result in that three-GW window, and early-season score volatility is deliberately inflated before tapering towards observed levels by GW10. Squad strength uses each player's recent/season output to build the best legal projected XI, then discounts it by that manager's historically observed XI-selection efficiency; bench depth adds only a small resilience bonus. Waivers and trades therefore move the forecast immediately. Forecast Range is the central 80% of simulated finishes and is separate from mathematical Possible Finish.</div>
 <div class="table-wrap"><table>
-<thead><tr><th>Pred.</th><th>Manager</th><th>Now</th><th>Exp. League Pts</th><th>Exp. W-D-L</th><th>Exp. Pts For</th><th>Forecast Range</th><th>1st</th><th>Top 3</th><th>Bottom 3</th></tr></thead>
+<thead><tr><th>Pred.</th><th>Manager</th><th>Now</th><th>Exp. League Pts</th><th>Exp. W-D-L</th><th>Exp. Pts For</th><th>Squad XI</th><th>Pick Eff.</th><th>Forecast Range</th><th>1st</th><th>Top 3</th><th>Bottom 3</th></tr></thead>
 <tbody>{rows}</tbody></table></div>'''
 
 
