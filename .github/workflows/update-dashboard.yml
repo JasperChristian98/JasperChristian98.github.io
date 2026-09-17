@@ -1,11 +1,11 @@
 name: Update FPL Draft Dashboard
 
 on:
-  # Run once a day at 04:00 UTC (05:00 UK during BST).
-  # This gives Monday-night gameweeks time to finish processing.
+  # Every 2 hours from midnight to before noon UTC.
+  # Every 30 minutes from noon to midnight UTC.
   schedule:
-    - cron: '0 */4 * * 2-4'
-    - cron: '0 * * * 5,6,0,1'
+    - cron: '0 */2 0-10 * *'
+    - cron: '*/30 12-23 * * *'
 
   # Allow you to run it manually from the Actions tab.
   workflow_dispatch:
