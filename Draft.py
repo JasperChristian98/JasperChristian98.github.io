@@ -10,6 +10,7 @@ import requests
 import json
 import os
 import time
+import math
 from datetime import datetime, timezone
 
 # ============================================================
@@ -345,6 +346,76 @@ history["league_entry_id_to_name"] = (
 history["standings_latest"] = standings_now
 
 history["matches"] = enriched_matches
+
+
+# ============================================================
+# ORIGINAL DRAFT RANK / PICK ORDER
+# ============================================================
+# McDraft has 150 drafted players. Any player who was not selected in the
+# original draft is assigned rank 151. This gives every current player a
+# comparable pre-season rank and makes team-level draft-rank totals easy to
+# interpret: lower is stronger.
+DRAFTED_PLAYER_COUNT = 150
+UNDRAFTED_PLAYER_RANK = 151
+
+# Pin the league's original draft board into history so player strength can
+# use the actual McDraft selection order as an early-season prior. `pick`
+# restarts within each round, so convert (round, pick) to an overall pick.
+# Once captured, the original rank stays attached to the player even if they
+# are later traded, waived or picked up by somebody else.
+
+draft_choices_payload = fetch_json(
+    f"{DRAFT_BASE}/draft/{LEAGUE_ID}/choices"
+)
+
+if isinstance(draft_choices_payload, dict):
+    draft_choices = draft_choices_payload.get("choices", [])
+elif isinstance(draft_choices_payload, list):
+    draft_choices = draft_choices_payload
+else:
+    draft_choices = []
+
+league_size = max(len(league_entries), 1)
+original_draft_rank = history.setdefault("original_draft_rank", {})
+
+for choice in draft_choices:
+    if not isinstance(choice, dict):
+        continue
+
+    player_id = choice.get("element")
+    round_no = choice.get("round")
+    round_pick = choice.get("pick")
+
+    if player_id is None or round_no is None or round_pick is None:
+        continue
+
+    try:
+        player_id = int(player_id)
+        round_no = int(round_no)
+        round_pick = int(round_pick)
+    except (TypeError, ValueError):
+        continue
+
+    overall_pick = ((round_no - 1) * league_size) + round_pick
+    entry_ref = choice.get("entry")
+    manager_name = (
+        league_entry_id_to_name.get(entry_ref)
+        or league_entry_id_to_name.get(str(entry_ref))
+        or entry_id_to_name.get(entry_ref)
+        or entry_id_to_name.get(str(entry_ref))
+    )
+
+    # Preserve the earliest pinned value if the endpoint is ever malformed or
+    # changes later; original draft position is historical and immutable.
+    original_draft_rank.setdefault(str(player_id), {
+        "overall_pick": overall_pick,
+        "round": round_no,
+        "round_pick": round_pick,
+        "manager": manager_name,
+        "was_auto": bool(choice.get("was_auto", False)),
+    })
+
+history["original_draft_rank"] = original_draft_rank
 
 
 # ============================================================
@@ -5682,11 +5753,48 @@ def _player_weekly_projection(player_id, position_baselines, league_player_mean)
     position_mean = position_baselines.get(position, league_player_mean)
 
     sample = len(finished_gws)
-    # Early season: lean a little harder on the positional baseline.
+
+    # Evidence-only projection before applying the pre-season draft prior.
+    # Early season still gets a little more positional regression because the
+    # player's own sample is tiny.
     if sample < 5:
-        projection = (0.45 * recent_mean) + (0.30 * season_mean) + (0.25 * position_mean)
+        evidence_projection = (0.45 * recent_mean) + (0.30 * season_mean) + (0.25 * position_mean)
     else:
-        projection = (0.50 * recent_mean) + (0.35 * season_mean) + (0.15 * position_mean)
+        evidence_projection = (0.50 * recent_mean) + (0.35 * season_mean) + (0.15 * position_mean)
+
+    draft_info = history.get("original_draft_rank", {}).get(str(player_id), {})
+    overall_pick = draft_info.get("overall_pick", UNDRAFTED_PLAYER_RANK)
+
+    # Every player gets a rank. Original draft picks retain 1-150; anybody not
+    # selected in the original draft is explicitly rank 151.
+    try:
+        overall_pick = int(overall_pick)
+    except (TypeError, ValueError):
+        overall_pick = UNDRAFTED_PLAYER_RANK
+    overall_pick = min(max(overall_pick, 1), UNDRAFTED_PLAYER_RANK)
+
+    # Convert rank 1..151 to a curved 0-1 quality prior. Rank 151 maps exactly
+    # to zero, while the curve preserves more separation among elite picks than
+    # among late-round/undrafted players.
+    draft_percentile = 1.0 - ((overall_pick - 1) / (UNDRAFTED_PLAYER_RANK - 1))
+    draft_percentile = min(1.0, max(0.0, draft_percentile))
+    draft_strength = draft_percentile ** 0.70
+
+    # Put the rank prior onto the same weekly-points scale as the player
+    # projection. Top picks anchor near ~2x their positional baseline; an
+    # undrafted rank-151 player anchors near ~0.7x. It remains a prior only.
+    draft_prior_projection = position_mean * (0.70 + (1.30 * draft_strength))
+
+    # Decay rapidly as actual gameweeks accumulate: roughly 35% after GW1,
+    # 24% after GW4, 12% after GW9 and ~4% after GW18. By the back half of
+    # the season the player's real output has almost completely taken over.
+    draft_prior_weight = 0.40 * math.exp(-sample / 8.0)
+    draft_prior_weight = min(0.40, max(0.0, draft_prior_weight))
+
+    projection = (
+        ((1.0 - draft_prior_weight) * evidence_projection)
+        + (draft_prior_weight * draft_prior_projection)
+    )
 
     return max(0.0, projection)
 
@@ -5748,11 +5856,19 @@ def _build_current_squad_strength():
         for pid in rosters.get(manager, []):
             meta = elements.get(pid, {})
             pos = positions_lookup.get(meta.get("element_type"), "")
+            draft_info = history.get("original_draft_rank", {}).get(str(pid), {})
+            try:
+                player_draft_rank = int(draft_info.get("overall_pick", UNDRAFTED_PLAYER_RANK))
+            except (TypeError, ValueError):
+                player_draft_rank = UNDRAFTED_PLAYER_RANK
+            player_draft_rank = min(max(player_draft_rank, 1), UNDRAFTED_PLAYER_RANK)
+
             projected_players.append({
                 "id": pid,
                 "name": meta.get("web_name", f"Player {pid}"),
                 "position": pos,
                 "projection": _player_weekly_projection(pid, position_baselines, league_player_mean),
+                "draft_rank": player_draft_rank,
             })
 
         best = _best_projected_xi(projected_players)
@@ -5778,6 +5894,13 @@ def _build_current_squad_strength():
         selection_factor = min(1.0, max(0.75, shrunk_eff / 100.0))
         managed_xi = (optimal_xi * selection_factor) + depth_bonus
 
+        # Sum all current roster ranks as a transparent pedigree indicator.
+        # Lower is better. Every undrafted player contributes exactly 151.
+        squad_draft_rank_total = sum(
+            int(p.get("draft_rank", UNDRAFTED_PLAYER_RANK))
+            for p in projected_players
+        )
+
         strength[manager] = {
             "optimal_xi": optimal_xi,
             "managed_xi": managed_xi,
@@ -5786,6 +5909,7 @@ def _build_current_squad_strength():
             "depth_bonus": depth_bonus,
             "formation": formation,
             "squad_size": len(projected_players),
+            "squad_draft_rank_total": squad_draft_rank_total,
         }
 
     return strength
@@ -5850,6 +5974,7 @@ def _build_season_prediction(simulations=7500, seed=17288):
             "squad_score": squad_score,
             "optimal_xi": float(squad.get("optimal_xi", squad_score) or squad_score),
             "selection_efficiency": float(squad.get("selection_efficiency", 100.0) or 100.0),
+            "squad_draft_rank_total": int(squad.get("squad_draft_rank_total", UNDRAFTED_PLAYER_RANK * 15) or 0),
         }
 
     completed_gws = set(int(gw) for gw in finished_gws)
@@ -5926,6 +6051,7 @@ def _build_season_prediction(simulations=7500, seed=17288):
             "squad_score": scoring_profile[m]["squad_score"],
             "optimal_xi": scoring_profile[m]["optimal_xi"],
             "selection_efficiency": scoring_profile[m]["selection_efficiency"],
+            "squad_draft_rank_total": scoring_profile[m]["squad_draft_rank_total"],
         }
 
     ordered = sorted(managers, key=lambda m: (prediction[m]["median_finish"], -prediction[m]["expected_league_points"], m))
@@ -5951,6 +6077,7 @@ def season_prediction_table():
 <td>{p["expected_wins"]:.1f}-{p["expected_draws"]:.1f}-{p["expected_losses"]:.1f}</td>
 <td>{p["expected_points_for"]:.0f}</td>
 <td>{p["squad_score"]:.1f}</td>
+<td><b>{p["squad_draft_rank_total"]}</b></td>
 <td>{p["selection_efficiency"]:.1f}%</td>
 <td>{p["forecast_range_text"]}</td>
 <td>{p["champion_pct"]:.1f}%</td>
@@ -5958,9 +6085,9 @@ def season_prediction_table():
 <td>{p["bottom3_pct"]:.1f}%</td>
 </tr>'''
     return f'''
-<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Weekly scoring expectation is 45% current squad strength, 35% exponentially weighted last-three form, 10% season team scoring and 10% regression to the league mean. The latest result carries twice the weight of the oldest result in that three-GW window, and early-season score volatility is deliberately inflated before tapering towards observed levels by GW10. Squad strength uses each player's recent/season output to build the best legal projected XI, then discounts it by that manager's historically observed XI-selection efficiency; bench depth adds only a small resilience bonus. Waivers and trades therefore move the forecast immediately. Forecast Range is the central 80% of simulated finishes and is separate from mathematical Possible Finish.</div>
+<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Weekly scoring expectation is 45% current squad strength, 35% exponentially weighted last-three form, 10% season team scoring and 10% regression to the league mean. The latest result carries twice the weight of the oldest result in that three-GW window, and early-season score volatility is deliberately inflated before tapering towards observed levels by GW10. Squad strength builds the best legal projected XI from each player's recent/season output plus their <b>original McDraft pick</b> as a decaying pre-season prior. Original picks retain ranks 1–150 and every undrafted player is rank <b>151</b>. <b>Draft Rank Total</b> sums the current roster's ranks, so lower indicates stronger pre-season pedigree. The XI is then discounted by that manager's historically observed selection efficiency; bench depth adds only a small resilience bonus. Waivers and trades therefore move the forecast immediately, while a player's original draft prior follows them to their new team. Forecast Range is the central 80% of simulated finishes and is separate from mathematical Possible Finish.</div>
 <div class="table-wrap"><table>
-<thead><tr><th>Pred.</th><th>Manager</th><th>Now</th><th>Exp. League Pts</th><th>Exp. W-D-L</th><th>Exp. Pts For</th><th>Squad XI</th><th>Pick Eff.</th><th>Forecast Range</th><th>1st</th><th>Top 3</th><th>Bottom 3</th></tr></thead>
+<thead><tr><th>Pred.</th><th>Manager</th><th>Now</th><th>Exp. League Pts</th><th>Exp. W-D-L</th><th>Exp. Pts For</th><th>Squad XI</th><th>Draft Rank Total ↓</th><th>Pick Eff.</th><th>Forecast Range</th><th>1st</th><th>Top 3</th><th>Bottom 3</th></tr></thead>
 <tbody>{rows}</tbody></table></div>'''
 
 
