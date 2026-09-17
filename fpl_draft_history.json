@@ -7064,7 +7064,7 @@
       }
     }
   },
-  "last_updated": "2026-09-17T10:00:18.867435+00:00",
+  "last_updated": "2026-09-17T10:57:17.479833+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -12241,6 +12241,1058 @@
         "opponent": "Arsenal",
         "was_home": true
       }
+    }
+  },
+  "original_draft_rank": {
+    "411": {
+      "overall_pick": 1,
+      "round": 1,
+      "round_pick": 1,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "154": {
+      "overall_pick": 2,
+      "round": 1,
+      "round_pick": 2,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "426": {
+      "overall_pick": 3,
+      "round": 1,
+      "round_pick": 3,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": true
+    },
+    "165": {
+      "overall_pick": 4,
+      "round": 1,
+      "round_pick": 4,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "55": {
+      "overall_pick": 5,
+      "round": 1,
+      "round_pick": 5,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "379": {
+      "overall_pick": 6,
+      "round": 1,
+      "round_pick": 6,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "12": {
+      "overall_pick": 7,
+      "round": 1,
+      "round_pick": 7,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "223": {
+      "overall_pick": 8,
+      "round": 1,
+      "round_pick": 8,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "397": {
+      "overall_pick": 9,
+      "round": 1,
+      "round_pick": 9,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "25": {
+      "overall_pick": 10,
+      "round": 1,
+      "round_pick": 10,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "428": {
+      "overall_pick": 11,
+      "round": 2,
+      "round_pick": 1,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "106": {
+      "overall_pick": 12,
+      "round": 2,
+      "round_pick": 2,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "346": {
+      "overall_pick": 13,
+      "round": 2,
+      "round_pick": 3,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "439": {
+      "overall_pick": 14,
+      "round": 2,
+      "round_pick": 4,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "40": {
+      "overall_pick": 15,
+      "round": 2,
+      "round_pick": 5,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "368": {
+      "overall_pick": 16,
+      "round": 2,
+      "round_pick": 6,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "249": {
+      "overall_pick": 17,
+      "round": 2,
+      "round_pick": 7,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "4": {
+      "overall_pick": 18,
+      "round": 2,
+      "round_pick": 8,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": true
+    },
+    "427": {
+      "overall_pick": 19,
+      "round": 2,
+      "round_pick": 9,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "79": {
+      "overall_pick": 20,
+      "round": 2,
+      "round_pick": 10,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "480": {
+      "overall_pick": 21,
+      "round": 3,
+      "round_pick": 1,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "401": {
+      "overall_pick": 22,
+      "round": 3,
+      "round_pick": 2,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "13": {
+      "overall_pick": 23,
+      "round": 3,
+      "round_pick": 3,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": true
+    },
+    "399": {
+      "overall_pick": 24,
+      "round": 3,
+      "round_pick": 4,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "26": {
+      "overall_pick": 25,
+      "round": 3,
+      "round_pick": 5,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "1": {
+      "overall_pick": 26,
+      "round": 3,
+      "round_pick": 6,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "526": {
+      "overall_pick": 27,
+      "round": 3,
+      "round_pick": 7,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "350": {
+      "overall_pick": 28,
+      "round": 3,
+      "round_pick": 8,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "552": {
+      "overall_pick": 29,
+      "round": 3,
+      "round_pick": 9,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "464": {
+      "overall_pick": 30,
+      "round": 3,
+      "round_pick": 10,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "554": {
+      "overall_pick": 31,
+      "round": 4,
+      "round_pick": 1,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "366": {
+      "overall_pick": 32,
+      "round": 4,
+      "round_pick": 2,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "200": {
+      "overall_pick": 33,
+      "round": 4,
+      "round_pick": 3,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "5": {
+      "overall_pick": 34,
+      "round": 4,
+      "round_pick": 4,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "67": {
+      "overall_pick": 35,
+      "round": 4,
+      "round_pick": 5,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "452": {
+      "overall_pick": 36,
+      "round": 4,
+      "round_pick": 6,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "388": {
+      "overall_pick": 37,
+      "round": 4,
+      "round_pick": 7,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "155": {
+      "overall_pick": 38,
+      "round": 4,
+      "round_pick": 8,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": false
+    },
+    "15": {
+      "overall_pick": 39,
+      "round": 4,
+      "round_pick": 9,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "398": {
+      "overall_pick": 40,
+      "round": 4,
+      "round_pick": 10,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "8": {
+      "overall_pick": 41,
+      "round": 5,
+      "round_pick": 1,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "236": {
+      "overall_pick": 42,
+      "round": 5,
+      "round_pick": 2,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "481": {
+      "overall_pick": 43,
+      "round": 5,
+      "round_pick": 3,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": false
+    },
+    "237": {
+      "overall_pick": 44,
+      "round": 5,
+      "round_pick": 4,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "356": {
+      "overall_pick": 45,
+      "round": 5,
+      "round_pick": 5,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "491": {
+      "overall_pick": 46,
+      "round": 5,
+      "round_pick": 6,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "400": {
+      "overall_pick": 47,
+      "round": 5,
+      "round_pick": 7,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "367": {
+      "overall_pick": 48,
+      "round": 5,
+      "round_pick": 8,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "391": {
+      "overall_pick": 49,
+      "round": 5,
+      "round_pick": 9,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "384": {
+      "overall_pick": 50,
+      "round": 5,
+      "round_pick": 10,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "527": {
+      "overall_pick": 51,
+      "round": 6,
+      "round_pick": 1,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "208": {
+      "overall_pick": 52,
+      "round": 6,
+      "round_pick": 2,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "260": {
+      "overall_pick": 53,
+      "round": 6,
+      "round_pick": 3,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "226": {
+      "overall_pick": 54,
+      "round": 6,
+      "round_pick": 4,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "387": {
+      "overall_pick": 55,
+      "round": 6,
+      "round_pick": 5,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "429": {
+      "overall_pick": 56,
+      "round": 6,
+      "round_pick": 6,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "112": {
+      "overall_pick": 57,
+      "round": 6,
+      "round_pick": 7,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "463": {
+      "overall_pick": 58,
+      "round": 6,
+      "round_pick": 8,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": false
+    },
+    "166": {
+      "overall_pick": 59,
+      "round": 6,
+      "round_pick": 9,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "569": {
+      "overall_pick": 60,
+      "round": 6,
+      "round_pick": 10,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "82": {
+      "overall_pick": 61,
+      "round": 7,
+      "round_pick": 1,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "27": {
+      "overall_pick": 62,
+      "round": 7,
+      "round_pick": 2,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "28": {
+      "overall_pick": 63,
+      "round": 7,
+      "round_pick": 3,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": false
+    },
+    "140": {
+      "overall_pick": 64,
+      "round": 7,
+      "round_pick": 4,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "412": {
+      "overall_pick": 65,
+      "round": 7,
+      "round_pick": 5,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "222": {
+      "overall_pick": 66,
+      "round": 7,
+      "round_pick": 6,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "512": {
+      "overall_pick": 67,
+      "round": 7,
+      "round_pick": 7,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "499": {
+      "overall_pick": 68,
+      "round": 7,
+      "round_pick": 8,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "229": {
+      "overall_pick": 69,
+      "round": 7,
+      "round_pick": 9,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "61": {
+      "overall_pick": 70,
+      "round": 7,
+      "round_pick": 10,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "142": {
+      "overall_pick": 71,
+      "round": 8,
+      "round_pick": 1,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "389": {
+      "overall_pick": 72,
+      "round": 8,
+      "round_pick": 2,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "10": {
+      "overall_pick": 73,
+      "round": 8,
+      "round_pick": 3,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "358": {
+      "overall_pick": 74,
+      "round": 8,
+      "round_pick": 4,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "498": {
+      "overall_pick": 75,
+      "round": 8,
+      "round_pick": 5,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "156": {
+      "overall_pick": 76,
+      "round": 8,
+      "round_pick": 6,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "230": {
+      "overall_pick": 77,
+      "round": 8,
+      "round_pick": 7,
+      "manager": "Backstreet Moyes",
+      "was_auto": true
+    },
+    "248": {
+      "overall_pick": 78,
+      "round": 8,
+      "round_pick": 8,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": false
+    },
+    "467": {
+      "overall_pick": 79,
+      "round": 8,
+      "round_pick": 9,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "201": {
+      "overall_pick": 80,
+      "round": 8,
+      "round_pick": 10,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "95": {
+      "overall_pick": 81,
+      "round": 9,
+      "round_pick": 1,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "110": {
+      "overall_pick": 82,
+      "round": 9,
+      "round_pick": 2,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "125": {
+      "overall_pick": 83,
+      "round": 9,
+      "round_pick": 3,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": false
+    },
+    "238": {
+      "overall_pick": 84,
+      "round": 9,
+      "round_pick": 4,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "390": {
+      "overall_pick": 85,
+      "round": 9,
+      "round_pick": 5,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "43": {
+      "overall_pick": 86,
+      "round": 9,
+      "round_pick": 6,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "393": {
+      "overall_pick": 87,
+      "round": 9,
+      "round_pick": 7,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "41": {
+      "overall_pick": 88,
+      "round": 9,
+      "round_pick": 8,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "68": {
+      "overall_pick": 89,
+      "round": 9,
+      "round_pick": 9,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "239": {
+      "overall_pick": 90,
+      "round": 9,
+      "round_pick": 10,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "503": {
+      "overall_pick": 91,
+      "round": 10,
+      "round_pick": 1,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "469": {
+      "overall_pick": 92,
+      "round": 10,
+      "round_pick": 2,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "271": {
+      "overall_pick": 93,
+      "round": 10,
+      "round_pick": 3,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "492": {
+      "overall_pick": 94,
+      "round": 10,
+      "round_pick": 4,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "357": {
+      "overall_pick": 95,
+      "round": 10,
+      "round_pick": 5,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "152": {
+      "overall_pick": 96,
+      "round": 10,
+      "round_pick": 6,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "453": {
+      "overall_pick": 97,
+      "round": 10,
+      "round_pick": 7,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "84": {
+      "overall_pick": 98,
+      "round": 10,
+      "round_pick": 8,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": false
+    },
+    "9": {
+      "overall_pick": 99,
+      "round": 10,
+      "round_pick": 9,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "60": {
+      "overall_pick": 100,
+      "round": 10,
+      "round_pick": 10,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "198": {
+      "overall_pick": 101,
+      "round": 11,
+      "round_pick": 1,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "6": {
+      "overall_pick": 102,
+      "round": 11,
+      "round_pick": 2,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "471": {
+      "overall_pick": 103,
+      "round": 11,
+      "round_pick": 3,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": false
+    },
+    "69": {
+      "overall_pick": 104,
+      "round": 11,
+      "round_pick": 4,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "53": {
+      "overall_pick": 105,
+      "round": 11,
+      "round_pick": 5,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "515": {
+      "overall_pick": 106,
+      "round": 11,
+      "round_pick": 6,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "149": {
+      "overall_pick": 107,
+      "round": 11,
+      "round_pick": 7,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "448": {
+      "overall_pick": 108,
+      "round": 11,
+      "round_pick": 8,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "496": {
+      "overall_pick": 109,
+      "round": 11,
+      "round_pick": 9,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "94": {
+      "overall_pick": 110,
+      "round": 11,
+      "round_pick": 10,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "144": {
+      "overall_pick": 111,
+      "round": 12,
+      "round_pick": 1,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "465": {
+      "overall_pick": 112,
+      "round": 12,
+      "round_pick": 2,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "31": {
+      "overall_pick": 113,
+      "round": 12,
+      "round_pick": 3,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "371": {
+      "overall_pick": 114,
+      "round": 12,
+      "round_pick": 4,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "159": {
+      "overall_pick": 115,
+      "round": 12,
+      "round_pick": 5,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "195": {
+      "overall_pick": 116,
+      "round": 12,
+      "round_pick": 6,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "417": {
+      "overall_pick": 117,
+      "round": 12,
+      "round_pick": 7,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "392": {
+      "overall_pick": 118,
+      "round": 12,
+      "round_pick": 8,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": false
+    },
+    "232": {
+      "overall_pick": 119,
+      "round": 12,
+      "round_pick": 9,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "369": {
+      "overall_pick": 120,
+      "round": 12,
+      "round_pick": 10,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "78": {
+      "overall_pick": 121,
+      "round": 13,
+      "round_pick": 1,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "233": {
+      "overall_pick": 122,
+      "round": 13,
+      "round_pick": 2,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "533": {
+      "overall_pick": 123,
+      "round": 13,
+      "round_pick": 3,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": false
+    },
+    "490": {
+      "overall_pick": 124,
+      "round": 13,
+      "round_pick": 4,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "472": {
+      "overall_pick": 125,
+      "round": 13,
+      "round_pick": 5,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "580": {
+      "overall_pick": 126,
+      "round": 13,
+      "round_pick": 6,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "14": {
+      "overall_pick": 127,
+      "round": 13,
+      "round_pick": 7,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "70": {
+      "overall_pick": 128,
+      "round": 13,
+      "round_pick": 8,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "124": {
+      "overall_pick": 129,
+      "round": 13,
+      "round_pick": 9,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "525": {
+      "overall_pick": 130,
+      "round": 13,
+      "round_pick": 10,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "113": {
+      "overall_pick": 131,
+      "round": 14,
+      "round_pick": 1,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
+    },
+    "11": {
+      "overall_pick": 132,
+      "round": 14,
+      "round_pick": 2,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "574": {
+      "overall_pick": 133,
+      "round": 14,
+      "round_pick": 3,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "32": {
+      "overall_pick": 134,
+      "round": 14,
+      "round_pick": 4,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "449": {
+      "overall_pick": 135,
+      "round": 14,
+      "round_pick": 5,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "36": {
+      "overall_pick": 136,
+      "round": 14,
+      "round_pick": 6,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "529": {
+      "overall_pick": 137,
+      "round": 14,
+      "round_pick": 7,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "16": {
+      "overall_pick": 138,
+      "round": 14,
+      "round_pick": 8,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": true
+    },
+    "202": {
+      "overall_pick": 139,
+      "round": 14,
+      "round_pick": 9,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "504": {
+      "overall_pick": 140,
+      "round": 14,
+      "round_pick": 10,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "445": {
+      "overall_pick": 141,
+      "round": 15,
+      "round_pick": 1,
+      "manager": "Jaap? Best Stam",
+      "was_auto": false
+    },
+    "210": {
+      "overall_pick": 142,
+      "round": 15,
+      "round_pick": 2,
+      "manager": "NoRSNoRB No Chance",
+      "was_auto": false
+    },
+    "385": {
+      "overall_pick": 143,
+      "round": 15,
+      "round_pick": 3,
+      "manager": "Ollie Gonna Squashya",
+      "was_auto": false
+    },
+    "204": {
+      "overall_pick": 144,
+      "round": 15,
+      "round_pick": 4,
+      "manager": "Backstreet Moyes",
+      "was_auto": false
+    },
+    "109": {
+      "overall_pick": 145,
+      "round": 15,
+      "round_pick": 5,
+      "manager": "Buendophilia",
+      "was_auto": false
+    },
+    "442": {
+      "overall_pick": 146,
+      "round": 15,
+      "round_pick": 6,
+      "manager": "Kamararama FC",
+      "was_auto": false
+    },
+    "250": {
+      "overall_pick": 147,
+      "round": 15,
+      "round_pick": 7,
+      "manager": "No Weimann No Cry",
+      "was_auto": false
+    },
+    "351": {
+      "overall_pick": 148,
+      "round": 15,
+      "round_pick": 8,
+      "manager": "Jacquet Potato",
+      "was_auto": false
+    },
+    "57": {
+      "overall_pick": 149,
+      "round": 15,
+      "round_pick": 9,
+      "manager": "PAUer Rangers",
+      "was_auto": false
+    },
+    "566": {
+      "overall_pick": 150,
+      "round": 15,
+      "round_pick": 10,
+      "manager": "danny’s doggy dudes",
+      "was_auto": false
     }
   }
 }
