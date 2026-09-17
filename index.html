@@ -2013,7 +2013,7 @@ tbody tr:hover {
             <div class="header-meta">
 
                 Last updated:
-                2026-09-17T09:51:12.713908+00:00
+                2026-09-17T10:00:18.867435+00:00
 
                 <br>
 
@@ -2151,7 +2151,7 @@ tbody tr:hover {
                 <td>4-0-0</td>
                 <td>172</td>
                 <td>129</td>
-                <td><b>4th</b></td>
+                <td><b>3rd</b></td>
                 <td>1st–10th</td>
             </tr>
         
@@ -2203,7 +2203,7 @@ tbody tr:hover {
                 <td>2-0-2</td>
                 <td>170</td>
                 <td>158</td>
-                <td><b>5th</b></td>
+                <td><b>6th</b></td>
                 <td>1st–10th</td>
             </tr>
         
@@ -2229,7 +2229,7 @@ tbody tr:hover {
                 <td>1-0-3</td>
                 <td>176</td>
                 <td>182</td>
-                <td><b>5th</b></td>
+                <td><b>6th</b></td>
                 <td>1st–10th</td>
             </tr>
         
@@ -2510,129 +2510,149 @@ tbody tr:hover {
                 <h2>Rest-of-Season Prediction</h2>
                 <p class="card-description">A schedule-aware Monte Carlo forecast of the remaining season. Model estimate, not destiny — one monster haul can still make a right bloody mess of it.</p>
                 
-<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Weekly scoring expectation blends 55% season average, 35% last-five form and 10% regression to the league mean, with observed scoring volatility. Forecast Range is the central 80% of simulated finishes and is separate from the mathematical Possible Finish shown in the league table.</div>
+<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Weekly scoring expectation is 45% current squad strength, 35% exponentially weighted last-three form, 10% season team scoring and 10% regression to the league mean. The latest result carries twice the weight of the oldest result in that three-GW window, and early-season score volatility is deliberately inflated before tapering towards observed levels by GW10. Squad strength uses each player's recent/season output to build the best legal projected XI, then discounts it by that manager's historically observed XI-selection efficiency; bench depth adds only a small resilience bonus. Waivers and trades therefore move the forecast immediately. Forecast Range is the central 80% of simulated finishes and is separate from mathematical Possible Finish.</div>
 <div class="table-wrap"><table>
-<thead><tr><th>Pred.</th><th>Manager</th><th>Now</th><th>Exp. League Pts</th><th>Exp. W-D-L</th><th>Exp. Pts For</th><th>Forecast Range</th><th>1st</th><th>Top 3</th><th>Bottom 3</th></tr></thead>
+<thead><tr><th>Pred.</th><th>Manager</th><th>Now</th><th>Exp. League Pts</th><th>Exp. W-D-L</th><th>Exp. Pts For</th><th>Squad XI</th><th>Pick Eff.</th><th>Forecast Range</th><th>1st</th><th>Top 3</th><th>Bottom 3</th></tr></thead>
 <tbody>
 <tr>
 <td class="rank-cell">1</td>
 <td class="manager-name">Backstreet Moyes</td>
 <td>2</td>
-<td><b>91.1</b></td>
-<td>30.2-0.6-7.2</td>
-<td>2072</td>
-<td>1st–2nd</td>
-<td>87.8%</td>
-<td>99.9%</td>
+<td><b>77.8</b></td>
+<td>25.7-0.6-11.6</td>
+<td>1857</td>
+<td>44.3</td>
+<td>94.7%</td>
+<td>1st–3rd</td>
+<td>53.4%</td>
+<td>91.7%</td>
 <td>0.0%</td>
 </tr>
 <tr>
 <td class="rank-cell">2</td>
 <td class="manager-name">Jaap? Best Stam</td>
 <td>3</td>
-<td><b>78.5</b></td>
-<td>25.9-0.7-11.3</td>
-<td>1866</td>
-<td>1st–3rd</td>
-<td>10.8%</td>
-<td>92.7%</td>
-<td>0.0%</td>
+<td><b>72.2</b></td>
+<td>23.9-0.7-13.5</td>
+<td>1753</td>
+<td>41.5</td>
+<td>93.4%</td>
+<td>1st–4th</td>
+<td>22.6%</td>
+<td>77.4%</td>
+<td>0.3%</td>
 </tr>
 <tr>
-<td class="rank-cell">4</td>
+<td class="rank-cell">3</td>
 <td class="manager-name">Kamararama FC</td>
 <td>1</td>
-<td><b>67.0</b></td>
-<td>22.0-0.8-15.1</td>
-<td>1631</td>
-<td>2nd–6th</td>
-<td>0.8%</td>
-<td>47.4%</td>
+<td><b>70.7</b></td>
+<td>23.3-0.7-14.0</td>
+<td>1648</td>
+<td>39.2</td>
+<td>91.2%</td>
+<td>1st–5th</td>
+<td>16.5%</td>
+<td>68.3%</td>
 <td>0.5%</td>
 </tr>
 <tr>
 <td class="rank-cell">4</td>
 <td class="manager-name">PAUer Rangers</td>
 <td>4</td>
-<td><b>63.4</b></td>
-<td>20.9-0.7-16.4</td>
-<td>1683</td>
-<td>3rd–6th</td>
-<td>0.4%</td>
-<td>30.8%</td>
-<td>1.3%</td>
+<td><b>64.9</b></td>
+<td>21.4-0.7-15.9</td>
+<td>1671</td>
+<td>39.2</td>
+<td>91.7%</td>
+<td>2nd–6th</td>
+<td>6.3%</td>
+<td>41.0%</td>
+<td>2.0%</td>
 </tr>
 <tr>
-<td class="rank-cell">5</td>
+<td class="rank-cell">6</td>
 <td class="manager-name">NoRSNoRB No Chance</td>
 <td>7</td>
-<td><b>58.9</b></td>
-<td>19.3-0.9-17.8</td>
-<td>1665</td>
-<td>3rd–7th</td>
-<td>0.1%</td>
-<td>14.7%</td>
-<td>3.7%</td>
+<td><b>55.1</b></td>
+<td>18.1-0.8-19.1</td>
+<td>1570</td>
+<td>39.7</td>
+<td>95.3%</td>
+<td>4th–8th</td>
+<td>0.6%</td>
+<td>8.5%</td>
+<td>15.0%</td>
 </tr>
 <tr>
-<td class="rank-cell">5</td>
+<td class="rank-cell">6</td>
 <td class="manager-name">Ollie Gonna Squashya</td>
 <td>5</td>
-<td><b>57.7</b></td>
-<td>19.0-0.8-18.2</td>
-<td>1614</td>
-<td>3rd–7th</td>
-<td>0.1%</td>
-<td>11.3%</td>
-<td>4.8%</td>
+<td><b>54.8</b></td>
+<td>18.0-0.7-19.3</td>
+<td>1516</td>
+<td>36.8</td>
+<td>95.0%</td>
+<td>4th–8th</td>
+<td>0.5%</td>
+<td>7.9%</td>
+<td>16.2%</td>
 </tr>
 <tr>
 <td class="rank-cell">7</td>
 <td class="manager-name">Jacquet Potato</td>
 <td>8</td>
-<td><b>51.6</b></td>
-<td>16.9-0.9-20.2</td>
-<td>1553</td>
-<td>5th–8th</td>
-<td>0.0%</td>
-<td>3.1%</td>
-<td>16.2%</td>
+<td><b>50.7</b></td>
+<td>16.7-0.8-20.6</td>
+<td>1486</td>
+<td>36.0</td>
+<td>93.3%</td>
+<td>5th–9th</td>
+<td>0.1%</td>
+<td>3.6%</td>
+<td>31.5%</td>
 </tr>
 <tr>
 <td class="rank-cell">8</td>
 <td class="manager-name">Buendophilia</td>
 <td>6</td>
-<td><b>41.0</b></td>
-<td>13.4-0.8-23.8</td>
+<td><b>46.7</b></td>
+<td>15.3-0.7-22.0</td>
 <td>1362</td>
-<td>7th–9th</td>
+<td>30.7</td>
+<td>93.3%</td>
+<td>5th–9th</td>
 <td>0.0%</td>
-<td>0.2%</td>
-<td>76.5%</td>
+<td>1.4%</td>
+<td>54.4%</td>
 </tr>
 <tr>
 <td class="rank-cell">9</td>
 <td class="manager-name">danny’s doggy dudes</td>
 <td>9</td>
-<td><b>29.6</b></td>
-<td>9.6-0.7-27.6</td>
-<td>1260</td>
-<td>8th–10th</td>
+<td><b>38.0</b></td>
+<td>12.4-0.7-24.9</td>
+<td>1279</td>
+<td>30.5</td>
+<td>89.7%</td>
+<td>7th–10th</td>
 <td>0.0%</td>
-<td>0.0%</td>
-<td>97.9%</td>
+<td>0.1%</td>
+<td>87.6%</td>
 </tr>
 <tr>
 <td class="rank-cell">10</td>
 <td class="manager-name">No Weimann No Cry</td>
 <td>10</td>
-<td><b>27.4</b></td>
-<td>8.9-0.7-28.4</td>
-<td>1250</td>
-<td>9th–10th</td>
+<td><b>35.6</b></td>
+<td>11.6-0.7-25.7</td>
+<td>1257</td>
+<td>30.3</td>
+<td>95.9%</td>
+<td>8th–10th</td>
 <td>0.0%</td>
 <td>0.0%</td>
-<td>99.1%</td>
+<td>92.5%</td>
 </tr></tbody></table></div>
             </div>
 
@@ -2646,43 +2666,43 @@ tbody tr:hover {
 <tbody>
 <tr>
 <td class="manager-name">Kamararama FC</td>
-<td><b>0.8%</b></td><td><b>11.6%</b></td><td><b>35.0%</b></td><td><b>24.2%</b></td><td><b>15.4%</b></td><td><b>8.5%</b></td><td><b>4.0%</b></td><td><b>0.5%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td>
+<td><b>16.5%</b></td><td><b>26.1%</b></td><td><b>25.7%</b></td><td><b>18.1%</b></td><td><b>8.2%</b></td><td><b>3.5%</b></td><td><b>1.4%</b></td><td><b>0.4%</b></td><td><b>0.1%</b></td><td><b>0.0%</b></td>
 </tr>
 <tr>
 <td class="manager-name">Backstreet Moyes</td>
-<td><b>87.8%</b></td><td><b>11.2%</b></td><td><b>0.9%</b></td><td><b>0.1%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td>
+<td><b>53.4%</b></td><td><b>25.0%</b></td><td><b>13.3%</b></td><td><b>5.7%</b></td><td><b>1.7%</b></td><td><b>0.6%</b></td><td><b>0.2%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td>
 </tr>
 <tr>
 <td class="manager-name">Jaap? Best Stam</td>
-<td><b>10.8%</b></td><td><b>66.2%</b></td><td><b>15.6%</b></td><td><b>5.0%</b></td><td><b>1.6%</b></td><td><b>0.6%</b></td><td><b>0.1%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td>
+<td><b>22.6%</b></td><td><b>30.1%</b></td><td><b>24.8%</b></td><td><b>13.5%</b></td><td><b>5.8%</b></td><td><b>2.3%</b></td><td><b>0.7%</b></td><td><b>0.2%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td>
 </tr>
 <tr>
 <td class="manager-name">PAUer Rangers</td>
-<td><b>0.4%</b></td><td><b>6.6%</b></td><td><b>23.9%</b></td><td><b>26.7%</b></td><td><b>20.9%</b></td><td><b>13.3%</b></td><td><b>6.9%</b></td><td><b>1.2%</b></td><td><b>0.1%</b></td><td><b>0.0%</b></td>
+<td><b>6.3%</b></td><td><b>13.7%</b></td><td><b>21.0%</b></td><td><b>27.9%</b></td><td><b>16.5%</b></td><td><b>8.2%</b></td><td><b>4.4%</b></td><td><b>1.6%</b></td><td><b>0.3%</b></td><td><b>0.1%</b></td>
 </tr>
 <tr>
 <td class="manager-name">Ollie Gonna Squashya</td>
-<td><b>0.1%</b></td><td><b>1.8%</b></td><td><b>9.3%</b></td><td><b>16.9%</b></td><td><b>22.9%</b></td><td><b>26.2%</b></td><td><b>17.9%</b></td><td><b>4.3%</b></td><td><b>0.5%</b></td><td><b>0.0%</b></td>
+<td><b>0.5%</b></td><td><b>2.1%</b></td><td><b>5.4%</b></td><td><b>12.1%</b></td><td><b>21.7%</b></td><td><b>23.1%</b></td><td><b>18.9%</b></td><td><b>11.1%</b></td><td><b>3.9%</b></td><td><b>1.3%</b></td>
 </tr>
 <tr>
 <td class="manager-name">Buendophilia</td>
-<td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.2%</b></td><td><b>0.6%</b></td><td><b>1.6%</b></td><td><b>5.3%</b></td><td><b>15.9%</b></td><td><b>56.1%</b></td><td><b>15.7%</b></td><td><b>4.6%</b></td>
+<td><b>0.0%</b></td><td><b>0.3%</b></td><td><b>1.0%</b></td><td><b>2.8%</b></td><td><b>7.3%</b></td><td><b>13.2%</b></td><td><b>21.0%</b></td><td><b>28.2%</b></td><td><b>18.2%</b></td><td><b>8.0%</b></td>
 </tr>
 <tr>
 <td class="manager-name">NoRSNoRB No Chance</td>
-<td><b>0.1%</b></td><td><b>2.3%</b></td><td><b>12.2%</b></td><td><b>19.9%</b></td><td><b>24.6%</b></td><td><b>23.1%</b></td><td><b>14.2%</b></td><td><b>3.5%</b></td><td><b>0.1%</b></td><td><b>0.0%</b></td>
+<td><b>0.6%</b></td><td><b>2.0%</b></td><td><b>5.9%</b></td><td><b>13.1%</b></td><td><b>22.7%</b></td><td><b>23.2%</b></td><td><b>17.5%</b></td><td><b>10.3%</b></td><td><b>3.6%</b></td><td><b>1.0%</b></td>
 </tr>
 <tr>
 <td class="manager-name">Jacquet Potato</td>
-<td><b>0.0%</b></td><td><b>0.2%</b></td><td><b>2.8%</b></td><td><b>6.6%</b></td><td><b>12.9%</b></td><td><b>22.5%</b></td><td><b>38.7%</b></td><td><b>13.9%</b></td><td><b>1.9%</b></td><td><b>0.4%</b></td>
+<td><b>0.1%</b></td><td><b>0.7%</b></td><td><b>2.8%</b></td><td><b>6.2%</b></td><td><b>14.5%</b></td><td><b>20.5%</b></td><td><b>23.7%</b></td><td><b>18.5%</b></td><td><b>9.5%</b></td><td><b>3.5%</b></td>
 </tr>
 <tr>
 <td class="manager-name">danny’s doggy dudes</td>
-<td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.1%</b></td><td><b>0.3%</b></td><td><b>1.7%</b></td><td><b>12.2%</b></td><td><b>45.9%</b></td><td><b>39.9%</b></td>
+<td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.1%</b></td><td><b>0.3%</b></td><td><b>1.1%</b></td><td><b>3.3%</b></td><td><b>7.6%</b></td><td><b>17.0%</b></td><td><b>34.9%</b></td><td><b>35.7%</b></td>
 </tr>
 <tr>
 <td class="manager-name">No Weimann No Cry</td>
-<td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.2%</b></td><td><b>0.7%</b></td><td><b>8.3%</b></td><td><b>35.8%</b></td><td><b>55.0%</b></td>
+<td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.0%</b></td><td><b>0.2%</b></td><td><b>0.6%</b></td><td><b>2.1%</b></td><td><b>4.6%</b></td><td><b>12.6%</b></td><td><b>29.5%</b></td><td><b>50.4%</b></td>
 </tr></tbody></table></div>
             </div>
 
@@ -8798,7 +8818,7 @@ tbody tr:hover {
                 </h2>
 
                 <div style="height:550px; width:100%;">                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
-        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.7.0.min.js" integrity="sha256-jvTGqxNp8AGWEcvNLVuKr+8j5dGe9Yw51LQkmDH+IYA=" crossorigin="anonymous"></script>                <div id="e6f70d2f-41e3-4e2b-83d0-5f2473f19689" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("e6f70d2f-41e3-4e2b-83d0-5f2473f19689")) {                    Plotly.newPlot(                        "e6f70d2f-41e3-4e2b-83d0-5f2473f19689",                        [{"orientation":"h","x":[1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],"y":["Awoniyi","Eze","Rayan","Strand Larsen","A.Becker","Ajer","Allan","Anderson","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Bogle"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Most Transferred Players","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Ownership Changes"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.7.0.min.js" integrity="sha256-jvTGqxNp8AGWEcvNLVuKr+8j5dGe9Yw51LQkmDH+IYA=" crossorigin="anonymous"></script>                <div id="c0e284e1-50ed-412e-9d7c-7428baaed082" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("c0e284e1-50ed-412e-9d7c-7428baaed082")) {                    Plotly.newPlot(                        "c0e284e1-50ed-412e-9d7c-7428baaed082",                        [{"orientation":"h","x":[1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],"y":["Awoniyi","Eze","Rayan","Strand Larsen","A.Becker","Ajer","Allan","Anderson","A\u00eft-Nouri","B.Fernandes","Ballard","Barnes","Barry","Beto","Bogle"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Most Transferred Players","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Ownership Changes"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
 
                 
         <div class="table-wrap">
@@ -9141,7 +9161,7 @@ tbody tr:hover {
                     Players Used By The Most Managers
                 </h2>
 
-                <div style="height:550px; width:100%;">                            <div id="d680ceff-cf6b-4061-bf16-92b45ebf0dc4" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("d680ceff-cf6b-4061-bf16-92b45ebf0dc4")) {                    Plotly.newPlot(                        "d680ceff-cf6b-4061-bf16-92b45ebf0dc4",                        [{"orientation":"h","x":[2,2,2,2,2,2,2,2,2,2,2,1,1,1,1],"y":["Awoniyi","Eze","Henderson","King","Martinez","Munoz","N.Williams","Rashford","Rayan","Strand Larsen","Van de Ven","A.Becker","Ajer","Allan","Anderson"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Players Used By The Most Managers","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Different Managers"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
+                <div style="height:550px; width:100%;">                            <div id="ef1da212-0273-48cd-b813-16099d282f38" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("ef1da212-0273-48cd-b813-16099d282f38")) {                    Plotly.newPlot(                        "ef1da212-0273-48cd-b813-16099d282f38",                        [{"orientation":"h","x":[2,2,2,2,2,2,2,2,2,2,2,1,1,1,1],"y":["Awoniyi","Eze","Henderson","King","Martinez","Munoz","N.Williams","Rashford","Rayan","Strand Larsen","Van de Ven","A.Becker","Ajer","Allan","Anderson"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"title":{"font":{"size":18},"text":"Players Used By The Most Managers","x":0,"xanchor":"left"},"font":{"color":"#e5e7eb","size":12},"margin":{"l":55,"r":15,"t":65,"b":65},"legend":{"font":{"size":10},"orientation":"h","yanchor":"top","y":-0.18,"xanchor":"left","x":0,"itemwidth":70},"hoverlabel":{"font":{"size":12}},"xaxis":{"title":{"text":"Different Managers"}},"yaxis":{"title":{"text":"Player"},"autorange":"reversed"},"autosize":true,"height":550,"paper_bgcolor":"#111827","plot_bgcolor":"#111827"},                        {"responsive": true, "displayModeBar": false, "scrollZoom": false}                    )                };            </script>        </div>
 
             </div>
 
