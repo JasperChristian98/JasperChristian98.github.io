@@ -7305,11 +7305,11 @@
               "web_name": "Rogers",
               "team": "Chelsea",
               "position": "MID",
-              "points": 0,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 43,
@@ -7413,8 +7413,8 @@
               "minutes": 0
             }
           ],
-          "gw_points": 0,
-          "live_points": 0,
+          "gw_points": 2,
+          "live_points": 2,
           "bench_points": 0,
           "dreamteam_starters": 0
         },
@@ -7560,11 +7560,11 @@
               "web_name": "Thiago",
               "team": "Brentford",
               "position": "FWD",
-              "points": 0,
-              "in_dreamteam": false,
+              "points": 5,
+              "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 286,
@@ -7591,7 +7591,7 @@
           ],
           "gw_points": 0,
           "live_points": 0,
-          "bench_points": 0,
+          "bench_points": 5,
           "dreamteam_starters": 0
         },
         "88057": {
@@ -7778,11 +7778,11 @@
               "web_name": "Martinez",
               "team": "Chelsea",
               "position": "GKP",
-              "points": 0,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 8,
@@ -7901,11 +7901,11 @@
               "web_name": "Kelleher",
               "team": "Brentford",
               "position": "GKP",
-              "points": 0,
-              "in_dreamteam": false,
+              "points": 6,
+              "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 569,
@@ -7941,9 +7941,9 @@
               "minutes": 0
             }
           ],
-          "gw_points": 0,
-          "live_points": 0,
-          "bench_points": 0,
+          "gw_points": 2,
+          "live_points": 2,
+          "bench_points": 6,
           "dreamteam_starters": 0
         },
         "150925": {
@@ -8185,11 +8185,11 @@
               "web_name": "Palmer",
               "team": "Chelsea",
               "position": "MID",
-              "points": 0,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 15,
@@ -8293,8 +8293,8 @@
               "minutes": 0
             }
           ],
-          "gw_points": 0,
-          "live_points": 0,
+          "gw_points": 2,
+          "live_points": 2,
           "bench_points": 0,
           "dreamteam_starters": 0
         },
@@ -8383,11 +8383,11 @@
               "web_name": "Schade",
               "team": "Brentford",
               "position": "MID",
-              "points": 0,
-              "in_dreamteam": false,
+              "points": 9,
+              "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 268,
@@ -8469,10 +8469,10 @@
               "minutes": 0
             }
           ],
-          "gw_points": 0,
-          "live_points": 0,
+          "gw_points": 9,
+          "live_points": 9,
           "bench_points": 0,
-          "dreamteam_starters": 0
+          "dreamteam_starters": 1
         },
         "209204": {
           "manager": "Buendophilia",
@@ -8570,11 +8570,11 @@
               "web_name": "Neto",
               "team": "Chelsea",
               "position": "MID",
-              "points": 0,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 86
             },
             {
               "element_id": 167,
@@ -8645,8 +8645,8 @@
               "minutes": 0
             }
           ],
-          "gw_points": 0,
-          "live_points": 0,
+          "gw_points": 2,
+          "live_points": 2,
           "bench_points": 0,
           "dreamteam_starters": 0
         },
@@ -8669,11 +8669,11 @@
               "web_name": "Lacroix",
               "team": "Chelsea",
               "position": "DEF",
-              "points": 0,
+              "points": 3,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 90
             },
             {
               "element_id": 499,
@@ -8821,15 +8821,15 @@
               "minutes": 0
             }
           ],
-          "gw_points": 0,
-          "live_points": 0,
+          "gw_points": 3,
+          "live_points": 3,
           "bench_points": 0,
           "dreamteam_starters": 0
         }
       }
     }
   },
-  "last_updated": "2026-09-18T18:59:11.821276+00:00",
+  "last_updated": "2026-09-18T21:35:25.988151+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -9187,8 +9187,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 90,
         "opponent": "Brentford",
         "was_home": false
       }
@@ -9763,8 +9763,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 90,
         "opponent": "Brentford",
         "was_home": false
       }
@@ -10403,8 +10403,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 5,
+        "minutes": 90,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -11075,8 +11075,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 6,
+        "minutes": 90,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -11267,8 +11267,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 9,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -11907,8 +11907,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 90,
         "opponent": "Brentford",
         "was_home": false
       }
@@ -12163,8 +12163,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 90,
         "opponent": "Brentford",
         "was_home": false
       }
@@ -12707,8 +12707,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 9,
+        "minutes": 90,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -13251,8 +13251,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 86,
         "opponent": "Brentford",
         "was_home": false
       }
@@ -13379,8 +13379,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 70,
         "opponent": "Brentford",
         "was_home": false
       }
@@ -13507,8 +13507,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 3,
+        "minutes": 90,
         "opponent": "Brentford",
         "was_home": false
       }
@@ -14083,8 +14083,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 7,
+        "minutes": 90,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -14307,8 +14307,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 6,
+        "minutes": 68,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -14711,8 +14711,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 3,
+        "minutes": 80,
         "opponent": "Chelsea",
         "was_home": true
       }
@@ -14987,8 +14987,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 3,
+        "minutes": 90,
         "opponent": "Chelsea",
         "was_home": true
       }
