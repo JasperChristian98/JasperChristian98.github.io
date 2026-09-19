@@ -7085,7 +7085,7 @@
               "web_name": "De Cuyper",
               "team": "Brighton",
               "position": "DEF",
-              "points": 5,
+              "points": 6,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
@@ -7237,7 +7237,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 18,
+          "gw_points": 19,
           "live_points": 18,
           "bench_points": 4,
           "dreamteam_starters": 0
@@ -8605,7 +8605,7 @@
               "web_name": "Verbruggen",
               "team": "Brighton",
               "position": "GKP",
-              "points": 7,
+              "points": 6,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
@@ -8647,7 +8647,7 @@
           ],
           "gw_points": 23,
           "live_points": 23,
-          "bench_points": 7,
+          "bench_points": 6,
           "dreamteam_starters": 1
         },
         "259256": {
@@ -8829,7 +8829,7 @@
       }
     }
   },
-  "last_updated": "2026-09-19T19:48:28.120154+00:00",
+  "last_updated": "2026-09-19T20:54:53.117309+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -13347,7 +13347,7 @@
         "was_home": false
       },
       "5": {
-        "points": 7,
+        "points": 6,
         "minutes": 90,
         "opponent": "Arsenal",
         "was_home": true
@@ -13987,7 +13987,7 @@
         "was_home": false
       },
       "5": {
-        "points": 5,
+        "points": 6,
         "minutes": 90,
         "opponent": "Arsenal",
         "was_home": true
