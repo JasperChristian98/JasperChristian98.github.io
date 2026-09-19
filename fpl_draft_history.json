@@ -7075,7 +7075,7 @@
               "team": "Everton",
               "position": "GKP",
               "points": 8,
-              "in_dreamteam": true,
+              "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 90
@@ -7240,7 +7240,7 @@
           "gw_points": 18,
           "live_points": 0,
           "bench_points": 4,
-          "dreamteam_starters": 1
+          "dreamteam_starters": 0
         },
         "87744": {
           "manager": "Kamararama FC",
@@ -7384,11 +7384,11 @@
               "web_name": "Igor Jesus",
               "team": "Nott'm Forest",
               "position": "FWD",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 24
             },
             {
               "element_id": 320,
@@ -7415,7 +7415,7 @@
           ],
           "gw_points": 29,
           "live_points": 2,
-          "bench_points": 3,
+          "bench_points": 4,
           "dreamteam_starters": 2
         },
         "87907": {
@@ -7518,7 +7518,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 53
+              "minutes": 58
             },
             {
               "element_id": 335,
@@ -7537,7 +7537,7 @@
               "team": "Everton",
               "position": "DEF",
               "points": 8,
-              "in_dreamteam": true,
+              "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 90
@@ -7592,7 +7592,7 @@
           "gw_points": 29,
           "live_points": 0,
           "bench_points": 9,
-          "dreamteam_starters": 2
+          "dreamteam_starters": 1
         },
         "88057": {
           "manager": "Backstreet Moyes",
@@ -7747,11 +7747,11 @@
               "web_name": "Wood",
               "team": "Nott'm Forest",
               "position": "FWD",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 10
             },
             {
               "element_id": 417,
@@ -7767,7 +7767,7 @@
           ],
           "gw_points": 32,
           "live_points": 0,
-          "bench_points": 0,
+          "bench_points": 1,
           "dreamteam_starters": 0
         },
         "89446": {
@@ -7800,11 +7800,11 @@
               "web_name": "Muñoz",
               "team": "Nott'm Forest",
               "position": "DEF",
-              "points": 1,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 53
+              "minutes": 82
             },
             {
               "element_id": 503,
@@ -7844,11 +7844,11 @@
               "web_name": "Gibbs-White",
               "team": "Nott'm Forest",
               "position": "MID",
-              "points": 3,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 53
+              "minutes": 83
             },
             {
               "element_id": 239,
@@ -7987,11 +7987,11 @@
               "web_name": "Thomas",
               "team": "Coventry City",
               "position": "DEF",
-              "points": 1,
+              "points": 9,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 53
+              "minutes": 83
             },
             {
               "element_id": 426,
@@ -8117,7 +8117,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 14,
+          "gw_points": 22,
           "live_points": 0,
           "bench_points": 1,
           "dreamteam_starters": 1
@@ -8130,11 +8130,11 @@
               "web_name": "Sels",
               "team": "Nott'm Forest",
               "position": "GKP",
-              "points": 1,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 53
+              "minutes": 83
             },
             {
               "element_id": 233,
@@ -8152,11 +8152,11 @@
               "web_name": "N.Williams",
               "team": "Nott'm Forest",
               "position": "DEF",
-              "points": 4,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 53
+              "minutes": 83
             },
             {
               "element_id": 202,
@@ -8253,11 +8253,11 @@
               "web_name": "Rushworth",
               "team": "Coventry City",
               "position": "GKP",
-              "points": 1,
-              "in_dreamteam": false,
+              "points": 12,
+              "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 53
+              "minutes": 83
             },
             {
               "element_id": 11,
@@ -8293,9 +8293,9 @@
               "minutes": 0
             }
           ],
-          "gw_points": 27,
+          "gw_points": 26,
           "live_points": 2,
-          "bench_points": 1,
+          "bench_points": 12,
           "dreamteam_starters": 0
         },
         "205209": {
@@ -8515,11 +8515,11 @@
               "web_name": "Murillo",
               "team": "Nott'm Forest",
               "position": "DEF",
-              "points": 1,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 53
+              "minutes": 83
             },
             {
               "element_id": 53,
@@ -8581,11 +8581,11 @@
               "web_name": "Delap",
               "team": "Nott'm Forest",
               "position": "FWD",
-              "points": 3,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 53
+              "minutes": 83
             },
             {
               "element_id": 26,
@@ -8645,7 +8645,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 22,
+          "gw_points": 21,
           "live_points": 2,
           "bench_points": 7,
           "dreamteam_starters": 1
@@ -8829,7 +8829,7 @@
       }
     }
   },
-  "last_updated": "2026-09-19T17:41:46.615287+00:00",
+  "last_updated": "2026-09-19T18:12:13.793910+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -9955,8 +9955,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 23,
         "opponent": "Coventry City",
         "was_home": true
       }
@@ -10243,8 +10243,8 @@
         "was_home": false
       },
       "5": {
-        "points": 4,
-        "minutes": 53,
+        "points": 2,
+        "minutes": 83,
         "opponent": "Coventry City",
         "was_home": true
       }
@@ -10851,8 +10851,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 2,
         "opponent": "Coventry City",
         "was_home": true
       }
@@ -11139,8 +11139,8 @@
         "was_home": false
       },
       "5": {
-        "points": 1,
-        "minutes": 53,
+        "points": 2,
+        "minutes": 82,
         "opponent": "Coventry City",
         "was_home": true
       }
@@ -11203,8 +11203,8 @@
         "was_home": false
       },
       "5": {
-        "points": 3,
-        "minutes": 53,
+        "points": 2,
+        "minutes": 83,
         "opponent": "Coventry City",
         "was_home": true
       }
@@ -12035,8 +12035,8 @@
         "was_home": false
       },
       "5": {
-        "points": 1,
-        "minutes": 53,
+        "points": 2,
+        "minutes": 82,
         "opponent": "Coventry City",
         "was_home": true
       }
@@ -12387,8 +12387,8 @@
         "was_home": true
       },
       "5": {
-        "points": 1,
-        "minutes": 53,
+        "points": 12,
+        "minutes": 81,
         "opponent": "Nott'm Forest",
         "was_home": false
       }
@@ -13091,8 +13091,8 @@
         "was_home": false
       },
       "5": {
-        "points": 1,
-        "minutes": 50,
+        "points": 2,
+        "minutes": 81,
         "opponent": "Coventry City",
         "was_home": true
       }
@@ -14371,8 +14371,8 @@
         "was_home": false
       },
       "5": {
-        "points": 3,
-        "minutes": 50,
+        "points": 1,
+        "minutes": 81,
         "opponent": "Coventry City",
         "was_home": true
       }
@@ -15019,8 +15019,8 @@
         "was_home": true
       },
       "5": {
-        "points": 1,
-        "minutes": 53,
+        "points": 9,
+        "minutes": 83,
         "opponent": "Nott'm Forest",
         "was_home": false
       }
