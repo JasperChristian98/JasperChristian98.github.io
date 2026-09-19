@@ -8253,7 +8253,7 @@
               "web_name": "Rushworth",
               "team": "Coventry City",
               "position": "GKP",
-              "points": 12,
+              "points": 11,
               "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
@@ -8295,7 +8295,7 @@
           ],
           "gw_points": 26,
           "live_points": 26,
-          "bench_points": 12,
+          "bench_points": 11,
           "dreamteam_starters": 0
         },
         "205209": {
@@ -8829,7 +8829,7 @@
       }
     }
   },
-  "last_updated": "2026-09-19T20:54:53.117309+00:00",
+  "last_updated": "2026-09-19T22:42:27.557335+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
