@@ -7162,11 +7162,11 @@
               "web_name": "Solanke",
               "team": "Spurs",
               "position": "FWD",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 33
             },
             {
               "element_id": 222,
@@ -7237,7 +7237,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 0,
+          "gw_points": 1,
           "live_points": 0,
           "bench_points": 0,
           "dreamteam_starters": 0
@@ -7373,11 +7373,11 @@
               "web_name": "Suzuki",
               "team": "Aston Villa",
               "position": "GKP",
-              "points": 0,
+              "points": 5,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 33
             },
             {
               "element_id": 491,
@@ -7415,7 +7415,7 @@
           ],
           "gw_points": 2,
           "live_points": 2,
-          "bench_points": 0,
+          "bench_points": 5,
           "dreamteam_starters": 0
         },
         "87907": {
@@ -7426,11 +7426,11 @@
               "web_name": "Kinsky",
               "team": "Spurs",
               "position": "GKP",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 33
             },
             {
               "element_id": 391,
@@ -7589,7 +7589,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 0,
+          "gw_points": 1,
           "live_points": 0,
           "bench_points": 5,
           "dreamteam_starters": 0
@@ -7646,11 +7646,11 @@
               "web_name": "Van Hecke",
               "team": "Spurs",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 33
             },
             {
               "element_id": 238,
@@ -7765,7 +7765,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 0,
+          "gw_points": 1,
           "live_points": 0,
           "bench_points": 0,
           "dreamteam_starters": 0
@@ -7811,11 +7811,11 @@
               "web_name": "Van de Ven",
               "team": "Spurs",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 33
             },
             {
               "element_id": 588,
@@ -7866,11 +7866,11 @@
               "web_name": "Sávio",
               "team": "Spurs",
               "position": "MID",
-              "points": 0,
+              "points": 3,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 33
             },
             {
               "element_id": 411,
@@ -7941,7 +7941,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 2,
+          "gw_points": 6,
           "live_points": 2,
           "bench_points": 6,
           "dreamteam_starters": 0
@@ -8229,22 +8229,22 @@
               "web_name": "Marmoush",
               "team": "Spurs",
               "position": "FWD",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 33
             },
             {
               "element_id": 166,
               "web_name": "N.Jackson",
               "team": "Aston Villa",
               "position": "FWD",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 33
             }
           ],
           "bench": [
@@ -8293,7 +8293,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 2,
+          "gw_points": 4,
           "live_points": 2,
           "bench_points": 0,
           "dreamteam_starters": 0
@@ -8526,11 +8526,11 @@
               "web_name": "Manzambi",
               "team": "Aston Villa",
               "position": "MID",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 33
             },
             {
               "element_id": 368,
@@ -8645,7 +8645,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 2,
+          "gw_points": 3,
           "live_points": 2,
           "bench_points": 0,
           "dreamteam_starters": 0
@@ -8680,11 +8680,11 @@
               "web_name": "Pedro Porro",
               "team": "Spurs",
               "position": "DEF",
-              "points": 0,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 18
             },
             {
               "element_id": 10,
@@ -8746,11 +8746,11 @@
               "web_name": "Buendía",
               "team": "Aston Villa",
               "position": "MID",
-              "points": 0,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 0
+              "minutes": 33
             },
             {
               "element_id": 574,
@@ -8821,7 +8821,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 3,
+          "gw_points": 6,
           "live_points": 3,
           "bench_points": 0,
           "dreamteam_starters": 0
@@ -8829,7 +8829,7 @@
       }
     }
   },
-  "last_updated": "2026-09-19T06:45:18.048982+00:00",
+  "last_updated": "2026-09-19T12:05:53.695933+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -9475,8 +9475,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 30,
         "opponent": "Aston Villa",
         "was_home": true
       }
@@ -10115,8 +10115,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 32,
         "opponent": "Aston Villa",
         "was_home": true
       }
@@ -10659,8 +10659,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 31,
         "opponent": "Aston Villa",
         "was_home": true
       }
@@ -11523,8 +11523,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 3,
+        "minutes": 31,
         "opponent": "Aston Villa",
         "was_home": true
       }
@@ -12323,8 +12323,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 32,
         "opponent": "Spurs",
         "was_home": false
       }
@@ -12419,8 +12419,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 31,
         "opponent": "Aston Villa",
         "was_home": true
       }
@@ -12739,8 +12739,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 31,
         "opponent": "Aston Villa",
         "was_home": true
       }
@@ -12899,8 +12899,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 30,
         "opponent": "Aston Villa",
         "was_home": true
       }
@@ -13443,8 +13443,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 32,
         "opponent": "Spurs",
         "was_home": false
       }
@@ -13667,8 +13667,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 2,
+        "minutes": 32,
         "opponent": "Spurs",
         "was_home": false
       }
@@ -13859,8 +13859,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 18,
         "opponent": "Aston Villa",
         "was_home": true
       }
@@ -14051,8 +14051,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 5,
+        "minutes": 32,
         "opponent": "Spurs",
         "was_home": false
       }
