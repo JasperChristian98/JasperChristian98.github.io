@@ -8829,7 +8829,7 @@
       }
     }
   },
-  "last_updated": "2026-09-20T15:12:06.585235+00:00",
+  "last_updated": "2026-09-20T15:36:13.341197+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -9219,8 +9219,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 4,
         "opponent": "Fulham",
         "was_home": false
       }
@@ -9507,8 +9507,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 4,
         "opponent": "Man Utd",
         "was_home": true
       }
@@ -11331,8 +11331,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 4,
         "opponent": "Man Utd",
         "was_home": true
       }
@@ -11683,8 +11683,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 4,
         "opponent": "Fulham",
         "was_home": false
       }
@@ -12195,8 +12195,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 4,
         "opponent": "Fulham",
         "was_home": false
       }
@@ -13219,8 +13219,8 @@
         "was_home": true
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 4,
         "opponent": "Fulham",
         "was_home": false
       }
@@ -13955,8 +13955,8 @@
         "was_home": false
       },
       "5": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 4,
         "opponent": "Man Utd",
         "was_home": true
       }
