@@ -6438,19 +6438,56 @@ def _live_manager_remaining_profile(manager):
     return {"mean": total_mean, "sd": total_sd, "players_left": players_left, "details": details}
 
 
+def _live_manager_current_score(manager):
+    """Build the live team score directly from selected-XI player scores.
+
+    This deliberately avoids the Draft matchup-level team score because that
+    field can lag behind the player live endpoint. The freshest FPL live player
+    totals are summed for the manager's selected XI.
+    """
+    snapshot = history.get("gameweeks", {}).get(str(dashboard_target_gw), {})
+    team_data = next(
+        (td for td in snapshot.get("teams", {}).values() if td.get("manager") == manager),
+        None,
+    )
+    if not team_data:
+        return 0
+
+    live_stats = _live_element_stats_lookup()
+    total = 0.0
+    for player in team_data.get("starters", []):
+        pid = player.get("element_id")
+        if pid is None:
+            continue
+        try:
+            pid = int(pid)
+        except (TypeError, ValueError):
+            continue
+
+        # Prefer the live endpoint; fall back to the snapshot's player points
+        # only if that player is unexpectedly absent from the live payload.
+        live_row = live_stats.get(pid)
+        if live_row is not None:
+            pts = float(live_row.get("points", 0) or 0)
+        else:
+            pts = float(player.get("points", 0) or 0)
+
+        multiplier = 2.0 if player.get("is_captain") else 1.0
+        total += pts * multiplier
+
+    return int(round(total))
+
+
 def _live_fixture_odds_for_match(match, simulations=12000, seed=17288):
     e1 = match.get("league_entry_1")
     e2 = match.get("league_entry_2")
     t1 = league_entry_id_to_name.get(e1, league_entry_id_to_name.get(str(e1), "Unknown"))
     t2 = league_entry_id_to_name.get(e2, league_entry_id_to_name.get(str(e2), "Unknown"))
-    try:
-        current1 = int(match.get("league_entry_1_points", 0) or 0)
-    except (TypeError, ValueError):
-        current1 = 0
-    try:
-        current2 = int(match.get("league_entry_2_points", 0) or 0)
-    except (TypeError, ValueError):
-        current2 = 0
+
+    # Current score comes from the live scoring of the selected XI, not the
+    # sometimes-laggy Draft matchup aggregate.
+    current1 = _live_manager_current_score(t1)
+    current2 = _live_manager_current_score(t2)
 
     r1 = _live_manager_remaining_profile(t1)
     r2 = _live_manager_remaining_profile(t2)
@@ -6521,12 +6558,20 @@ def live_fixture_odds_table():
 # ============================================================
 # SQUAD PEDIGREE
 # ============================================================
-# Composite 0-5★ rating using four transparent signals:
-#   30% last-3-GW scoring form
-#   30% current squad draft-rank total (lower is better)
-#   20% recent H2H W-D-L form
-#   20% number of current top-50 original draft picks
-# Every component uses fixed bands rather than a forced league ranking.
+# Absolute star bands based on the average original draft rank of the CURRENT
+# roster. Undrafted players are fixed at rank 151. Fixed thresholds mean the
+# weakest team is not automatically forced to zero stars.
+
+def _pedigree_stars_from_average_rank(avg_rank):
+    bands = [
+        (45, 5.0), (55, 4.5), (65, 4.0), (75, 3.5), (85, 3.0),
+        (95, 2.5), (105, 2.0), (115, 1.5), (125, 1.0), (140, 0.5),
+        (999, 0.0),
+    ]
+    for ceiling, stars in bands:
+        if avg_rank <= ceiling:
+            return stars
+    return 0.0
 
 
 def _star_text(stars):
@@ -6535,17 +6580,13 @@ def _star_text(stars):
     return ("★" * full) + ("½" if half else "") + ("☆" * max(0, 5 - full - (1 if half else 0)))
 
 
-def _round_half_star(value):
-    return min(5.0, max(0.0, round(float(value) * 2.0) / 2.0))
-
-
 def _form_stars_from_3gw_average(avg_score):
+    """Absolute recent-form scale; no manager is forced to 0★ just for ranking last."""
     if avg_score is None:
         return 2.5
     bands = [
-        (28, 0.0), (33, 0.5), (38, 1.0), (43, 1.5), (48, 2.0),
-        (53, 2.5), (58, 3.0), (63, 3.5), (68, 4.0), (73, 4.5),
-        (999, 5.0),
+        (25, 0.5), (30, 1.0), (35, 1.5), (40, 2.0), (45, 2.5),
+        (50, 3.0), (55, 3.5), (60, 4.0), (65, 4.5), (999, 5.0),
     ]
     for ceiling, stars in bands:
         if avg_score < ceiling:
@@ -6553,29 +6594,8 @@ def _form_stars_from_3gw_average(avg_score):
     return 5.0
 
 
-def _draft_total_stars(total_rank):
-    bands = [
-        (700, 5.0), (825, 4.5), (950, 4.0), (1075, 3.5), (1200, 3.0),
-        (1325, 2.5), (1450, 2.0), (1575, 1.5), (1700, 1.0), (1850, 0.5),
-        (99999, 0.0),
-    ]
-    for ceiling, stars in bands:
-        if total_rank <= ceiling:
-            return stars
-    return 0.0
-
-
-def _wdl_form_stars(form):
-    recent = list(form or [])[-5:]
-    if not recent:
-        return 2.5
-    points = sum(3 if r == "W" else 1 if r == "D" else 0 for r in recent)
-    max_points = 3 * len(recent)
-    return 5.0 * points / max_points if max_points else 2.5
-
-
-def _top50_stars(count):
-    return min(5.0, max(0.0, float(count)))
+def _round_half_star(value):
+    return min(5.0, max(0.0, round(float(value) * 2.0) / 2.0))
 
 
 def squad_pedigree_table():
@@ -6584,57 +6604,51 @@ def squad_pedigree_table():
         p = season_prediction.get(manager, {})
         players = current_squad_strength.get(manager, {}).get("players", [])
         total = int(p.get("squad_draft_rank_total", UNDRAFTED_PLAYER_RANK * 15) or UNDRAFTED_PLAYER_RANK * 15)
+        roster_size = len(players) or 15
+        avg_rank = total / roster_size
 
+        draft_stars = _pedigree_stars_from_average_rank(avg_rank)
         recent_scores = [
             float(score or 0)
             for _, score in sorted(raw_score_by_gw.get(manager, []))[-3:]
         ]
         form_3gw = statistics.mean(recent_scores) if recent_scores else None
-        scoring_stars = _form_stars_from_3gw_average(form_3gw)
-        draft_stars = _draft_total_stars(total)
-        wdl_stars = _wdl_form_stars(manager_form_data.get(manager, []))
+        form_stars = _form_stars_from_3gw_average(form_3gw)
+
+        # Pedigree remains mostly about underlying roster pedigree, but current
+        # form now has a meaningful 30% say. Round only the final blended score
+        # so the displayed rating stays on the requested 0.5★ increments.
+        stars = _round_half_star((0.70 * draft_stars) + (0.30 * form_stars))
 
         undrafted_count = sum(
             1 for player in players
             if int(player.get("draft_rank", UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK) >= UNDRAFTED_PLAYER_RANK
         )
-        top50 = sum(
+        top30 = sum(
             1 for player in players
-            if int(player.get("draft_rank", UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK) <= 50
+            if int(player.get("draft_rank", UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK) <= 30
         )
-        top50_stars = _top50_stars(top50)
-
-        composite = (
-            0.30 * scoring_stars
-            + 0.30 * draft_stars
-            + 0.20 * wdl_stars
-            + 0.20 * top50_stars
-        )
-        expanded = 2.5 + (composite - 2.5) * 1.25
-        stars = _round_half_star(expanded)
-
-        recent_wdl = "".join(manager_form_data.get(manager, [])[-5:]) or "—"
-        rows_data.append((stars, total, manager, form_3gw, recent_wdl, top50, undrafted_count))
+        rows_data.append((stars, total, manager, avg_rank, form_3gw, top30, undrafted_count))
 
     rows_data.sort(key=lambda row: (-row[0], row[1], row[2]))
     rows = ""
-    for stars, total, manager, form_3gw, recent_wdl, top50, undrafted_count in rows_data:
+    for stars, total, manager, avg_rank, form_3gw, top30, undrafted_count in rows_data:
         form_text = f"{form_3gw:.1f}" if form_3gw is not None else "—"
-        rows += f"""
+        rows += f'''
 <tr>
-<td class=\"manager-name\">{escape_html(manager)}</td>
-<td><b>{_star_text(stars)}</b> <span class=\"muted\">{stars:.1f}</span></td>
+<td class="manager-name">{escape_html(manager)}</td>
+<td><b>{_star_text(stars)}</b> <span class="muted">{stars:.1f}</span></td>
 <td>{form_text}</td>
-<td>{escape_html(recent_wdl)}</td>
 <td><b>{total}</b></td>
-<td>{top50}</td>
+<td>{avg_rank:.1f}</td>
+<td>{top30}</td>
 <td>{undrafted_count}</td>
-</tr>"""
+</tr>'''
 
-    return f"""
-<div class=\"table-wrap\"><table>
-<thead><tr><th>Manager</th><th>Pedigree</th><th>3GW Pts</th><th>W-D-L Form</th><th>Draft Rank Total ↓</th><th>Top-50 Picks</th><th>Undrafted</th></tr></thead>
-<tbody>{rows}</tbody></table></div>"""
+    return f'''
+<div class="table-wrap"><table>
+<thead><tr><th>Manager</th><th>Pedigree</th><th>3GW Form</th><th>Draft Rank Total ↓</th><th>Avg Rank ↓</th><th>Top-30 Picks</th><th>Undrafted</th></tr></thead>
+<tbody>{rows}</tbody></table></div>'''
 
 
 def season_prediction_table():
@@ -6660,6 +6674,7 @@ def season_prediction_table():
 <td>{p["bottom3_pct"]:.1f}%</td>
 </tr>'''
     return f'''
+<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Weekly scoring expectation is 45% current squad strength, 35% exponentially weighted last-three form, 10% season team scoring and 10% regression to the league mean. The latest result carries twice the weight of the oldest result in that three-GW window, and early-season score volatility is deliberately inflated before tapering towards observed levels by GW10. Squad strength builds the best legal projected XI from each player's recent/season output plus their <b>original McDraft pick</b> as a decaying pre-season prior. Original picks retain ranks 1–150 and every undrafted player is rank <b>151</b>. <b>Draft Rank Total</b> sums the current roster's ranks, so lower indicates stronger pre-season pedigree. The XI is then discounted by that manager's historically observed selection efficiency; bench depth adds only a small resilience bonus. Waivers and trades therefore move the forecast immediately, while a player's original draft prior follows them to their new team. Forecast Range is the central 80% of simulated finishes and is separate from mathematical Possible Finish.</div>
 <div class="table-wrap"><table>
 <thead><tr><th>Pred.</th><th>Manager</th><th>Now</th><th>Exp. League Pts</th><th>Exp. W-D-L</th><th>Exp. Pts For</th><th>Squad XI</th><th>Draft Rank Total ↓</th><th>Pick Eff.</th><th>Forecast Range</th><th>1st</th><th>Top 3</th><th>Bottom 3</th></tr></thead>
 <tbody>{rows}</tbody></table></div>'''
@@ -6689,6 +6704,7 @@ def position_probability_table():
 </tr>'''
 
     return f'''
+<div class="power-formula"><b>How to read it:</b> each row sums to roughly 100%. These are model probabilities from the same 7,500 schedule-aware simulations — unlike Possible Finish, which is purely mathematical.</div>
 <div class="table-wrap"><table>
 <thead><tr><th>Manager</th>{header_positions}</tr></thead>
 <tbody>{rows}</tbody></table></div>'''
@@ -12358,6 +12374,7 @@ __CSS__
 
             <div class="card">
                 <h2>Rest-of-Season Prediction</h2>
+                <p class="card-description">A schedule-aware Monte Carlo forecast of the remaining season. Model estimate, not destiny — one monster haul can still make a right bloody mess of it.</p>
                 __SEASON_PREDICTION_TABLE__
             </div>
 
