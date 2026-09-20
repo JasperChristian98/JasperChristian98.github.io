@@ -8218,7 +8218,7 @@
               "web_name": "McBurnie",
               "team": "Hull City",
               "position": "FWD",
-              "points": 2,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
@@ -8293,7 +8293,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 26,
+          "gw_points": 25,
           "live_points": 26,
           "bench_points": 11,
           "dreamteam_starters": 0
@@ -8829,7 +8829,7 @@
       }
     }
   },
-  "last_updated": "2026-09-20T07:09:41.283275+00:00",
+  "last_updated": "2026-09-20T12:40:45.356603+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -14275,7 +14275,7 @@
         "was_home": false
       },
       "5": {
-        "points": 2,
+        "points": 1,
         "minutes": 90,
         "opponent": "Newcastle",
         "was_home": false
