@@ -8829,7 +8829,7 @@
       }
     }
   },
-  "last_updated": "2026-09-20T14:59:56.880433+00:00",
+  "last_updated": "2026-09-20T15:12:06.585235+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -10211,8 +10211,8 @@
         "was_home": false
       },
       "5": {
-        "points": 1,
-        "minutes": 89,
+        "points": 3,
+        "minutes": 90,
         "opponent": "Sunderland",
         "was_home": true
       }
@@ -11492,7 +11492,7 @@
       },
       "5": {
         "points": 4,
-        "minutes": 87,
+        "minutes": 90,
         "opponent": "Liverpool",
         "was_home": true
       }
@@ -12868,7 +12868,7 @@
       },
       "5": {
         "points": 3,
-        "minutes": 89,
+        "minutes": 90,
         "opponent": "Liverpool",
         "was_home": true
       }
@@ -14180,7 +14180,7 @@
       },
       "5": {
         "points": 1,
-        "minutes": 14,
+        "minutes": 15,
         "opponent": "Sunderland",
         "was_home": true
       }
