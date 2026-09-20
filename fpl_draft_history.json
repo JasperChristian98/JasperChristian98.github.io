@@ -8110,7 +8110,7 @@
               "web_name": "Matheus N.",
               "team": "Man City",
               "position": "DEF",
-              "points": 3,
+              "points": 1,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
@@ -8119,7 +8119,7 @@
           ],
           "gw_points": 44,
           "live_points": 44,
-          "bench_points": 4,
+          "bench_points": 2,
           "dreamteam_starters": 1
         },
         "204850": {
@@ -8829,7 +8829,7 @@
       }
     }
   },
-  "last_updated": "2026-09-20T18:31:33.370967+00:00",
+  "last_updated": "2026-09-20T19:19:48.594968+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -10211,7 +10211,7 @@
         "was_home": false
       },
       "5": {
-        "points": 3,
+        "points": 1,
         "minutes": 90,
         "opponent": "Sunderland",
         "was_home": true
