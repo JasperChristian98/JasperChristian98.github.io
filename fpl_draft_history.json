@@ -7238,7 +7238,7 @@
             }
           ],
           "gw_points": 24,
-          "live_points": 18,
+          "live_points": 24,
           "bench_points": 13,
           "dreamteam_starters": 0
         },
@@ -7414,7 +7414,7 @@
             }
           ],
           "gw_points": 48,
-          "live_points": 30,
+          "live_points": 48,
           "bench_points": 4,
           "dreamteam_starters": 2
         },
@@ -7590,7 +7590,7 @@
             }
           ],
           "gw_points": 73,
-          "live_points": 23,
+          "live_points": 67,
           "bench_points": 28,
           "dreamteam_starters": 2
         },
@@ -7766,7 +7766,7 @@
             }
           ],
           "gw_points": 53,
-          "live_points": 32,
+          "live_points": 53,
           "bench_points": 8,
           "dreamteam_starters": 0
         },
@@ -7942,7 +7942,7 @@
             }
           ],
           "gw_points": 31,
-          "live_points": 17,
+          "live_points": 31,
           "bench_points": 10,
           "dreamteam_starters": 0
         },
@@ -8118,7 +8118,7 @@
             }
           ],
           "gw_points": 44,
-          "live_points": 22,
+          "live_points": 44,
           "bench_points": 4,
           "dreamteam_starters": 1
         },
@@ -8294,7 +8294,7 @@
             }
           ],
           "gw_points": 35,
-          "live_points": 26,
+          "live_points": 35,
           "bench_points": 13,
           "dreamteam_starters": 0
         },
@@ -8470,7 +8470,7 @@
             }
           ],
           "gw_points": 27,
-          "live_points": 20,
+          "live_points": 36,
           "bench_points": 5,
           "dreamteam_starters": 0
         },
@@ -8646,7 +8646,7 @@
             }
           ],
           "gw_points": 38,
-          "live_points": 23,
+          "live_points": 41,
           "bench_points": 14,
           "dreamteam_starters": 1
         },
@@ -8822,14 +8822,14 @@
             }
           ],
           "gw_points": 32,
-          "live_points": 20,
+          "live_points": 35,
           "bench_points": 2,
           "dreamteam_starters": 1
         }
       }
     }
   },
-  "last_updated": "2026-09-20T17:54:46.517741+00:00",
+  "last_updated": "2026-09-20T18:10:36.819884+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
