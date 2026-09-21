@@ -11,7 +11,9 @@ import json
 import os
 import time
 import math
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
+import calendar
 
 # ============================================================
 # CONFIG
@@ -3098,7 +3100,22 @@ for manager in managers:
 _manager_completed_weeks = max(len(finished_gws), 1)
 
 manager_move_counts = {manager: {"pickups": 0, "drops": 0, "trades_in": 0, "trades_out": 0} for manager in managers}
-for _move in transfer_movements:
+
+# Include current upcoming/live market activity as well as frozen history, while
+# deduplicating any ownership change already captured in transfer_movements.
+_activity_movements = [dict(row) for row in transfer_movements]
+_activity_seen = {
+    (int(row.get("gw", 0) or 0), int(row.get("player_id", 0) or 0), row.get("from_team"), row.get("to_team"))
+    for row in _activity_movements
+}
+if dashboard_game_state in ("upcoming", "live"):
+    for _change in dashboard_market_changes:
+        _key = (int(dashboard_target_gw), int(_change.get("player_id", 0) or 0), _change.get("from_team"), _change.get("to_team"))
+        if _key not in _activity_seen:
+            _activity_movements.append({"gw": dashboard_target_gw, **_change})
+            _activity_seen.add(_key)
+
+for _move in _activity_movements:
     _kind = _move.get("move")
     _from = _move.get("from_team")
     _to = _move.get("to_team")
@@ -3112,11 +3129,31 @@ for _move in transfer_movements:
         if _from in manager_move_counts:
             manager_move_counts[_from]["trades_out"] += 1
 
+# Transaction-aware activity. Ownership history records individual player legs,
+# but managers think in completed roster moves. A 2-for-2 negotiated trade is
+# two incoming moves for each manager (not four IN+OUT legs), while a same-GW
+# free-agent drop + pickup is one waiver move.
+manager_transaction_counts = {manager: 0 for manager in managers}
+_manager_moves_by_gw = defaultdict(lambda: defaultdict(lambda: {"pickups": 0, "drops": 0, "trades_in": 0}))
+for _move in _activity_movements:
+    _gw = int(_move.get("gw", 0) or 0)
+    _kind = _move.get("move")
+    _from = _move.get("from_team")
+    _to = _move.get("to_team")
+    if _kind == "Pickup" and _to in manager_transaction_counts:
+        _manager_moves_by_gw[_gw][_to]["pickups"] += 1
+    elif _kind == "Drop" and _from in manager_transaction_counts:
+        _manager_moves_by_gw[_gw][_from]["drops"] += 1
+    elif _kind == "Transfer" and _to in manager_transaction_counts:
+        _manager_moves_by_gw[_gw][_to]["trades_in"] += 1
+
+for _gw, _by_manager in _manager_moves_by_gw.items():
+    for _manager, _counts in _by_manager.items():
+        _waiver_moves = max(_counts["pickups"], _counts["drops"])
+        manager_transaction_counts[_manager] += _waiver_moves + _counts["trades_in"]
+
 _manager_activity_per_gw = {
-    manager: (
-        manager_move_counts[manager]["pickups"]
-        + manager_move_counts[manager]["trades_in"]
-    ) / _manager_completed_weeks
+    manager: manager_transaction_counts.get(manager, 0) / _manager_completed_weeks
     for manager in managers
 }
 _manager_bench_per_gw = {
@@ -3193,11 +3230,30 @@ def manager_style_profile(manager):
     if dt_pg >= max(0.8, _style_avg_dreamteam * 1.25):
         candidates.append((2.3, "Ceiling Chaser", "Regularly gets high-upside players into the XI when they hit."))
 
+    # Extra personality tags — still derived from behaviour, just with a bit more pub-chat flavour.
+    total_completed_moves = manager_transaction_counts.get(manager, 0)
+    if pickups >= 4 and trades == 0:
+        candidates.append((2.45, "Waiver Goblin", "Lives in the free-agent pool and would rather rummage through waivers than negotiate a trade."))
+    if trades >= 3:
+        candidates.append((2.55, "Transfer Diplomat", "Regularly gets deals over the line with other managers rather than relying only on waivers."))
+    if total_completed_moves >= max(5, _manager_completed_weeks * 1.2):
+        candidates.append((2.7, "Tinkerman", "Treats the squad sheet as a living document and rarely leaves the roster alone for long."))
+    if total_completed_moves <= 1 and _manager_completed_weeks >= 3:
+        candidates.append((2.35, "Diamond Hands", "Has barely touched the original plan and is prepared to hold through noise and bad weeks."))
+    if eff >= 90 and bench_pg >= max(5.0, _style_avg_bench):
+        candidates.append((2.45, "Luxury Problems", "Owns enough depth to strand points on the bench while still selecting efficiently."))
+    if activity >= _style_avg_activity and vol >= max(10.0, _style_avg_consistency):
+        candidates.append((2.4, "Mad Scientist", "High activity and volatile results: lots of experimentation, occasionally followed by smoke."))
+    if recent_avg >= season_avg + 6.0 and total_completed_moves >= 2:
+        candidates.append((2.5, "Hot Hand Merchant", "Recent moves and selections have coincided with a sharp scoring upswing."))
+    if bench_pg >= max(8.0, _style_avg_bench * 1.35):
+        candidates.append((2.55, "Bench Museum Curator", "Keeps an impressive collection of points safely preserved where they cannot affect the result."))
+
     if not candidates:
         candidates.append((1.0, "Balanced Operator", "No extreme behavioural tendency yet; activity, selection and volatility are close to league norms."))
 
     candidates.sort(key=lambda item: (-item[0], item[1]))
-    chosen = candidates[:3]
+    chosen = candidates[:4]
 
     return {
         "tags": [{"name": name, "description": desc} for _, name, desc in chosen],
@@ -4607,6 +4663,87 @@ def historical_trades_table():
           'style="display:none; margin-top:12px;">No historical trades match that team.</div>'
     )
 
+
+
+# ============================================================
+# WAIVER TRANSACTIONS + TRADE SIMULATOR
+# ============================================================
+
+def _all_activity_movements_for_market_pages():
+    rows = [dict(row) for row in transfer_movements]
+    seen = {(int(row.get('gw', 0) or 0), int(row.get('player_id', 0) or 0), row.get('from_team'), row.get('to_team')) for row in rows}
+    if dashboard_game_state in ('upcoming', 'live'):
+        for change in dashboard_market_changes:
+            key = (int(dashboard_target_gw), int(change.get('player_id', 0) or 0), change.get('from_team'), change.get('to_team'))
+            if key not in seen:
+                rows.append({'gw': dashboard_target_gw, **change}); seen.add(key)
+    return rows
+
+
+def waiver_transactions():
+    grouped = defaultdict(lambda: {'in': [], 'out': []})
+    for row in _all_activity_movements_for_market_pages():
+        kind, old, new = row.get('move'), row.get('from_team'), row.get('to_team')
+        if kind == 'Pickup' and new in managers:
+            grouped[(int(row.get('gw', 0) or 0), new)]['in'].append(row.get('player', 'Unknown'))
+        elif kind == 'Drop' and old in managers:
+            grouped[(int(row.get('gw', 0) or 0), old)]['out'].append(row.get('player', 'Unknown'))
+    result=[]
+    for (gw,manager),legs in grouped.items():
+        ins,outs=sorted(legs['in']),sorted(legs['out'])
+        for idx in range(max(len(ins),len(outs))):
+            result.append({'gw':gw,'manager':manager,'player_in':ins[idx] if idx<len(ins) else None,'player_out':outs[idx] if idx<len(outs) else None})
+    result.sort(key=lambda row:(-row['gw'],row['manager'],row.get('player_in') or '',row.get('player_out') or ''))
+    return result
+
+
+def waiver_activity_table(current_only=False):
+    rows=waiver_transactions()
+    if current_only and latest_transfer_gw is not None:
+        rows=[r for r in rows if int(r.get('gw',0))==int(latest_transfer_gw)]
+    if not rows:
+        return '<div class="notice">No waiver/free-agent transactions captured for this section yet.</div>'
+    body=''
+    for row in rows:
+        incoming=escape_html(row.get('player_in') or '—'); outgoing=escape_html(row.get('player_out') or '—')
+        body += f'''<tr class="waiver-row" data-team="{escape_html(row['manager'].lower())}"><td>GW{row['gw']}</td><td><b>{escape_html(row['manager'])}</b></td><td class="positive-text">{incoming}</td><td class="negative-text">{outgoing}</td><td>1</td></tr>'''
+    empty='' if current_only else '<div id="waiver-search-empty" class="notice" style="display:none; margin-top:12px;">No waiver moves match that team.</div>'
+    return f'''<div class="table-wrap transfer-history-scroll"><table><thead><tr><th>GW</th><th>Manager</th><th>In</th><th>Out</th><th>Moves</th></tr></thead><tbody>{body}</tbody></table></div>{empty}'''
+
+
+def _trade_simulator_payload():
+    form_lookup={int(row.get('id')):row for row in player_form_stats if row.get('id') is not None}
+    original=history.get('original_draft_rank',{}); payload={}
+    all_points=[float(elements.get(pid,{}).get('total_points',0) or 0) for roster in current_rosters_by_manager.values() for pid in roster]
+    all_forms=[float(elements.get(pid,{}).get('form',0) or 0) for roster in current_rosters_by_manager.values() for pid in roster]
+    max_points=max(all_points+[1.0]); max_form=max(all_forms+[1.0])
+    for manager in managers:
+        roster_ids=list(current_rosters_by_manager.get(manager,{}).keys())
+        roster_total=sum(float(elements.get(pid,{}).get('total_points',0) or 0) for pid in roster_ids) or 1.0
+        roster_proj=sum(float(_trade_player_projection(pid) or 0) for pid in roster_ids) or 1.0
+        players=[]
+        for pid in roster_ids:
+            meta=elements.get(pid,{}); metrics=form_lookup.get(int(pid),{})
+            pts=float(meta.get('total_points',0) or 0); form=float(meta.get('form',0) or 0); proj=float(_trade_player_projection(pid) or 0)
+            rank=int((original.get(str(pid),{}) or {}).get('overall_pick',UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK)
+            draft_strength=max(0.0,min(1.0,(UNDRAFTED_PLAYER_RANK-rank)/max(UNDRAFTED_PLAYER_RANK-1,1)))
+            importance=0.55*(pts/roster_total)+0.45*(proj/roster_proj)
+            value=(0.29*(pts/max_points)+0.24*(form/max_form)+0.20*min(1.0,proj/8.0)+0.15*draft_strength+0.12*min(1.0,importance*8.0))*100.0
+            players.append({'id':int(pid),'name':meta.get('web_name','Unknown'),'position':POSITION_LABELS.get(meta.get('element_type'),positions_lookup.get(meta.get('element_type'),'—')),'club':teams_lookup.get(meta.get('team'),'—'),'points':round(pts,1),'form':round(form,2),'projection':round(proj,2),'draft_rank':rank,'importance':round(importance*100.0,1),'value':round(value,1),'avg5':round(float(metrics.get('avg_5') or 0),2)})
+        players.sort(key=lambda row:(-row['value'],row['position'],row['name'])); payload[manager]=players
+    return payload
+
+
+def trade_simulator_html():
+    opts=''.join(f'<option value="{escape_html(m)}">{escape_html(m)}</option>' for m in managers)
+    return f'''
+    <div class="trade-simulator">
+      <div class="trade-sim-head"><div><div class="eyebrow">TRADE LAB</div><h2>Simulate a Trade</h2></div><div class="trade-sim-score" id="trade-sim-score"><span>Fairness</span><b>—</b></div></div>
+      <p class="card-description">Build any position-balanced deal. A 1-for-1 must be the same position; bundles may mix positions only when both sides give the same positional combination.</p>
+      <div class="trade-sim-manager-row"><label>Manager A<select id="trade-sim-manager-a" onchange="renderTradeSimulator()"><option value="">Choose manager</option>{opts}</select></label><div class="trade-sim-versus">↔</div><label>Manager B<select id="trade-sim-manager-b" onchange="renderTradeSimulator()"><option value="">Choose manager</option>{opts}</select></label></div>
+      <div class="trade-sim-grid"><div><h3 id="trade-sim-title-a">Manager A gives</h3><div id="trade-sim-roster-a" class="trade-sim-roster"><div class="notice">Choose two different managers.</div></div></div><div><h3 id="trade-sim-title-b">Manager B gives</h3><div id="trade-sim-roster-b" class="trade-sim-roster"><div class="notice">Choose two different managers.</div></div></div></div>
+      <div id="trade-sim-result" class="trade-sim-result notice">Select managers and players to evaluate a deal.</div>
+    </div>'''
 
 # ============================================================
 # CHART HELPER
@@ -8027,7 +8164,7 @@ def manager_profile_cards():
                 <div class="manager-profile-stats">
                     <span><b>{avg_points.get(manager, 0):.1f}</b> avg</span>
                     <span><b>{matches_won[manager]}</b> wins</span>
-                    <span><b>{manager_transfer_in.get(manager, 0) + manager_transfer_out.get(manager, 0)}</b> transfers</span>
+                    <span><b>{manager_transaction_counts.get(manager, 0)}</b> moves</span>
                     <span><b>{selection.get("efficiency", 0):.1f}%</b> XI efficiency</span>
                 </div>
 
@@ -8721,6 +8858,1201 @@ for index, player in enumerate(
     """
 
 
+
+# ============================================================
+# FIXTURES + ANALYTICS LAB + REALISTIC TRADE TARGETS
+# ============================================================
+
+RIVALRY_FIXTURES = {
+    frozenset(("Kamararama FC", "Buendophilia")): "The Christian Classico",
+    frozenset(("NoRSNoRB No Chance", "Backstreet Moyes")): "The Brammer Derby",
+    frozenset(("Ollie Gonna Squashya", "No Weimann No Cry")): "The Cheltenham Derby",
+    frozenset(("danny’s doggy dudes", "PAUer Rangers")): "The Sadly Broke Scuffle",
+    frozenset(("danny's doggy dudes", "PAUer Rangers")): "The Sadly Broke Scuffle",
+    frozenset(("Jaap? Best Stam", "Backstreet Moyes")): "The Bald Derby",
+    frozenset(("Jacquet Potato", "No Weimann No Cry")): "The Shit Beard Rivalry",
+}
+
+
+def _rivalry_label(team1, team2):
+    # Prefer the dashboard's existing rivalry resolver if it knows this pair.
+    try:
+        existing = _derby_name(team1, team2)
+        if existing:
+            return existing
+    except Exception:
+        pass
+    return RIVALRY_FIXTURES.get(frozenset((team1, team2)))
+
+
+def _manager_last_n_avg(manager, n=3):
+    vals = [float(v or 0) for _, v in sorted(raw_score_by_gw.get(manager, []))[-n:]]
+    return statistics.mean(vals) if vals else 0.0
+
+
+def _manager_season_avg(manager):
+    vals = [float(v or 0) for _, v in sorted(raw_score_by_gw.get(manager, []))]
+    return statistics.mean(vals) if vals else 0.0
+
+
+def _norm_dict(values, invert=False):
+    if not values:
+        return {}
+    lo, hi = min(values.values()), max(values.values())
+    if hi == lo:
+        return {k: 50.0 for k in values}
+    out = {k: ((v-lo)/(hi-lo))*100.0 for k,v in values.items()}
+    if invert:
+        out = {k: 100.0-v for k,v in out.items()}
+    return out
+
+
+# Fixture difficulty is intentionally opponent-centric. Higher = harder.
+_fd_form = {m: _manager_last_n_avg(m, 3) for m in managers}
+_fd_pf = {m: _manager_season_avg(m) for m in managers}
+_fd_squad = {m: float(current_squad_strength.get(m, {}).get("managed_xi", 0) or 0) for m in managers}
+_fd_power = {m: float(power_score.get(m, 0) or 0) for m in managers}
+_fd_form_n = _norm_dict(_fd_form)
+_fd_pf_n = _norm_dict(_fd_pf)
+_fd_squad_n = _norm_dict(_fd_squad)
+_fd_power_n = _norm_dict(_fd_power)
+fixture_strength_score = {
+    m: (0.35*_fd_squad_n.get(m,0) + 0.25*_fd_form_n.get(m,0) +
+        0.20*_fd_pf_n.get(m,0) + 0.20*_fd_power_n.get(m,0))
+    for m in managers
+}
+
+
+def fixture_difficulty(manager, opponent):
+    raw = float(fixture_strength_score.get(opponent, 50.0))
+    return 1.0 + (raw / 100.0) * 4.0
+
+
+def _difficulty_class(value):
+    if value >= 4.15: return "fixture-diff-brutal"
+    if value >= 3.35: return "fixture-diff-hard"
+    if value >= 2.65: return "fixture-diff-medium"
+    if value >= 1.85: return "fixture-diff-kind"
+    return "fixture-diff-soft"
+
+
+def _next_fixture_rows(manager, count=5):
+    out = []
+    for gw in sorted(full_fixture_schedule):
+        if int(gw) <= int(dashboard_last_finished_gw or 0):
+            continue
+        for f in full_fixture_schedule.get(gw, []):
+            t1, t2 = f.get("team1"), f.get("team2")
+            if manager not in (t1, t2):
+                continue
+            opp = t2 if manager == t1 else t1
+            out.append({
+                "gw": int(gw), "opponent": opp,
+                "difficulty": fixture_difficulty(manager, opp),
+                "rivalry": _rivalry_label(manager, opp),
+            })
+            if len(out) >= count:
+                return out
+    return out
+
+
+def fixtures_page_html():
+    # Upcoming fixture cards for the next five schedule weeks.
+    future_gws = [gw for gw in sorted(full_fixture_schedule) if int(gw) > int(dashboard_last_finished_gw or 0)][:5]
+    fixture_sections = ""
+    for gw in future_gws:
+        cards = ""
+        for f in full_fixture_schedule.get(gw, []):
+            t1, t2 = f.get("team1", "Unknown"), f.get("team2", "Unknown")
+            d1 = fixture_difficulty(t1, t2)
+            d2 = fixture_difficulty(t2, t1)
+            rivalry = _rivalry_label(t1, t2)
+            rivalry_html = f'<div class="fixture-rivalry-banner">🔥 {escape_html(rivalry)}</div>' if rivalry else ""
+            cards += f'''<div class="fixture-planner-card">
+                {rivalry_html}
+                <div class="fixture-planner-gw">GW{gw}</div>
+                <div class="fixture-planner-match"><strong>{escape_html(t1)}</strong><span>vs</span><strong>{escape_html(t2)}</strong></div>
+                <div class="fixture-difficulty-row">
+                    <span class="fixture-difficulty-pill {_difficulty_class(d1)}">{escape_html(t1)} · {d1:.1f}/5</span>
+                    <span class="fixture-difficulty-pill {_difficulty_class(d2)}">{escape_html(t2)} · {d2:.1f}/5</span>
+                </div>
+            </div>'''
+        fixture_sections += f'<div class="fixture-week-block"><h3>Gameweek {gw}</h3><div class="fixture-planner-grid">{cards}</div></div>'
+
+    # Upcoming run matrix.
+    header_gws = sorted({row["gw"] for m in managers for row in _next_fixture_rows(m, 5)})[:5]
+    head = "".join(f"<th>GW{gw}</th>" for gw in header_gws)
+    rows = ""
+    run_scores = []
+    for manager in current_standings:
+        by_gw = {r["gw"]: r for r in _next_fixture_rows(manager, 5)}
+        vals = [r["difficulty"] for r in by_gw.values()]
+        run_avg = statistics.mean(vals) if vals else 0.0
+        run_scores.append((run_avg, manager))
+        cells = ""
+        for gw in header_gws:
+            r = by_gw.get(gw)
+            if not r:
+                cells += '<td class="fixture-cell-empty">—</td>'
+                continue
+            badge = "🔥" if r.get("rivalry") else ""
+            cells += f'<td><div class="fixture-run-cell {_difficulty_class(r["difficulty"])}"><b>{escape_html(r["opponent"])}</b><span>{badge} {r["difficulty"]:.1f}</span></div></td>'
+        rows += f'<tr><td class="manager-name">{escape_html(manager)}</td>{cells}<td><b>{run_avg:.2f}</b></td></tr>'
+    run_scores.sort(reverse=True)
+    hardest = run_scores[0] if run_scores else (0, "—")
+    easiest = run_scores[-1] if run_scores else (0, "—")
+    summary = f'''<div class="analytics-insight-grid">
+        <div class="analytics-insight"><span>Hardest upcoming run</span><strong>{escape_html(hardest[1])}</strong><small>{hardest[0]:.2f}/5 average difficulty</small></div>
+        <div class="analytics-insight"><span>Kindest upcoming run</span><strong>{escape_html(easiest[1])}</strong><small>{easiest[0]:.2f}/5 average difficulty</small></div>
+    </div>'''
+    return f'''{summary}
+        <div class="card"><h2>Upcoming fixtures</h2><p class="card-description">Difficulty is opponent strength on a 1–5 scale using projected squad strength, recent form, season scoring and current power rating. Rivalries are flagged automatically.</p>{fixture_sections or '<div class="notice">No future fixtures available.</div>'}</div>
+        <div class="card"><h2>Upcoming run · next five</h2><p class="card-description">Lower is kinder. Higher is filthier.</p><div class="table-wrap fixture-run-table"><table><thead><tr><th>Manager</th>{head}<th>Run</th></tr></thead><tbody>{rows}</tbody></table></div></div>'''
+
+
+# ---------------------------- Trade targets ----------------------------
+def _current_rosters_from_status():
+    rosters = {m: [] for m in managers}
+    for pid, owner in current_owner_by_player.items():
+        name = _dashboard_owner_name(owner)
+        if name in rosters:
+            rosters[name].append(int(pid))
+    if not any(rosters.values()):
+        for m, roster in current_rosters_by_manager.items():
+            rosters[m] = [int(pid) for pid in roster]
+    return rosters
+
+
+_trade_rosters = _current_rosters_from_status()
+_all_current_player_ids = [pid for ids in _trade_rosters.values() for pid in ids]
+_trade_proj_vals = []
+for pid in _all_current_player_ids:
+    # Reuse the projection already calculated inside current_squad_strength when possible.
+    for m in managers:
+        row = next((p for p in current_squad_strength.get(m, {}).get("players", []) if p.get("id") == pid), None)
+        if row:
+            _trade_proj_vals.append(float(row.get("projection", 0) or 0)); break
+_trade_proj_median = statistics.median(_trade_proj_vals) if _trade_proj_vals else 3.0
+
+
+def _trade_player_projection(pid):
+    for m in managers:
+        for p in current_squad_strength.get(m, {}).get("players", []):
+            if int(p.get("id", -1)) == int(pid):
+                return float(p.get("projection", 0) or 0)
+    meta = elements.get(pid, {})
+    return float(meta.get("points_per_game", 0) or 0)
+
+
+def build_trade_targets(manager, limit=12):
+    own_ids = _trade_rosters.get(manager, [])
+    if not own_ids:
+        return []
+    own_metrics = [_player_current_metrics(pid) for pid in own_ids]
+    own_proj = {pid: _trade_player_projection(pid) for pid in own_ids}
+    club_counts = defaultdict(int)
+    for p in own_metrics:
+        club_counts[p["team"]] += 1
+
+    own_by_pos = defaultdict(list)
+    for p in own_metrics:
+        own_by_pos[p["position"]].append(p)
+    for pos in own_by_pos:
+        own_by_pos[pos].sort(key=lambda p: own_proj.get(p["id"], 0))
+
+    targets = []
+    for seller in managers:
+        if seller == manager:
+            continue
+        seller_ids = _trade_rosters.get(seller, [])
+        seller_pos_counts = defaultdict(int)
+        for sid in seller_ids:
+            seller_pos_counts[_player_current_metrics(sid)["position"]] += 1
+
+        for pid in seller_ids:
+            cand = _player_current_metrics(pid)
+            pos = cand["position"]
+            if pos not in own_by_pos or not own_by_pos[pos]:
+                continue
+            target_proj = _trade_player_projection(pid)
+            weakest = own_by_pos[pos][0]
+            replace_proj = own_proj.get(weakest["id"], 0.0)
+            upgrade = target_proj - replace_proj
+            if upgrade <= -0.35:
+                continue
+
+            # Need: larger when this position is weak relative to the manager's own squad.
+            pos_avg = statistics.mean([own_proj.get(p["id"], 0) for p in own_by_pos[pos]]) if own_by_pos[pos] else 0
+            all_avg = statistics.mean(list(own_proj.values())) if own_proj else 0
+            need = max(0.0, min(100.0, 50.0 + (all_avg - pos_avg) * 22.0))
+
+            # Attainability: only propose like-for-like positional swaps.
+            # A midfielder target should suggest a midfielder going the other way, etc.
+            offer_pool = list(own_by_pos.get(pos, []))
+            best_offer = min(offer_pool, key=lambda p: abs(own_proj.get(p["id"],0)-target_proj), default=weakest)
+            value_gap = abs(own_proj.get(best_offer["id"], 0) - target_proj)
+            attainability = max(0.0, 100.0 - value_gap * 30.0)
+
+            # Seller depth: standard Draft roster sizes mean DEF/MID depth matters most.
+            expected_min = {"GKP":2, "DEF":5, "MID":5, "FWD":3}.get(pos, 3)
+            surplus = max(0, seller_pos_counts.get(pos,0) - expected_min)
+            seller_flex = min(100.0, 45.0 + surplus*25.0)
+
+            # Club concentration risk. Third asset from one PL club gets a modest penalty; fourth+ a large one.
+            existing_same_club = club_counts.get(cand["team"], 0)
+            diversification = max(5.0, 100.0 - max(0, existing_same_club-1)*28.0)
+
+            form_score = max(0.0, min(100.0, 20.0 + cand["form"]*12.0))
+            upgrade_score = max(0.0, min(100.0, 50.0 + upgrade*24.0))
+            fit = 0.30*upgrade_score + 0.20*need + 0.20*attainability + 0.10*seller_flex + 0.10*diversification + 0.10*form_score
+            realism = 0.55*attainability + 0.25*seller_flex + 0.20*diversification
+
+            targets.append({
+                **cand, "owner": seller, "projection": target_proj,
+                "replace_name": weakest["name"], "replace_projection": replace_proj,
+                "upgrade": upgrade, "fit_score": round(fit,1), "realism_score": round(realism,1),
+                "offer_name": best_offer["name"], "offer_projection": own_proj.get(best_offer["id"],0),
+                "same_club_owned": existing_same_club,
+            })
+    targets.sort(key=lambda x:(-x["fit_score"], -x["realism_score"], -x["projection"], x["name"]))
+    # Avoid one selling team monopolising the recommendations.
+    selected, per_seller = [], defaultdict(int)
+    for t in targets:
+        if per_seller[t["owner"]] >= 3:
+            continue
+        selected.append(t); per_seller[t["owner"]] += 1
+        if len(selected) >= limit: break
+    return selected
+
+
+trade_targets = {m: build_trade_targets(m) for m in current_standings}
+trade_targets_json = json.dumps(trade_targets, ensure_ascii=False)
+
+
+# ---------------------------- Analytics Lab ----------------------------
+def _bar_chart_html(title, values, description="", value_suffix="", reverse=False, x_label="Manager", y_label="Value"):
+    items = [(m, float(values.get(m,0) or 0)) for m in current_standings]
+    items.sort(key=lambda x:x[1], reverse=not reverse)
+    maximum = max([abs(v) for _,v in items] + [1.0])
+    bars = ""
+    for m,v in items:
+        width = max(2.0, abs(v)/maximum*100.0)
+        bars += f'''<div class="analytics-bar-row" data-analytics-manager="{escape_html(m)}"><div class="analytics-bar-label">{escape_html(m)}</div><div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:{width:.1f}%"></div></div><div class="analytics-bar-value">{v:.1f}{value_suffix}</div></div>'''
+    return f'''<div class="card analytics-chart-card"><h2>{escape_html(title)}</h2>{f'<p class="card-description">{escape_html(description)}</p>' if description else ''}<div class="analytics-axis-title analytics-axis-y">{escape_html(y_label)}</div><div class="analytics-bar-chart">{bars}</div><div class="analytics-axis-title analytics-axis-x">{escape_html(x_label)}</div></div>'''
+
+
+def _category_bar_chart_html(title, rows, description="", value_suffix="", x_label="Player", y_label="Value", limit=20, reverse=False):
+    clean=[]
+    for label,value in rows:
+        try:
+            v=float(value or 0)
+        except (TypeError,ValueError):
+            continue
+        clean.append((str(label),v))
+    clean.sort(key=lambda x:x[1], reverse=not reverse)
+    clean=clean[:limit]
+    maximum=max([abs(v) for _,v in clean]+[1.0])
+    bars=""
+    for label,v in clean:
+        width=max(2.0,abs(v)/maximum*100.0)
+        bars += f'''<div class="analytics-bar-row"><div class="analytics-bar-label" title="{escape_html(label)}">{escape_html(label)}</div><div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:{width:.1f}%"></div></div><div class="analytics-bar-value">{v:.1f}{value_suffix}</div></div>'''
+    body = bars or '<div class="notice">Not enough data yet.</div>'
+    return f'''<div class="card analytics-chart-card"><h2>{escape_html(title)}</h2>{f'<p class="card-description">{escape_html(description)}</p>' if description else ''}<div class="analytics-axis-title analytics-axis-y">{escape_html(y_label)}</div><div class="analytics-bar-chart">{body}</div><div class="analytics-axis-title analytics-axis-x">{escape_html(x_label)}</div></div>'''
+
+
+
+def _dual_category_bar_chart_html(title, rows, first_label="Drafted-player points", second_label="All-player points", description="", x_label="Premier League club", y_label="Fantasy points", limit=20):
+    clean=[]
+    for label, first, second in rows:
+        try:
+            a=float(first or 0); b=float(second or 0)
+        except (TypeError, ValueError):
+            continue
+        clean.append((str(label), a, b))
+    clean.sort(key=lambda x:x[2], reverse=True)
+    clean=clean[:limit]
+    maximum=max([max(abs(a),abs(b)) for _,a,b in clean]+[1.0])
+    body=""
+    for label,a,b in clean:
+        wa=max(1.5,abs(a)/maximum*100.0); wb=max(1.5,abs(b)/maximum*100.0)
+        body += f'''<div class="analytics-dual-row"><div class="analytics-bar-label" title="{escape_html(label)}">{escape_html(label)}</div><div class="analytics-dual-bars"><div class="analytics-dual-series"><span>{escape_html(first_label)}</span><div class="analytics-bar-track"><div class="analytics-bar-fill analytics-bar-fill-secondary" style="width:{wa:.1f}%"></div></div><strong>{a:.0f}</strong></div><div class="analytics-dual-series"><span>{escape_html(second_label)}</span><div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:{wb:.1f}%"></div></div><strong>{b:.0f}</strong></div></div></div>'''
+    body = body or '<div class="notice">Not enough data yet.</div>'
+    desc = f'<p class="card-description">{escape_html(description)}</p>' if description else ''
+    return f'''<div class="card analytics-chart-card"><h2>{escape_html(title)}</h2>{desc}<div class="analytics-axis-title analytics-axis-y">{escape_html(y_label)}</div><div class="analytics-dual-chart">{body}</div><div class="analytics-axis-title analytics-axis-x">{escape_html(x_label)}</div></div>'''
+
+def _line_chart_html(title, series_map, description="", x_label="Gameweek", y_label="Points", invert_y=False):
+    all_pts=[(gw,float(v or 0)) for pts in series_map.values() for gw,v in pts]
+    if not all_pts:
+        return f'<div class="card analytics-chart-card"><h2>{escape_html(title)}</h2><div class="notice">Not enough data yet.</div></div>'
+    min_gw,max_gw=min(g for g,_ in all_pts),max(g for g,_ in all_pts)
+    min_v,max_v=min(v for _,v in all_pts),max(v for _,v in all_pts)
+    if max_v==min_v: max_v=min_v+1
+    W,H,PL,PR,PT,PB=760,275,58,20,18,48
+    pw,ph=W-PL-PR,H-PT-PB
+    def xy(g,v):
+        x=PL + (0 if max_gw==min_gw else (g-min_gw)/(max_gw-min_gw)*pw)
+        if invert_y:
+            y=PT + (v-min_v)/(max_v-min_v)*ph
+        else:
+            y=PT + (max_v-v)/(max_v-min_v)*ph
+        return x,y
+    grid=""; labels=""
+    for i in range(5):
+        val=(min_v+(max_v-min_v)*i/4) if invert_y else (max_v-(max_v-min_v)*i/4); y=PT+ph*i/4
+        grid += f'<line class="trend-chart-gridline" x1="{PL}" x2="{W-PR}" y1="{y:.1f}" y2="{y:.1f}" />'
+        labels += f'<text class="trend-chart-axis-label" x="4" y="{y+4:.1f}">{val:.0f}</text>'
+    for g in sorted(set(g for g,_ in all_pts)):
+        x,_=xy(g,min_v)
+        labels += f'<text class="trend-chart-axis-label" x="{x:.1f}" y="{H-24}" text-anchor="middle">GW{g}</text>'
+    paths=""
+    for idx,(m,pts) in enumerate(series_map.items()):
+        pts=sorted(pts)
+        if not pts: continue
+        coords=[xy(g,float(v or 0)) for g,v in pts]
+        d=" ".join(("M" if i==0 else "L")+f" {x:.1f} {y:.1f}" for i,(x,y) in enumerate(coords))
+        try: color=manager_color(m)
+        except Exception: color=f"hsl({(idx*47)%360} 70% 62%)"
+        paths += f'<path class="trend-chart-line analytics-manager-mark" data-analytics-manager="{escape_html(m)}" d="{d}" stroke="{color}" />'
+    axis_titles=(f'<text class="analytics-svg-axis-title" x="{PL+pw/2:.1f}" y="{H-3}" text-anchor="middle">{escape_html(x_label)}</text>'
+                 f'<text class="analytics-svg-axis-title" transform="translate(14 {PT+ph/2:.1f}) rotate(-90)" text-anchor="middle">{escape_html(y_label)}</text>')
+    return f'''<div class="card analytics-chart-card trend-chart-card"><h2>{escape_html(title)}</h2>{f'<p class="card-description">{escape_html(description)}</p>' if description else ''}<div class="trend-chart-svg-wrap"><svg viewBox="0 0 {W} {H}">{grid}{labels}{paths}{axis_titles}</svg></div></div>'''
+
+
+def _scatter_chart_html(title, xvals, yvals, description="", x_label="X", y_label="Y", invert_y=False):
+    labels=list(dict.fromkeys(list(xvals.keys()) + list(yvals.keys())))
+    pts=[(m,float(xvals.get(m,0) or 0),float(yvals.get(m,0) or 0)) for m in labels]
+    if not pts: return ""
+    xs=[x for _,x,_ in pts]; ys=[y for *_,y in pts]
+    xmin,xmax=min(xs),max(xs); ymin,ymax=min(ys),max(ys)
+    if xmax==xmin:xmax=xmin+1
+    if ymax==ymin:ymax=ymin+1
+    W,H,PL,PR,PT,PB=760,290,66,24,18,54; pw=W-PL-PR; ph=H-PT-PB
+    grid=""; labels=""
+    for i in range(5):
+        xv=xmin+(xmax-xmin)*i/4; x=PL+pw*i/4
+        yv=(ymin+(ymax-ymin)*i/4) if invert_y else (ymax-(ymax-ymin)*i/4); y=PT+ph*i/4
+        grid += f'<line class="trend-chart-gridline" x1="{x:.1f}" x2="{x:.1f}" y1="{PT}" y2="{H-PB}"/><line class="trend-chart-gridline" x1="{PL}" x2="{W-PR}" y1="{y:.1f}" y2="{y:.1f}"/>'
+        labels += f'<text class="trend-chart-axis-label" x="{x:.1f}" y="{H-30}" text-anchor="middle">{xv:.1f}</text><text class="trend-chart-axis-label" x="5" y="{y+4:.1f}">{yv:.1f}</text>'
+    dots=""
+    for idx,(m,x,y) in enumerate(pts):
+        cx=PL+(x-xmin)/(xmax-xmin)*pw
+        cy=PT+((y-ymin)/(ymax-ymin)*ph if invert_y else (ymax-y)/(ymax-ymin)*ph)
+        try: color=manager_color(m)
+        except Exception: color=f"hsl({(idx*47)%360} 70% 62%)"
+        dots += f'<g class="analytics-manager-mark" data-analytics-manager="{escape_html(m)}"><circle cx="{cx:.1f}" cy="{cy:.1f}" r="7" fill="{color}"><title>{escape_html(m)}: {x:.1f}, {y:.1f}</title></circle><text class="trend-chart-axis-label" x="{cx+9:.1f}" y="{cy+4:.1f}">{escape_html(m[:12])}</text></g>'
+    axis_titles=(f'<text class="analytics-svg-axis-title" x="{PL+pw/2:.1f}" y="{H-3}" text-anchor="middle">{escape_html(x_label)}</text>'
+                 f'<text class="analytics-svg-axis-title" transform="translate(14 {PT+ph/2:.1f}) rotate(-90)" text-anchor="middle">{escape_html(y_label)}</text>')
+    return f'''<div class="card analytics-chart-card"><h2>{escape_html(title)}</h2>{f'<p class="card-description">{escape_html(description)}</p>' if description else ''}<div class="trend-chart-svg-wrap"><svg viewBox="0 0 {W} {H}">{grid}{labels}{dots}{axis_titles}</svg></div></div>'''
+
+
+def _analytics_observations():
+    if not managers: return []
+    observations=[]
+    luckiest=max(managers,key=lambda m:luck_index.get(m,0)); unluckiest=min(managers,key=lambda m:luck_index.get(m,0))
+    observations.append(("Luck watch", f"{luckiest} have the biggest positive luck swing at {luck_index.get(luckiest,0):+.1f} league points versus expected. {unluckiest} sit at {luck_index.get(unluckiest,0):+.1f}."))
+    top_pf=max(managers,key=lambda m:points_for.get(m,0)); observations.append(("Underlying scoring", f"{top_pf} lead McDraft for points scored with {points_for.get(top_pf,0):.0f}, irrespective of what the head-to-head results did with them."))
+    run_avgs={m:(statistics.mean([r['difficulty'] for r in _next_fixture_rows(m,5)]) if _next_fixture_rows(m,5) else 0) for m in managers}
+    hard=max(run_avgs,key=run_avgs.get); easy=min(run_avgs,key=run_avgs.get)
+    observations.append(("Fixture runway", f"{hard} have the hardest next-five run ({run_avgs[hard]:.2f}/5); {easy} have the kindest ({run_avgs[easy]:.2f}/5)."))
+    bench_avg={m:(statistics.mean([v for _,v in bench_scores.get(m,[])]) if bench_scores.get(m) else 0) for m in managers}
+    waste=max(bench_avg,key=bench_avg.get); observations.append(("Bench watch", f"{waste} are leaving the most points on the bench on average ({bench_avg[waste]:.1f} per captured GW)."))
+    roi_map={r['manager']:r['net_roi'] for r in transfer_roi}
+    if roi_map:
+        best=max(roi_map,key=roi_map.get); worst=min(roi_map,key=roi_map.get)
+        observations.append(("Market efficiency", f"{best} currently lead transfer ROI at {roi_map[best]:+.0f}; {worst} are at {roi_map[worst]:+.0f}."))
+    conc={}
+    for m,ids in _trade_rosters.items():
+        counts=defaultdict(int)
+        for pid in ids: counts[_player_current_metrics(pid)['team']]+=1
+        conc[m]=max(counts.values()) if counts else 0
+    concentrated=max(conc,key=conc.get)
+    observations.append(("Squad construction", f"{concentrated} have the highest single-club concentration with {conc[concentrated]} players from one Premier League side. Diversification may be worth considering when values are otherwise similar."))
+    busiest=max(manager_transaction_counts,key=manager_transaction_counts.get) if manager_transaction_counts else None
+    if busiest:
+        observations.append(("Market activity", f"{busiest} have made the most completed roster moves ({manager_transaction_counts[busiest]}), counting a waiver drop-and-pickup as one move and only incoming legs of negotiated trades."))
+    return observations[:8]
+
+
+def analytics_page_html():
+    avg_score={m:_manager_season_avg(m) for m in managers}
+    last3={m:_manager_last_n_avg(m,3) for m in managers}
+    volatility={m:(statistics.pstdev([v for _,v in raw_score_by_gw.get(m,[])]) if len(raw_score_by_gw.get(m,[]))>1 else 0) for m in managers}
+    bench_avg={m:(statistics.mean([v for _,v in bench_scores.get(m,[])]) if bench_scores.get(m) else 0) for m in managers}
+    dream_avg={m:(statistics.mean([v for _,v in dreamteam_counts.get(m,[])]) if dreamteam_counts.get(m) else 0) for m in managers}
+    win_pct={m:(matches_won.get(m,0)/matches_played.get(m,1)*100 if matches_played.get(m,0) else 0) for m in managers}
+    selection={m:float(manager_selection.get(m,{}).get('efficiency',0) or 0) for m in managers}
+    squad_strength={m:float(current_squad_strength.get(m,{}).get('managed_xi',0) or 0) for m in managers}
+    optimal_strength={m:float(current_squad_strength.get(m,{}).get('optimal_xi',0) or 0) for m in managers}
+    depth={m:float(current_squad_strength.get(m,{}).get('depth_bonus',0) or 0) for m in managers}
+    draft_total={m:float(current_squad_strength.get(m,{}).get('squad_draft_rank_total',0) or 0) for m in managers}
+    roi_map={r['manager']:float(r['net_roi']) for r in transfer_roi}
+    moves={m:float(manager_transaction_counts.get(m,0)) for m in managers}
+    opp={m:opponent_avg_score.get(m,0) for m in managers}
+    exp_lp={m:expected_league_points.get(m,0) for m in managers}
+    actual_lp={m:actual_finished_league_points.get(m,0) for m in managers}
+    schedule={m:(statistics.mean([r['difficulty'] for r in _next_fixture_rows(m,5)]) if _next_fixture_rows(m,5) else 0) for m in managers}
+    club_conc={}; club_div={}; retained={}
+    for m,ids in _trade_rosters.items():
+        cc=defaultdict(int); retained_count=0
+        for pid in ids:
+            cc[_player_current_metrics(pid)['team']]+=1
+            draft=history.get('original_draft_rank',{}).get(str(pid),{})
+            if draft.get('manager')==m: retained_count+=1
+        club_conc[m]=max(cc.values()) if cc else 0
+        club_div[m]=len(cc)
+        retained[m]=retained_count
+
+    # --------------------------------------------------------
+    # POSITIONAL SQUAD ANALYTICS
+    # --------------------------------------------------------
+    # Two complementary views:
+    # 1) depth = average current-squad output/form at each position;
+    # 2) ceiling = the best player a manager owns at each position, ranked
+    #    against every currently-owned player in McDraft at that position.
+    _positions=('GKP','DEF','MID','FWD')
+    positional_avg_points={pos:{} for pos in _positions}
+    positional_avg_form5={pos:{} for pos in _positions}
+    positional_best_percentile={pos:{} for pos in _positions}
+    positional_best_rank={pos:{} for pos in _positions}
+    positional_best_player={m:{} for m in managers}
+
+    _owned_pos_pool={pos:[] for pos in _positions}
+    for _manager,_ids in _trade_rosters.items():
+        for _pid in _ids:
+            _meta=elements.get(_pid,{})
+            _pos=positions_lookup.get(_meta.get('element_type'),'')
+            if _pos not in _owned_pos_pool:
+                continue
+            _pts=float(_meta.get('total_points',0) or 0)
+            _name=_meta.get('web_name',f'Player {_pid}')
+            _owned_pos_pool[_pos].append((_pid,_name,_pts,_manager))
+
+    _owned_pos_rank={}
+    for _pos,_rows in _owned_pos_pool.items():
+        _rows=sorted(_rows,key=lambda x:(-x[2],x[1]))
+        _n=len(_rows)
+        for _rank,(_pid,_name,_pts,_owner) in enumerate(_rows,start=1):
+            _pct=(100.0 if _n<=1 else 100.0*(_n-_rank)/(_n-1))
+            _owned_pos_rank[(_pos,_pid)]={'rank':_rank,'percentile':_pct,'pool':_n}
+
+    for _manager in managers:
+        _ids=_trade_rosters.get(_manager,[])
+        for _pos in _positions:
+            _rows=[]
+            for _pid in _ids:
+                _meta=elements.get(_pid,{})
+                if positions_lookup.get(_meta.get('element_type'),'') != _pos:
+                    continue
+                _points=float(_meta.get('total_points',0) or 0)
+                _recent=[]
+                for _gw in finished_gws[-5:]:
+                    _recent.append(float((player_form.get(_pid,{}) or {}).get(_gw,0) or 0))
+                _form5=statistics.mean(_recent) if _recent else (_points/max(len(finished_gws),1))
+                _rows.append({'id':_pid,'name':_meta.get('web_name',f'Player {_pid}'),'points':_points,'form5':_form5})
+            positional_avg_points[_pos][_manager]=(statistics.mean(r['points'] for r in _rows) if _rows else 0.0)
+            positional_avg_form5[_pos][_manager]=(statistics.mean(r['form5'] for r in _rows) if _rows else 0.0)
+            if _rows:
+                _best=max(_rows,key=lambda r:(r['points'],r['form5'],r['name']))
+                _rk=_owned_pos_rank.get((_pos,_best['id']),{'rank':0,'percentile':0.0,'pool':0})
+                positional_best_player[_manager][_pos]={**_best,**_rk}
+                positional_best_rank[_pos][_manager]=float(_rk['rank'])
+                positional_best_percentile[_pos][_manager]=float(_rk['percentile'])
+            else:
+                positional_best_player[_manager][_pos]={'name':'—','points':0,'form5':0,'rank':0,'percentile':0,'pool':0}
+                positional_best_rank[_pos][_manager]=0.0
+                positional_best_percentile[_pos][_manager]=0.0
+
+    positional_elite_score={
+        m:statistics.mean([positional_best_percentile[p].get(m,0.0) for p in _positions])
+        for m in managers
+    }
+    positional_depth_score={
+        m:statistics.mean([positional_avg_points[p].get(m,0.0) for p in _positions])
+        for m in managers
+    }
+
+    def _positional_table_html():
+        labels={'GKP':'GK','DEF':'DEF','MID':'MID','FWD':'FWD'}
+        rows=''
+        for _m in current_standings:
+            cells=''
+            for _pos in _positions:
+                _r=positional_best_player.get(_m,{}).get(_pos,{})
+                _rank=int(_r.get('rank',0) or 0)
+                _pool=int(_r.get('pool',0) or 0)
+                _pct=float(_r.get('percentile',0) or 0)
+                _rank_text=(f'{_ordinal_text(_rank)} / {_pool}' if _rank and _pool else '—')
+                cells += f'''<td><strong>{escape_html(_r.get('name','—'))}</strong><br><span class="muted">{int(_r.get('points',0) or 0)} pts · {_rank_text}<br>{_pct:.0f}th percentile</span></td>'''
+            rows += f'''<tr data-analytics-manager="{escape_html(_m)}"><td><strong>{escape_html(_m)}</strong></td>{cells}</tr>'''
+        return f'''<div class="card analytics-chart-card positional-rank-table"><h2>Best player by position: rank & percentile</h2><p class="card-description">Each manager's highest-scoring current player at every position, ranked against all currently-owned McDraft players at that position.</p><div class="table-wrap"><table><thead><tr><th>Manager</th>{''.join(f'<th>{labels[p]}</th>' for p in _positions)}</tr></thead><tbody>{rows}</tbody></table></div></div>'''
+
+    # Starting-XI concentration / reliance. For each finished GW, rank the XI by
+    # effective fantasy points (including captain doubling) and measure how much
+    # of the team's actual score came from its top 3 and top 6 contributors.
+    top3_reliance_by_gw={m:[] for m in managers}
+    top6_reliance_by_gw={m:[] for m in managers}
+    top3_reliance_overall={m:0.0 for m in managers}
+    top6_reliance_overall={m:0.0 for m in managers}
+    _rel_totals={m:{'xi':0.0,'top3':0.0,'top6':0.0} for m in managers}
+    for _gw in finished_gws:
+        _teams=history.get('gameweeks',{}).get(str(_gw),{}).get('teams',{})
+        for _td in _teams.values():
+            _m=_td.get('manager')
+            if _m not in _rel_totals:
+                continue
+            _effective=[]
+            for _pl in (_td.get('starters',[]) or []):
+                _pts=float(_pl.get('points',0) or 0) * (2.0 if _pl.get('is_captain') else 1.0)
+                _effective.append(_pts)
+            _effective.sort(reverse=True)
+            _xi=sum(_effective)
+            _t3=sum(_effective[:3])
+            _t6=sum(_effective[:6])
+            _r3=(100.0*_t3/_xi) if _xi>0 else 0.0
+            _r6=(100.0*_t6/_xi) if _xi>0 else 0.0
+            top3_reliance_by_gw[_m].append((_gw,_r3))
+            top6_reliance_by_gw[_m].append((_gw,_r6))
+            _rel_totals[_m]['xi'] += _xi
+            _rel_totals[_m]['top3'] += _t3
+            _rel_totals[_m]['top6'] += _t6
+    for _m,_vals in _rel_totals.items():
+        if _vals['xi']>0:
+            top3_reliance_overall[_m]=100.0*_vals['top3']/_vals['xi']
+            top6_reliance_overall[_m]=100.0*_vals['top6']/_vals['xi']
+
+
+    # --------------------------------------------------------
+    # DRAFT CAPITAL BY POSITION
+    # --------------------------------------------------------
+    _draft_positions_by_player={}
+    _first_captured_gw=min([int(g) for g in history.get('gameweeks',{}).keys()] or [1])
+    for _td in history.get('gameweeks',{}).get(str(_first_captured_gw),{}).get('teams',{}).values():
+        for _pl in (_td.get('starters',[]) or []) + (_td.get('bench',[]) or []):
+            _pid=_pl.get('element_id')
+            if _pid is not None:
+                _draft_positions_by_player[int(_pid)] = _pl.get('position') or positions_lookup.get(elements.get(int(_pid),{}).get('element_type'),'')
+    draft_capital_position={pos:{m:0.0 for m in managers} for pos in _positions}
+    draft_capital_position_share={pos:{m:0.0 for m in managers} for pos in _positions}
+    draft_capital_total={m:0.0 for m in managers}
+    for _pid_text,_info in (history.get('original_draft_rank',{}) or {}).items():
+        try:
+            _pid=int(_pid_text); _pick=int(_info.get('overall_pick',UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK)
+        except (TypeError,ValueError):
+            continue
+        if _pick>DRAFTED_PLAYER_COUNT: continue
+        _manager=_info.get('manager')
+        if _manager not in draft_capital_total: continue
+        _pos=_draft_positions_by_player.get(_pid) or positions_lookup.get(elements.get(_pid,{}).get('element_type'),'')
+        if _pos not in draft_capital_position: continue
+        _capital=float(DRAFTED_PLAYER_COUNT+1-_pick)
+        draft_capital_position[_pos][_manager]+=_capital
+        draft_capital_total[_manager]+=_capital
+    for _pos in _positions:
+        for _manager in managers:
+            _tot=draft_capital_total.get(_manager,0.0)
+            draft_capital_position_share[_pos][_manager]=(100.0*draft_capital_position[_pos].get(_manager,0.0)/_tot) if _tot else 0.0
+
+    # CURRENT SQUAD FRAGILITY
+    # Model the loss after replacing unavailable stars with the best realistic
+    # same-position free-agent cover. The previous implementation could return
+    # no legal formation after removing several players from one position and
+    # incorrectly translate that into a 100% loss of team strength.
+    _frag_pos_values=defaultdict(list); _frag_all_values=[]
+    for _pid,_meta in elements.items():
+        _pos=positions_lookup.get(_meta.get('element_type'),'')
+        _val=float(_meta.get('total_points',0) or 0)/max(len(finished_gws),1)
+        if _pos: _frag_pos_values[_pos].append(_val)
+        _frag_all_values.append(_val)
+    _frag_league_mean=statistics.mean(_frag_all_values) if _frag_all_values else 2.5
+    _frag_pos_baselines={p:(statistics.mean(v) if v else _frag_league_mean) for p,v in _frag_pos_values.items()}
+    _league_owned_ids={int(pid) for pid,owner in current_owner_by_player.items() if owner not in (None,'',0,'0')}
+    if not current_owner_by_player:
+        for _ids in _trade_rosters.values():
+            _league_owned_ids.update(int(pid) for pid in _ids)
+    _replacement_pool=defaultdict(list)
+    for _pid,_meta in elements.items():
+        if int(_pid) in _league_owned_ids:
+            continue
+        if _meta.get('status') not in (None,'','a'):
+            continue
+        _pos=positions_lookup.get(_meta.get('element_type'),'')
+        if _pos not in _positions:
+            continue
+        _projection=_player_weekly_projection(int(_pid),_frag_pos_baselines,_frag_league_mean)
+        _replacement_pool[_pos].append({
+            'id':f'fa-{_pid}', 'name':_meta.get('web_name',f'Player {_pid}'),
+            'position':_pos, 'projection':_projection, 'replacement':True,
+        })
+    for _pos in _replacement_pool:
+        _replacement_pool[_pos].sort(key=lambda r:float(r.get('projection',0) or 0),reverse=True)
+
+    squad_fragility_1={}; squad_fragility_2={}; squad_fragility_3={}; squad_fragility_score={}
+    for _manager in managers:
+        _players=list(current_squad_strength.get(_manager,{}).get('players',[]) or [])
+        _base=_best_projected_xi(_players); _base_total=float((_base or {}).get('total',0) or 0)
+        _ordered=sorted(_players,key=lambda r:float(r.get('projection',0) or 0),reverse=True)
+        _losses=[]
+        for _n in (1,2,3):
+            _removed=_ordered[:_n]
+            _remove={p.get('id') for p in _removed}
+            _scenario=[p for p in _players if p.get('id') not in _remove]
+            _used_by_pos=defaultdict(int)
+            for _p in _removed:
+                _pos=_p.get('position')
+                _idx=_used_by_pos[_pos]
+                _used_by_pos[_pos]+=1
+                _pool=_replacement_pool.get(_pos,[])
+                if _idx < len(_pool):
+                    _scenario.append(dict(_pool[_idx]))
+                else:
+                    _scenario.append({
+                        'id':f'repl-{_pos}-{_idx}', 'name':'Replacement level',
+                        'position':_pos, 'projection':float(_frag_pos_baselines.get(_pos,_frag_league_mean)),
+                        'replacement':True,
+                    })
+            _after=_best_projected_xi(_scenario)
+            _after_total=float((_after or {}).get('total',0) or 0)
+            _losses.append((100.0*max(0.0,_base_total-_after_total)/_base_total) if _base_total else 0.0)
+        squad_fragility_1[_manager],squad_fragility_2[_manager],squad_fragility_3[_manager]=_losses
+        squad_fragility_score[_manager]=statistics.mean(_losses) if _losses else 0.0
+
+    # NEMESIS / FAVOURITE OPPONENT
+    nemesis_by_manager={}; favourite_by_manager={}
+    for _manager in managers:
+        _records=h2h_records.get(_manager,{}) or {}
+        _valid=[(opp,rec) for opp,rec in _records.items() if (rec.get('wins',0)+rec.get('draws',0)+rec.get('losses',0))>0]
+        def _ppg(item):
+            _opp,_rec=item; _played=_rec.get('wins',0)+_rec.get('draws',0)+_rec.get('losses',0)
+            return ((3*_rec.get('wins',0))+_rec.get('draws',0))/_played if _played else 0.0
+        if _valid:
+            _fav=max(_valid,key=lambda item:(_ppg(item),item[1].get('wins',0),-item[1].get('losses',0)))
+            _nem=min(_valid,key=lambda item:(_ppg(item),-item[1].get('losses',0),item[1].get('wins',0)))
+            favourite_by_manager[_manager]=(_fav[0],_ppg(_fav)); nemesis_by_manager[_manager]=(_nem[0],_ppg(_nem))
+        else:
+            favourite_by_manager[_manager]=('—',0.0); nemesis_by_manager[_manager]=('—',0.0)
+
+    def _nemesis_favourite_table_html():
+        _rows=''
+        for _manager in current_standings:
+            _fav,_fav_ppg=favourite_by_manager.get(_manager,('—',0.0)); _nem,_nem_ppg=nemesis_by_manager.get(_manager,('—',0.0))
+            _rows += f'<tr><td><strong>{escape_html(_manager)}</strong></td><td>{escape_html(_fav)}<br><span class="muted">{_fav_ppg:.2f} pts/game</span></td><td>{escape_html(_nem)}<br><span class="muted">{_nem_ppg:.2f} pts/game</span></td></tr>'
+        return f'<div class="card analytics-chart-card"><h2>Favourite opponent & nemesis</h2><p class="card-description">Best and worst head-to-head opponent by league points per meeting.</p><div class="table-wrap"><table><thead><tr><th>Manager</th><th>Favourite opponent</th><th>Nemesis</th></tr></thead><tbody>{_rows}</tbody></table></div></div>'
+
+    # HISTORIC FIXTURE DIFFICULTY + FIXTURE SWING
+    _scores_by_manager_gw={m:{int(g):float(v or 0) for g,v in raw_score_by_gw.get(m,[])} for m in managers}
+    def _pre_gw_strength(_manager,_gw):
+        _prior=sorted((g,v) for g,v in _scores_by_manager_gw.get(_manager,{}).items() if g<_gw)
+        if not _prior:
+            return 0.0
+        return (0.60*statistics.mean(v for _,v in _prior[-3:]))+(0.40*statistics.mean(v for _,v in _prior))
+
+    historic_fixture_difficulty={m:[] for m in managers}
+    fixture_swing_rows=[]
+    historic_prediction_rows=[]
+    for _match in enriched_matches:
+        _gw=int(_match.get('event',0) or 0)
+        _m1=_match.get('entry_1_name'); _m2=_match.get('entry_2_name')
+        if _m1 not in managers or _m2 not in managers:
+            continue
+        _s1=_pre_gw_strength(_m1,_gw); _s2=_pre_gw_strength(_m2,_gw)
+        _vals=[_pre_gw_strength(m,_gw) for m in managers]
+        def _difficulty(_strength):
+            if not _vals or max(_vals)==min(_vals):
+                return 3.0
+            return 1.0+4.0*((_strength-min(_vals))/(max(_vals)-min(_vals)))
+        historic_fixture_difficulty[_m1].append((_gw,_difficulty(_s2)))
+        historic_fixture_difficulty[_m2].append((_gw,_difficulty(_s1)))
+
+        _p1=float(_match.get('entry_1_points',0) or 0); _p2=float(_match.get('entry_2_points',0) or 0)
+        _actual=_p1-_p2; _expected=_s1-_s2
+        _has_prior=(any(g<_gw for g in _scores_by_manager_gw.get(_m1,{})) and any(g<_gw for g in _scores_by_manager_gw.get(_m2,{})))
+        if not _has_prior:
+            continue
+        _predicted=(_m1 if _expected>0.25 else (_m2 if _expected<-0.25 else 'Too close to call'))
+        _actual_winner=(_m1 if _actual>0 else (_m2 if _actual<0 else 'Draw'))
+        _correct=(_predicted==_actual_winner) if _predicted!='Too close to call' else None
+        _swing=abs(_actual-_expected)
+        fixture_swing_rows.append((f'GW{_gw}: {_m1} v {_m2}',_swing))
+        historic_prediction_rows.append({
+            'gw':_gw,'m1':_m1,'m2':_m2,'expected':_expected,
+            'p1':_p1,'p2':_p2,'actual':_actual,'predicted':_predicted,
+            'winner':_actual_winner,'correct':_correct,'swing':_swing,
+        })
+    historic_difficulty_avg={m:(statistics.mean(v for _,v in rows) if rows else 0.0) for m,rows in historic_fixture_difficulty.items()}
+
+    def _historic_prediction_table_html():
+        if not historic_prediction_rows:
+            return '<div class="card analytics-chart-card"><h2>Historic predictions vs outcomes</h2><div class="notice">Not enough pre-gameweek history yet.</div></div>'
+        _rows=''
+        for _r in sorted(historic_prediction_rows,key=lambda r:(-r['gw'],-r['swing'])):
+            if _r['expected']>0.25:
+                _exp=f"{escape_html(_r['m1'])} by {_r['expected']:.1f}"
+            elif _r['expected']<-0.25:
+                _exp=f"{escape_html(_r['m2'])} by {abs(_r['expected']):.1f}"
+            else:
+                _exp='Too close to call'
+            _actual_text=f"{escape_html(_r['m1'])} {_r['p1']:.0f}–{_r['p2']:.0f} {escape_html(_r['m2'])}"
+            _badge=('✓' if _r['correct'] is True else ('✕' if _r['correct'] is False else '—'))
+            _rows += (
+                f"<tr><td>GW{_r['gw']}</td><td><strong>{escape_html(_r['m1'])}</strong> v <strong>{escape_html(_r['m2'])}</strong></td>"
+                f"<td>{_exp}</td><td>{_actual_text}</td><td>{_r['swing']:.1f}</td><td>{_badge}</td></tr>"
+            )
+        return (
+            '<div class="card analytics-chart-card fixture-outcome-table"><h2>Historic predictions vs outcomes</h2>'
+            '<p class="card-description">Pre-GW expectation uses only scoring information available before that gameweek. GW1 is excluded because there was no league history yet.</p>'
+            '<div class="table-wrap"><table><thead><tr><th>GW</th><th>Fixture</th><th>Pre-GW expectation</th><th>Actual result</th><th>Swing</th><th>Call</th></tr></thead>'
+            f'<tbody>{_rows}</tbody></table></div></div>'
+        )
+
+    player_rows=[]
+    original_rank_map = history.get('original_draft_rank', {})
+    for p in player_form_stats:
+        pid=p.get('id'); meta=elements.get(pid,{})
+        draft_info = original_rank_map.get(str(pid), {})
+        draft_rank = int(draft_info.get('overall_pick', UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK)
+        minutes = int(meta.get('minutes', 0) or 0)
+        goals = int(meta.get('goals_scored', 0) or 0)
+        assists = int(meta.get('assists', 0) or 0)
+        clean_sheets = int(meta.get('clean_sheets', 0) or 0)
+        bonus = int(meta.get('bonus', 0) or 0)
+        saves = int(meta.get('saves', 0) or 0)
+        defensive_contributions = int(meta.get('defensive_contribution', 0) or 0)
+        expected_goals = float(meta.get('expected_goals', 0) or 0)
+        expected_assists = float(meta.get('expected_assists', 0) or 0)
+        expected_goal_involvements = float(meta.get('expected_goal_involvements', 0) or 0)
+        season_points = float(p.get('season_points', 0) or 0)
+        player_rows.append({
+            **p,
+            'club':teams_lookup.get(meta.get('team'),'—'),
+            'position':positions_lookup.get(meta.get('element_type'),'—'),
+            'projection':_trade_player_projection(pid),
+            'draft_rank': draft_rank,
+            'drafted': draft_rank <= DRAFTED_PLAYER_COUNT,
+            'minutes': minutes,
+            'goals': goals,
+            'assists': assists,
+            'goal_involvements': goals + assists,
+            'clean_sheets': clean_sheets,
+            'bonus': bonus,
+            'saves': saves,
+            'defensive_contributions': defensive_contributions,
+            'expected_goals': expected_goals,
+            'expected_assists': expected_assists,
+            'expected_goal_involvements': expected_goal_involvements,
+            'points_per_90': (season_points * 90.0 / minutes) if minutes > 0 else 0,
+            'goals_per_90': (goals * 90.0 / minutes) if minutes > 0 else 0,
+            'assists_per_90': (assists * 90.0 / minutes) if minutes > 0 else 0,
+        })
+
+    # Performance rank is based on actual fantasy output to date. Ties are
+    # resolved deterministically by name so the draft-value charts remain stable.
+    ranked_by_points = sorted(player_rows, key=lambda row: (-float(row.get('season_points', 0) or 0), row.get('name','')))
+    for perf_rank, row in enumerate(ranked_by_points, start=1):
+        row['performance_rank'] = perf_rank
+        # Positive = outperforming original draft slot; negative = underperforming.
+        row['draft_rank_delta'] = float(row.get('draft_rank', UNDRAFTED_PLAYER_RANK)) - float(perf_rank)
+        # Ratio is useful for spotting extreme late-round/undrafted breakouts.
+        row['draft_value_ratio'] = float(row.get('draft_rank', UNDRAFTED_PLAYER_RANK)) / max(float(perf_rank), 1.0)
+
+    season_pts=[(p['name'],p.get('season_points',0)) for p in player_rows]
+    form5=[(p['name'],p.get('avg_5') or 0) for p in player_rows if p.get('avg_5') is not None]
+    form10=[(p['name'],p.get('avg_10') or 0) for p in player_rows if p.get('avg_10') is not None]
+    trend=[(p['name'],p.get('trend') or 0) for p in player_rows if p.get('trend') is not None]
+    transfer_freq=[(p['name'],p.get('transfers',0)) for p in player_rows]
+    owner_count=[(p['name'],p.get('owners',0)) for p in player_rows]
+    appearances=[(p['name'],p.get('appearances',0)) for p in player_rows]
+    projections=[(p['name'],p.get('projection',0)) for p in player_rows]
+    fa_points=[]
+    for p in player_rows:
+        if current_owner_by_player.get(int(p['id'])) in (None,"",0,"0"):
+            fa_points.append((p['name'],p.get('season_points',0)))
+    pos_points=defaultdict(float); club_points=defaultdict(float)
+    club_drafted_points=defaultdict(float); club_undrafted_points=defaultdict(float)
+    club_drafted_count=defaultdict(int); club_player_count=defaultdict(int)
+    club_goals=defaultdict(int); club_assists=defaultdict(int); club_clean_sheets=defaultdict(int)
+    club_bonus=defaultdict(int); club_minutes=defaultdict(int)
+    for p in player_rows:
+        pts=float(p.get('season_points',0) or 0)
+        club=p['club']
+        pos_points[p['position']] += pts
+        club_points[club] += pts
+        club_player_count[club] += 1
+        club_goals[club] += int(p.get('goals',0) or 0)
+        club_assists[club] += int(p.get('assists',0) or 0)
+        club_clean_sheets[club] += int(p.get('clean_sheets',0) or 0)
+        club_bonus[club] += int(p.get('bonus',0) or 0)
+        club_minutes[club] += int(p.get('minutes',0) or 0)
+        if p.get('drafted'):
+            club_drafted_points[club] += pts
+            club_drafted_count[club] += 1
+        else:
+            club_undrafted_points[club] += pts
+    # Real-club totals use the complete current FPL player pool, not only players
+    # who have appeared in McDraft ownership history. 'Banked' means points that
+    # actually made a McDraft starting XI in a finished gameweek.
+    club_all_fpl_points=defaultdict(float)
+    for _pid, _meta in elements.items():
+        _club=teams_lookup.get(_meta.get('team'),'—')
+        club_all_fpl_points[_club] += float(_meta.get('total_points',0) or 0)
+
+    club_bank_points=defaultdict(float)
+    for _gw in finished_gws:
+        _gw_data=history.get('gameweeks',{}).get(str(_gw),{})
+        for _team_data in _gw_data.get('teams',{}).values():
+            for _starter in _team_data.get('starters',[]) or []:
+                _club=_starter.get('team') or '—'
+                club_bank_points[_club] += float(_starter.get('points',0) or 0)
+
+    club_all_names=sorted(set(club_all_fpl_points) | set(club_bank_points))
+    club_bank_vs_all=[(club,club_bank_points.get(club,0),club_all_fpl_points.get(club,0)) for club in club_all_names]
+    club_bank_share={club:(100.0*club_bank_points.get(club,0)/club_all_fpl_points.get(club,1) if club_all_fpl_points.get(club,0) else 0) for club in club_all_names}
+
+    club_drafted_share={club:(100.0*club_drafted_points.get(club,0)/club_points.get(club,1) if club_points.get(club,0) else 0) for club in club_all_names}
+    club_points_per_drafted={club:(club_drafted_points.get(club,0)/club_drafted_count.get(club,1) if club_drafted_count.get(club,0) else 0) for club in club_all_names}
+    club_points_per_player={club:(club_points.get(club,0)/club_player_count.get(club,1) if club_player_count.get(club,0) else 0) for club in club_all_names}
+
+    # Draft-value and real-football production datasets.
+    draft_overperformers=[(p['name'],p['draft_rank_delta']) for p in player_rows if p.get('drafted')]
+    draft_underperformers=[(p['name'],p['draft_rank_delta']) for p in player_rows if p.get('drafted')]
+    undrafted_gems=[(p['name'],p.get('season_points',0)) for p in player_rows if not p.get('drafted')]
+    goals=[(p['name'],p.get('goals',0)) for p in player_rows if p.get('goals',0)>0]
+    assists_data=[(p['name'],p.get('assists',0)) for p in player_rows if p.get('assists',0)>0]
+    goal_involvements=[(p['name'],p.get('goal_involvements',0)) for p in player_rows if p.get('goal_involvements',0)>0]
+    clean_sheets=[(p['name'],p.get('clean_sheets',0)) for p in player_rows if p.get('clean_sheets',0)>0]
+    bonus_points=[(p['name'],p.get('bonus',0)) for p in player_rows if p.get('bonus',0)>0]
+    saves_data=[(p['name'],p.get('saves',0)) for p in player_rows if p.get('saves',0)>0]
+    defensive_contrib=[(p['name'],p.get('defensive_contributions',0)) for p in player_rows if p.get('defensive_contributions',0)>0]
+    points_per90=[(p['name'],p.get('points_per_90',0)) for p in player_rows if p.get('minutes',0)>=180]
+    goals_per90=[(p['name'],p.get('goals_per_90',0)) for p in player_rows if p.get('minutes',0)>=180 and p.get('goals',0)>0]
+    assists_per90=[(p['name'],p.get('assists_per_90',0)) for p in player_rows if p.get('minutes',0)>=180 and p.get('assists',0)>0]
+    draft_x={p['name']:p['draft_rank'] for p in player_rows if p.get('drafted')}
+    perf_y={p['name']:p['performance_rank'] for p in player_rows if p.get('drafted')}
+    points_y={p['name']:float(p.get('season_points',0) or 0) for p in player_rows if p.get('drafted')}
+    gi_y={p['name']:float(p.get('goal_involvements',0) or 0) for p in player_rows if p.get('drafted')}
+    minutes_y={p['name']:float(p.get('minutes',0) or 0) for p in player_rows if p.get('drafted')}
+    xgi_x={p['name']:float(p.get('expected_goal_involvements',0) or 0) for p in player_rows if p.get('minutes',0)>=180}
+    actual_gi_y={p['name']:float(p.get('goal_involvements',0) or 0) for p in player_rows if p.get('minutes',0)>=180}
+
+    extra_obs=[]
+    if club_all_names:
+        _best_capture=max(club_all_names,key=lambda c:club_bank_share.get(c,0))
+        _most_banked=max(club_all_names,key=lambda c:club_bank_points.get(c,0))
+        extra_obs.append(('Club capture', f"{_best_capture} have the highest McDraft capture rate: {club_bank_share.get(_best_capture,0):.1f}% of their available FPL points have actually been banked in starting XIs."))
+        extra_obs.append(('Most banked club', f"Players from {_most_banked} have supplied the most points to McDraft starting XIs ({club_bank_points.get(_most_banked,0):.0f})."))
+    drafted_rows=[p for p in player_rows if p.get('drafted')]
+    if drafted_rows:
+        steal=max(drafted_rows,key=lambda p:p.get('draft_rank_delta',-999))
+        bust=min(drafted_rows,key=lambda p:p.get('draft_rank_delta',999))
+        extra_obs.append(('Draft steal', f"{steal['name']} was drafted #{int(steal['draft_rank'])} but currently ranks #{int(steal['performance_rank'])} for fantasy output — {int(steal['draft_rank_delta'])} places above draft expectation."))
+        extra_obs.append(('Draft underperformer', f"{bust['name']} was drafted #{int(bust['draft_rank'])} but currently ranks #{int(bust['performance_rank'])} for fantasy output — {abs(int(bust['draft_rank_delta']))} places below draft expectation."))
+    undrafted_rows=[p for p in player_rows if not p.get('drafted')]
+    if undrafted_rows:
+        gem=max(undrafted_rows,key=lambda p:float(p.get('season_points',0) or 0))
+        extra_obs.append(('Undrafted gem', f"{gem['name']} went undrafted and has already produced {int(gem.get('season_points',0) or 0)} fantasy points."))
+    if player_rows:
+        gi_leader=max(player_rows,key=lambda p:p.get('goal_involvements',0))
+        bonus_leader=max(player_rows,key=lambda p:p.get('bonus',0))
+        extra_obs.append(('Goal involvement leader', f"{gi_leader['name']} leads this player pool with {int(gi_leader.get('goal_involvements',0))} combined goals and assists."))
+        extra_obs.append(('Bonus magnet', f"{bonus_leader['name']} has collected the most bonus points ({int(bonus_leader.get('bonus',0))})."))
+
+    if club_all_names:
+        club_total_leader=max(club_all_names,key=lambda c:club_points.get(c,0))
+        club_undrafted_leader=max(club_all_names,key=lambda c:club_undrafted_points.get(c,0))
+        club_drafted_share_leader=max(club_all_names,key=lambda c:club_drafted_share.get(c,0))
+        extra_obs.append(('Club production', f"{club_total_leader} players have produced the most fantasy points overall ({int(club_points.get(club_total_leader,0))})."))
+        extra_obs.append(('Ignored club value', f"{club_undrafted_leader} have supplied the most points from players who went undrafted ({int(club_undrafted_points.get(club_undrafted_leader,0))})."))
+        extra_obs.append(('Draft dependence', f"{club_drafted_share_leader} have the highest share of club fantasy output coming from originally drafted players ({club_drafted_share.get(club_drafted_share_leader,0):.0f}%)."))
+    if top3_reliance_overall:
+        _most_top3=max(top3_reliance_overall,key=top3_reliance_overall.get)
+        _least_top3=min(top3_reliance_overall,key=top3_reliance_overall.get)
+        extra_obs.append(('Star dependence', f"{_most_top3} are the most reliant on their weekly top three starters: {top3_reliance_overall[_most_top3]:.1f}% of starting-XI points come from the top trio."))
+        extra_obs.append(('Scoring spread', f"{_least_top3} have the most distributed scoring: only {top3_reliance_overall[_least_top3]:.1f}% of XI output comes from their weekly top three."))
+    if positional_elite_score:
+        _elite=max(positional_elite_score,key=positional_elite_score.get)
+        _depth=max(positional_depth_score,key=positional_depth_score.get)
+        _weak=min(positional_elite_score,key=positional_elite_score.get)
+        extra_obs.append(('Positional elite', f"{_elite} have the strongest top-end positional profile: their best player at GK, DEF, MID and FWD averages the {positional_elite_score[_elite]:.0f}th percentile across McDraft."))
+        extra_obs.append(('Positional depth', f"{_depth} lead the league for average current-squad production across the four positions ({positional_depth_score[_depth]:.1f} points per player on the positional-average measure)."))
+        extra_obs.append(('Positional weak spot', f"{_weak} currently have the lowest average best-player positional percentile ({positional_elite_score[_weak]:.0f}th), suggesting fewer elite anchors across the four positions."))
+    insight_rows = _analytics_observations() + extra_obs
+    insights=''.join(f'<div class="analytics-insight"><span>{escape_html(k)}</span><strong>{escape_html(v)}</strong></div>' for k,v in insight_rows[:13])
+    player_charts=[
+        _category_bar_chart_html('Top season scorers',season_pts,x_label='Player',y_label='Fantasy points'),
+        _category_bar_chart_html('Best 5GW form',form5,x_label='Player',y_label='Points per GW'),
+        _category_bar_chart_html('Best 10GW form',form10,x_label='Player',y_label='Points per GW'),
+        _category_bar_chart_html('Fastest-rising form',trend,x_label='Player',y_label='5GW minus 10GW form'),
+        _category_bar_chart_html('Projected player strength',projections,x_label='Player',y_label='Projection'),
+        _category_bar_chart_html('Most transferred players',transfer_freq,x_label='Player',y_label='Ownership hand-offs'),
+        _category_bar_chart_html('Most widely owned players',owner_count,x_label='Player',y_label='Different managers'),
+        _category_bar_chart_html('Most appearances',appearances,x_label='Player',y_label='Captured GWs'),
+        _category_bar_chart_html('Best available free agents',fa_points,'Unowned players ranked by season scoring.',x_label='Player',y_label='Fantasy points'),
+        _category_bar_chart_html('Points by position',list(pos_points.items()),x_label='Position',y_label='Total points',limit=10),
+        _category_bar_chart_html('Biggest draft steals',draft_overperformers,'Positive values mean the player is outperforming their original McDraft pick by this many ranking places.',x_label='Player',y_label='Places above draft rank',limit=20),
+        _category_bar_chart_html('Biggest draft busts',draft_underperformers,'Most negative draft-rank deltas: early selections currently performing well below their original slot.',reverse=True,x_label='Player',y_label='Draft rank delta',limit=20),
+        _category_bar_chart_html('Undrafted gems',undrafted_gems,'Players outside the original 150-player draft ranked by fantasy points.',x_label='Player',y_label='Fantasy points',limit=20),
+        _scatter_chart_html('Draft pick vs current performance rank',draft_x,perf_y,x_label='Original draft pick',y_label='Current points rank'),
+        _scatter_chart_html('Draft pick vs fantasy points',draft_x,points_y,x_label='Original draft pick',y_label='Fantasy points'),
+        _scatter_chart_html('Draft pick vs goal involvements',draft_x,gi_y,x_label='Original draft pick',y_label='Goals + assists'),
+        _scatter_chart_html('Draft pick vs minutes played',draft_x,minutes_y,x_label='Original draft pick',y_label='Minutes'),
+        _category_bar_chart_html('Goals',goals,x_label='Player',y_label='Goals',limit=20),
+        _category_bar_chart_html('Assists',assists_data,x_label='Player',y_label='Assists',limit=20),
+        _category_bar_chart_html('Goal involvements',goal_involvements,x_label='Player',y_label='Goals + assists',limit=20),
+        _category_bar_chart_html('Clean sheets',clean_sheets,'Most relevant to goalkeepers and defenders, but shown directly from FPL player statistics.',x_label='Player',y_label='Clean sheets',limit=20),
+        _category_bar_chart_html('Bonus points',bonus_points,x_label='Player',y_label='Bonus points',limit=20),
+        _category_bar_chart_html('Goalkeeper saves',saves_data,x_label='Player',y_label='Saves',limit=20),
+        _category_bar_chart_html('Defensive contributions',defensive_contrib,x_label='Player',y_label='Defensive contributions',limit=20),
+        _category_bar_chart_html('Fantasy points per 90',points_per90,'Minimum 180 minutes to suppress tiny-sample nonsense.',x_label='Player',y_label='Points per 90',limit=20),
+        _category_bar_chart_html('Goals per 90',goals_per90,'Minimum 180 minutes.',x_label='Player',y_label='Goals per 90',limit=20),
+        _category_bar_chart_html('Assists per 90',assists_per90,'Minimum 180 minutes.',x_label='Player',y_label='Assists per 90',limit=20),
+        _scatter_chart_html('Expected vs actual goal involvements',xgi_x,actual_gi_y,x_label='Expected goal involvements',y_label='Actual goals + assists'),
+    ]
+    club_charts=[
+        _dual_category_bar_chart_html('Premier League club points: McDraft banked vs total FPL output',club_bank_vs_all,'McDraft banked points','Total FPL points','Compares points actually banked in McDraft starting XIs with the total FPL points produced by every player at that Premier League club.',x_label='Premier League club',y_label='Fantasy points',limit=20),
+        _category_bar_chart_html('Total FPL points by Premier League club',list(club_all_fpl_points.items()),'Every player at the club, whether drafted in McDraft or not.',x_label='Premier League club',y_label='Fantasy points',limit=20),
+        _category_bar_chart_html('McDraft banked points by Premier League club',list(club_bank_points.items()),'Only points that actually appeared in a McDraft starting XI in completed gameweeks.',x_label='Premier League club',y_label='Banked fantasy points',limit=20),
+        _category_bar_chart_html('McDraft capture rate by Premier League club',list(club_bank_share.items()),'Share of each real club’s available FPL output that was actually banked in McDraft starting XIs.',value_suffix='%',x_label='Premier League club',y_label='Banked share of total output',limit=20),
+        _category_bar_chart_html('Points from originally drafted players',list(club_drafted_points.items()),x_label='Premier League club',y_label='Drafted-player points',limit=20),
+        _category_bar_chart_html('Undrafted player points by club',list(club_undrafted_points.items()),'Where McDraft left value on the table on draft night.',x_label='Premier League club',y_label='Undrafted-player points',limit=20),
+        _category_bar_chart_html('Drafted share of club output',list(club_drafted_share.items()),'Percentage of each club fantasy output supplied by originally drafted players.',value_suffix='%',x_label='Premier League club',y_label='Drafted share',limit=20),
+        _category_bar_chart_html('Drafted players by Premier League club',list(club_drafted_count.items()),x_label='Premier League club',y_label='Players drafted',limit=20),
+        _category_bar_chart_html('Average points per drafted player',list(club_points_per_drafted.items()),x_label='Premier League club',y_label='Points per drafted player',limit=20),
+        _category_bar_chart_html('Average points per player',list(club_points_per_player.items()),x_label='Premier League club',y_label='Points per player',limit=20),
+        _category_bar_chart_html('Goals by Premier League club',list(club_goals.items()),x_label='Premier League club',y_label='Goals',limit=20),
+        _category_bar_chart_html('Assists by Premier League club',list(club_assists.items()),x_label='Premier League club',y_label='Assists',limit=20),
+        _category_bar_chart_html('Clean sheets by Premier League club',list(club_clean_sheets.items()),x_label='Premier League club',y_label='Clean sheets',limit=20),
+        _category_bar_chart_html('Bonus points by Premier League club',list(club_bonus.items()),x_label='Premier League club',y_label='Bonus points',limit=20),
+        _category_bar_chart_html('Minutes played by Premier League club',list(club_minutes.items()),x_label='Premier League club',y_label='Minutes',limit=20),
+        _scatter_chart_html('Club draft investment vs club output',club_drafted_count,club_points,x_label='Players drafted from club',y_label='Total fantasy points'),
+        _scatter_chart_html('Drafted club output vs overall club output',club_drafted_points,club_points,x_label='Drafted-player points',y_label='All-player points'),
+        _scatter_chart_html('Undrafted club output vs drafted club output',club_undrafted_points,club_drafted_points,x_label='Undrafted-player points',y_label='Drafted-player points'),
+    ]
+    squad_strength_charts=[
+        _positional_table_html(),
+        _bar_chart_html('Goalkeeper depth: average points',positional_avg_points['GKP'],'Average season FPL points of the goalkeepers currently owned by each manager.',x_label='Manager',y_label='Average GK points'),
+        _bar_chart_html('Defensive depth: average points',positional_avg_points['DEF'],'Average season FPL points of current defenders.',x_label='Manager',y_label='Average DEF points'),
+        _bar_chart_html('Midfield depth: average points',positional_avg_points['MID'],'Average season FPL points of current midfielders.',x_label='Manager',y_label='Average MID points'),
+        _bar_chart_html('Forward depth: average points',positional_avg_points['FWD'],'Average season FPL points of current forwards.',x_label='Manager',y_label='Average FWD points'),
+        _bar_chart_html('Goalkeeper form: squad average',positional_avg_form5['GKP'],'Average points per game across the last five completed GWs for currently-owned goalkeepers.',x_label='Manager',y_label='5GW points per game'),
+        _bar_chart_html('Defensive form: squad average',positional_avg_form5['DEF'],'Average points per game across the last five completed GWs for currently-owned defenders.',x_label='Manager',y_label='5GW points per game'),
+        _bar_chart_html('Midfield form: squad average',positional_avg_form5['MID'],'Average points per game across the last five completed GWs for currently-owned midfielders.',x_label='Manager',y_label='5GW points per game'),
+        _bar_chart_html('Forward form: squad average',positional_avg_form5['FWD'],'Average points per game across the last five completed GWs for currently-owned forwards.',x_label='Manager',y_label='5GW points per game'),
+        _bar_chart_html('Best goalkeeper percentile',positional_best_percentile['GKP'],'100 = owns the highest-scoring currently-owned goalkeeper in McDraft.',value_suffix='%',x_label='Manager',y_label='Positional percentile'),
+        _bar_chart_html('Best defender percentile',positional_best_percentile['DEF'],'Percentile rank of each manager’s best current defender among all owned defenders.',value_suffix='%',x_label='Manager',y_label='Positional percentile'),
+        _bar_chart_html('Best midfielder percentile',positional_best_percentile['MID'],'Percentile rank of each manager’s best current midfielder among all owned midfielders.',value_suffix='%',x_label='Manager',y_label='Positional percentile'),
+        _bar_chart_html('Best forward percentile',positional_best_percentile['FWD'],'Percentile rank of each manager’s best current forward among all owned forwards.',value_suffix='%',x_label='Manager',y_label='Positional percentile'),
+        _bar_chart_html('Positional elite score',positional_elite_score,'Average percentile of each manager’s best GK, DEF, MID and FWD.',value_suffix='%',x_label='Manager',y_label='Average best-player percentile'),
+        _bar_chart_html('Cross-position depth score',positional_depth_score,'Mean of each manager’s average current-squad points at GK, DEF, MID and FWD.',x_label='Manager',y_label='Average positional points'),
+        _bar_chart_html('Managed XI strength',squad_strength,x_label='Manager',y_label='Projected XI strength'),
+        _bar_chart_html('Optimal XI strength',optimal_strength,x_label='Manager',y_label='Optimal projected XI'),
+        _bar_chart_html('Bench depth contribution',depth,x_label='Manager',y_label='Depth bonus'),
+    ]
+    squad_construction_charts=[
+        _bar_chart_html('GK draft capital share',draft_capital_position_share['GKP'],'Share of original draft capital invested at goalkeeper. Earlier picks carry more capital.',value_suffix='%',x_label='Manager',y_label='Draft capital share'),
+        _bar_chart_html('DEF draft capital share',draft_capital_position_share['DEF'],'Share of original draft capital invested in defenders.',value_suffix='%',x_label='Manager',y_label='Draft capital share'),
+        _bar_chart_html('MID draft capital share',draft_capital_position_share['MID'],'Share of original draft capital invested in midfielders.',value_suffix='%',x_label='Manager',y_label='Draft capital share'),
+        _bar_chart_html('FWD draft capital share',draft_capital_position_share['FWD'],'Share of original draft capital invested in forwards.',value_suffix='%',x_label='Manager',y_label='Draft capital share'),
+        _bar_chart_html('Squad fragility: lose best player',squad_fragility_1,'Projected XI loss after replacing the unavailable star with realistic same-position free-agent cover.',value_suffix='%',x_label='Manager',y_label='XI strength lost'),
+        _bar_chart_html('Squad fragility: lose top two',squad_fragility_2,'Projected XI loss after replacing the top two unavailable assets with same-position free-agent cover.',value_suffix='%',x_label='Manager',y_label='XI strength lost'),
+        _bar_chart_html('Squad fragility: lose top three',squad_fragility_3,'Projected XI loss after replacing the top three unavailable assets with realistic same-position free-agent cover.',value_suffix='%',x_label='Manager',y_label='XI strength lost'),
+        _bar_chart_html('Squad Fragility Index',squad_fragility_score,'Average projected damage across the one-, two- and three-star loss scenarios.',value_suffix='%',x_label='Manager',y_label='Fragility'),
+        _bar_chart_html('Premier League clubs represented',club_div,x_label='Manager',y_label='Different clubs'),
+        _bar_chart_html('Largest single-club concentration',club_conc,x_label='Manager',y_label='Players from same club'),
+        _bar_chart_html('Top 3 starter reliance',top3_reliance_overall,'Share of finished-GW XI points supplied by each week’s top three scorers.',value_suffix='%',x_label='Manager',y_label='Share of XI points'),
+        _bar_chart_html('Top 6 starter reliance',top6_reliance_overall,'Share of finished-GW XI points supplied by each week’s top six scorers.',value_suffix='%',x_label='Manager',y_label='Share of XI points'),
+        _line_chart_html('Top 3 reliance by gameweek',top3_reliance_by_gw,'Weekly concentration in the three biggest contributors.',x_label='Gameweek',y_label='Top 3 share (%)'),
+        _line_chart_html('Top 6 reliance by gameweek',top6_reliance_by_gw,'Weekly concentration in the six biggest contributors.',x_label='Gameweek',y_label='Top 6 share (%)'),
+        _bar_chart_html('Original draft players retained',retained,x_label='Manager',y_label='Players retained'),
+        _bar_chart_html('Current squad draft-rank total',draft_total,'Lower is stronger pre-season pedigree.',reverse=True,x_label='Manager',y_label='Draft rank total'),
+        _scatter_chart_html('Star reliance vs scoring',top3_reliance_overall,points_for,x_label='Top 3 reliance (%)',y_label='Points scored'),
+        _scatter_chart_html('Star reliance vs league position',top3_reliance_overall,{m:manager_current_rank.get(m,0) for m in managers},x_label='Top 3 reliance (%)',y_label='League position',invert_y=True),
+        _scatter_chart_html('Club concentration vs scoring',club_conc,points_for,x_label='Largest same-club group',y_label='Points scored'),
+        _scatter_chart_html('Squad strength vs league position',squad_strength,{m:manager_current_rank.get(m,0) for m in managers},x_label='Squad strength',y_label='League position',invert_y=True),
+    ]
+    decision_charts=[
+        _bar_chart_html('Selection efficiency',selection,value_suffix='%',x_label='Manager',y_label='Efficiency'),
+        _bar_chart_html('Bench points wasted per GW',bench_avg,x_label='Manager',y_label='Bench points'),
+        _bar_chart_html('Dream-team starters per GW',dream_avg,x_label='Manager',y_label='Dream-team starters'),
+        _bar_chart_html('Completed roster moves',moves,'Waiver drop+pickup = one move. Trade counts incoming players only.',x_label='Manager',y_label='Moves'),
+        _bar_chart_html('Transfer ROI',roi_map,x_label='Manager',y_label='Net points'),
+        _scatter_chart_html('Transfer activity vs scoring',moves,points_for,x_label='Completed roster moves',y_label='Points scored'),
+        _scatter_chart_html('Transfer ROI vs league points',roi_map,league_points,x_label='Transfer ROI',y_label='League points'),
+        _scatter_chart_html('Selection efficiency vs scoring',selection,points_for,x_label='Selection efficiency (%)',y_label='Points scored'),
+    ]
+    fixture_analytics_charts=[
+        _historic_prediction_table_html(),
+        _nemesis_favourite_table_html(),
+        _category_bar_chart_html('Biggest fixture swings',fixture_swing_rows,'Largest absolute gap between the pre-GW expected scoring margin and the actual H2H margin.',x_label='Fixture',y_label='Margin swing',limit=25),
+    ]
+    season_charts=[
+        _bar_chart_html('Points scored',points_for,x_label='Manager',y_label='Points'),
+        _bar_chart_html('Points conceded',points_against,x_label='Manager',y_label='Points'),
+        _bar_chart_html('Average weekly score',avg_score,x_label='Manager',y_label='Points per GW'),
+        _bar_chart_html('Last 3 GW scoring',last3,x_label='Manager',y_label='Points per GW'),
+        _bar_chart_html('League points',league_points,x_label='Manager',y_label='League points'),
+        _bar_chart_html('Win rate',win_pct,value_suffix='%',x_label='Manager',y_label='Win rate'),
+        _bar_chart_html('Scoring volatility',volatility,'Lower means more consistent.',x_label='Manager',y_label='Standard deviation'),
+        _line_chart_html('Points per gameweek',raw_score_by_gw,x_label='Gameweek',y_label='Fantasy points'),
+        _line_chart_html('League position over time',rank_history,x_label='Gameweek',y_label='League position',invert_y=True),
+        _line_chart_html('Cumulative fantasy points',cumulative_score_history,x_label='Gameweek',y_label='Cumulative points'),
+        _bar_chart_html('Luck Index',luck_index,'Actual H2H league points minus expected H2H return.',x_label='Manager',y_label='League-point difference'),
+        _bar_chart_html('Expected league points',exp_lp,x_label='Manager',y_label='Expected league points'),
+        _bar_chart_html('Actual finished league points',actual_lp,x_label='Manager',y_label='League points'),
+        _scatter_chart_html('Scoring vs league points',points_for,league_points,x_label='Points scored',y_label='League points'),
+        _scatter_chart_html('Scoring vs luck',points_for,luck_index,x_label='Points scored',y_label='Luck Index'),
+    ]
+    return f'''<div class="card analytics-hero"><h2>McDraft Insights</h2><p class="card-description">Generated from the latest captured league, squad, fixture and transfer data.</p><div class="analytics-insight-grid">{insights}</div></div>
+    <div class="analytics-subtabs" role="tablist" aria-label="Analytics sections">
+        <button class="analytics-subtab active" type="button" onclick="showAnalyticsSubtab('player', this)">Player Analytics <span>{len(player_charts)}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('club', this)">Club Analytics <span>{len(club_charts)}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-strength', this)">Squad Strength <span>{len(squad_strength_charts)}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-build', this)">Squad Construction <span>{len(squad_construction_charts)}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('decisions', this)">Manager Decisions <span>{len(decision_charts)}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('fixtures-h2h', this)">Fixtures & H2H <span>{len(fixture_analytics_charts)}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('season', this)">Overall Season <span>{len(season_charts)}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('league-stats', this)">League Stats</button>
+    </div>
+    <div class="card analytics-manager-filter-card">
+        <div class="analytics-manager-filter-head"><div><h2>Manager filter</h2><p class="card-description">Filter manager-based Analytics charts. Player and Premier League club charts stay unchanged.</p></div><span id="analytics-manager-count" class="muted"></span></div>
+        <div id="analytics-manager-chips" class="chart-chip-row analytics-manager-chip-row"></div>
+    </div>
+    <div class="analytics-subpage active" id="analytics-sub-player"><div class="analytics-chart-grid">{''.join(player_charts)}</div></div>
+    <div class="analytics-subpage" id="analytics-sub-club"><div class="analytics-chart-grid">{''.join(club_charts)}</div></div>
+    <div class="analytics-subpage" id="analytics-sub-squad-strength"><div class="analytics-chart-grid">{''.join(squad_strength_charts)}</div></div>
+    <div class="analytics-subpage" id="analytics-sub-squad-build"><div class="analytics-chart-grid">{''.join(squad_construction_charts)}</div></div>
+    <div class="analytics-subpage" id="analytics-sub-decisions"><div class="analytics-chart-grid">{''.join(decision_charts)}</div></div>
+    <div class="analytics-subpage" id="analytics-sub-fixtures-h2h"><div class="analytics-chart-grid">{''.join(fixture_analytics_charts)}</div></div>
+    <div class="analytics-subpage" id="analytics-sub-season"><div class="analytics-chart-grid">{''.join(season_charts)}</div></div>
+    <div class="analytics-subpage" id="analytics-sub-league-stats">
+        <div class="card"><h2>Fun Stats</h2>__FUN_STATS__</div>
+        <div class="card"><h2>Manager Profiles</h2><div class="manager-profile-grid">__MANAGER_PROFILE_CARDS__</div></div>
+        <div class="card"><h2>League Records</h2><div class="records-grid">__LEAGUE_RECORDS__</div></div>
+        <div class="card"><h2>League Summary</h2><div class="stats-grid">
+            <div class="stat-card"><div class="stat-label">Managers</div><div class="stat-value">__MANAGER_COUNT__</div><div class="stat-description">Active league managers</div></div>
+            <div class="stat-card"><div class="stat-label">Completed Gameweeks</div><div class="stat-value">__FINISHED_COUNT__</div><div class="stat-description">Gameweeks captured</div></div>
+            <div class="stat-card"><div class="stat-label">Players Analysed</div><div class="stat-value">__PLAYER_COUNT__</div><div class="stat-description">Players appearing in the draft</div></div>
+            <div class="stat-card"><div class="stat-label">Fixtures</div><div class="stat-value">__FIXTURE_COUNT__</div><div class="stat-description">Completed H2H fixtures</div></div>
+        </div></div>
+    </div>'''
+
+# ---------------------------- Draft Centre ----------------------------
+def draft_centre_page_html():
+    original = history.get('original_draft_rank', {}) or {}
+    points_lookup = {int(p.get('id')): float(p.get('season_points',0) or 0) for p in player_form_stats if p.get('id') is not None}
+    name_lookup = {int(p.get('id')): p.get('name','Unknown') for p in player_form_stats if p.get('id') is not None}
+
+    draft_rows=[]
+    for pid_text, info in original.items():
+        try:
+            pid=int(pid_text)
+        except (TypeError,ValueError):
+            continue
+        pick=int(info.get('overall_pick', UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK)
+        if pick>DRAFTED_PLAYER_COUNT:
+            continue
+        meta=elements.get(pid,{})
+        name=name_lookup.get(pid) or meta.get('web_name') or f'Player {pid}'
+        club=teams_lookup.get(meta.get('team'),'—')
+        pos=positions_lookup.get(meta.get('element_type'),'—')
+        original_manager=info.get('manager') or 'Unknown'
+        current_owner=_dashboard_current_owner.get(pid)
+        draft_rows.append({
+            'id':pid,'pick':pick,'round':int(info.get('round',0) or 0),
+            'round_pick':int(info.get('round_pick',0) or 0),'name':name,'club':club,
+            'position':pos,'manager':original_manager,'current_owner':current_owner or 'Free Agent',
+            'points':points_lookup.get(pid,float(meta.get('total_points',0) or 0)),
+            'retained':current_owner==original_manager,
+        })
+    draft_rows.sort(key=lambda r:r['pick'])
+
+    # Redraft today: rank every current FPL player by points to date, but display
+    # the top 150 so it mirrors the original McDraft board size.
+    all_players=[]
+    for pid,meta in elements.items():
+        all_players.append({
+            'id':pid,'name':meta.get('web_name','Unknown'),'club':teams_lookup.get(meta.get('team'),'—'),
+            'position':positions_lookup.get(meta.get('element_type'),'—'),
+            'points':float(meta.get('total_points',0) or 0),
+            'original_pick':int((original.get(str(pid),{}) or {}).get('overall_pick', UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK),
+        })
+    all_players.sort(key=lambda r:(-r['points'],r['name']))
+    for i,row in enumerate(all_players,1):
+        row['redraft_pick']=i
+        row['delta']=(row['original_pick']-i) if row['original_pick']<=DRAFTED_PLAYER_COUNT else None
+
+    manager_summary={m:{'points':0.0,'retained':0,'picks':0,'delta_sum':0.0,'delta_n':0,'steals':0,'busts':0,'late_points':0.0,'early_points':0.0} for m in managers}
+    perf_rank={row['id']:i for i,row in enumerate(sorted(draft_rows,key=lambda r:(-r['points'],r['name'])),1)}
+    round_points=defaultdict(list)
+    for row in draft_rows:
+        sm=manager_summary.setdefault(row['manager'],{'points':0.0,'retained':0,'picks':0,'delta_sum':0.0,'delta_n':0,'steals':0,'busts':0,'late_points':0.0,'early_points':0.0})
+        sm['points']+=row['points']; sm['picks']+=1; sm['retained']+=1 if row['retained'] else 0
+        if row['round']<=5: sm['early_points']+=row['points']
+        else: sm['late_points']+=row['points']
+        pr=perf_rank.get(row['id'],row['pick'])
+        delta=row['pick']-pr
+        sm['delta_sum']+=delta; sm['delta_n']+=1
+        if delta>=20: sm['steals']+=1
+        if delta<=-20: sm['busts']+=1
+        round_points[row['round']].append(row['points'])
+
+    draft_points={m:v['points'] for m,v in manager_summary.items()}
+    retained={m:v['retained'] for m,v in manager_summary.items()}
+    avg_delta={m:(v['delta_sum']/v['delta_n'] if v['delta_n'] else 0) for m,v in manager_summary.items()}
+    late_points={m:v['late_points'] for m,v in manager_summary.items()}
+    early_points={m:v['early_points'] for m,v in manager_summary.items()}
+    round_avg={f'Round {r}':(statistics.mean(vals) if vals else 0) for r,vals in sorted(round_points.items())}
+
+    biggest_steals=[]; biggest_busts=[]
+    for row in draft_rows:
+        delta=row['pick']-perf_rank.get(row['id'],row['pick'])
+        biggest_steals.append((row['name'],delta))
+        biggest_busts.append((row['name'],delta))
+
+    # A few generated draft-night observations.
+    observations=[]
+    if draft_points:
+        best_mgr=max(draft_points,key=draft_points.get)
+        observations.append(('Draft output leader',f"{best_mgr}'s original picks have produced {draft_points[best_mgr]:.0f} fantasy points so far."))
+    if avg_delta:
+        value_mgr=max(avg_delta,key=avg_delta.get)
+        observations.append(('Best pick-value profile',f"{value_mgr}'s original selections are outperforming their draft slots by {avg_delta[value_mgr]:.1f} ranking places on average."))
+    if retained:
+        loyal=max(retained,key=retained.get)
+        observations.append(('Most original picks retained',f"{loyal} still own {retained[loyal]} players from their original draft haul."))
+    if all_players:
+        undrafted=[r for r in all_players if r['original_pick']>DRAFTED_PLAYER_COUNT]
+        if undrafted:
+            gem=max(undrafted,key=lambda r:r['points'])
+            observations.append(('Undrafted gem',f"{gem['name']} went undrafted and has since produced {gem['points']:.0f} FPL points."))
+
+    insight_html=''.join(f'<div class="analytics-insight"><span>{escape_html(k)}</span><strong>{escape_html(v)}</strong></div>' for k,v in observations)
+    charts=''.join([
+        _bar_chart_html('Original draft output by manager',draft_points,'Season FPL points generated by each manager’s original 15 selections, wherever those players are now.',x_label='Manager',y_label='Points'),
+        _bar_chart_html('Original picks still retained',retained,x_label='Manager',y_label='Players retained'),
+        _bar_chart_html('Average draft-slot overperformance',avg_delta,'Positive means the original picks are, on average, performing above their draft slots.',x_label='Manager',y_label='Ranking places'),
+        _bar_chart_html('First five rounds: points produced',early_points,x_label='Manager',y_label='Points'),
+        _bar_chart_html('Rounds 6+: points produced',late_points,x_label='Manager',y_label='Points'),
+        _category_bar_chart_html('Average output by draft round',list(round_avg.items()),'Average season points per player selected in each round.',x_label='Draft round',y_label='Average points',limit=20),
+        _category_bar_chart_html('Biggest draft steals',biggest_steals,'Original pick minus current performance rank.',x_label='Player',y_label='Places above draft slot',limit=20),
+        _category_bar_chart_html('Biggest draft busts',biggest_busts,'The most negative draft-slot deltas.',reverse=True,x_label='Player',y_label='Draft rank delta',limit=20),
+    ])
+
+    redraft_rows=''
+    for row in all_players[:40]:
+        original_label=f"#{row['original_pick']}" if row['original_pick']<=DRAFTED_PLAYER_COUNT else 'Undrafted'
+        move='—' if row['delta'] is None else (f"+{row['delta']}" if row['delta']>0 else str(row['delta']))
+        redraft_rows += f'''<tr><td><strong>#{row['redraft_pick']}</strong></td><td>{escape_html(row['name'])}</td><td>{escape_html(row['position'])}</td><td>{escape_html(row['club'])}</td><td>{row['points']:.0f}</td><td>{original_label}</td><td>{move}</td></tr>'''
+
+    board_rows=''
+    for row in draft_rows:
+        owner=row['current_owner']
+        status='Retained' if row['retained'] else ('Free Agent' if owner=='Free Agent' else f'Now: {owner}')
+        board_rows += f'''<tr><td><strong>#{row['pick']}</strong></td><td>R{row['round']}</td><td>{escape_html(row['name'])}</td><td>{escape_html(row['position'])}</td><td>{escape_html(row['club'])}</td><td>{escape_html(row['manager'])}</td><td>{row['points']:.0f}</td><td>{escape_html(status)}</td></tr>'''
+
+    return f'''<div class="card analytics-hero"><h2>Draft Night, Revisited</h2><p class="card-description">The original 150 picks versus what actually happened afterwards. A living audit of steals, busts, retention and late-round gold.</p><div class="analytics-insight-grid">{insight_html}</div></div>
+    <div class="analytics-chart-grid">{charts}</div>
+    <div class="card"><h2>Redraft Today — Top 40</h2><p class="card-description">If McDraft drafted again today using season FPL points as the board.</p><div class="table-wrap"><table><thead><tr><th>Redraft</th><th>Player</th><th>Pos</th><th>Club</th><th>Pts</th><th>Original</th><th>Value Δ</th></tr></thead><tbody>{redraft_rows}</tbody></table></div></div>
+    <div class="card"><h2>Original Draft Board</h2><p class="card-description">Every original selection, current output and where that asset lives now.</p><div class="table-wrap"><table><thead><tr><th>Pick</th><th>Round</th><th>Player</th><th>Pos</th><th>Club</th><th>Drafted by</th><th>Pts</th><th>Status</th></tr></thead><tbody>{board_rows}</tbody></table></div></div>'''
+
 # ============================================================
 # PAGE DATA
 # ============================================================
@@ -8838,6 +10170,17 @@ input {
     font-size: 13px;
     text-align: right;
 }
+
+.global-search-wrap { position:relative; flex:1; max-width:520px; margin-left:auto; }
+.global-search-input { width:100%; background:#0b1120; color:white; border:1px solid var(--border-light); border-radius:10px; padding:11px 14px; font-size:14px; }
+.global-search-input:focus { outline:2px solid var(--accent); outline-offset:1px; }
+.global-search-results { display:none; position:absolute; top:calc(100% + 7px); left:0; right:0; background:#111827; border:1px solid var(--border-light); border-radius:12px; box-shadow:0 16px 45px rgba(0,0,0,.4); max-height:360px; overflow:auto; z-index:500; }
+.global-search-results.active { display:block; }
+.global-search-result { display:flex; justify-content:space-between; gap:14px; padding:11px 13px; cursor:pointer; border-bottom:1px solid var(--border); }
+.global-search-result:last-child { border-bottom:none; }
+.global-search-result:hover { background:#172033; }
+.global-search-result strong { color:white; font-size:13px; }
+.global-search-result span { color:var(--muted); font-size:11px; text-align:right; }
 
 .nav {
     max-width: 1500px;
@@ -10416,6 +11759,8 @@ tbody tr:hover {
 @media (
     max-width: 900px
 ) {
+    .global-search-wrap { order:3; width:100%; max-width:none; margin-left:0; }
+    .header-top { flex-wrap:wrap; }
     .my-team-selector-row { flex-direction:column; align-items:stretch; }
     .my-team-select-wrap, #my-team-select { width:100%; min-width:0; box-sizing:border-box; }
 
@@ -10746,6 +12091,77 @@ tbody tr:hover {
     }
 
 }
+
+.analytics-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+
+.transfer-subtabs { display:flex; gap:8px; margin:0 0 20px; overflow-x:auto; padding-bottom:3px; }
+.transfer-subtab { border:1px solid var(--border); background:#0f172a; color:var(--muted); border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:800; white-space:nowrap; }
+.transfer-subtab.active { color:white; border-color:var(--accent); background:#172033; box-shadow:inset 0 -2px 0 var(--accent); }
+.transfer-subpanel { display:none; } .transfer-subpanel.active { display:block; }
+.trade-sim-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; } .trade-sim-score{text-align:right;min-width:110px}.trade-sim-score span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase}.trade-sim-score b{font-size:28px}
+.trade-sim-manager-row{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:end;margin:18px 0}.trade-sim-manager-row label{font-size:12px;color:var(--muted);font-weight:800}.trade-sim-manager-row select{width:100%;margin-top:6px;background:#0b1220;border:1px solid var(--border);color:white;border-radius:9px;padding:10px}.trade-sim-versus{font-size:22px;padding-bottom:9px}.trade-sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.trade-sim-roster{display:grid;gap:7px}.trade-sim-player{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;padding:9px 10px;border:1px solid var(--border);border-radius:9px;background:#0f172a;cursor:pointer}.trade-sim-player small{display:block;color:var(--muted);margin-top:2px}.trade-sim-position{appearance:none;border:0;background:rgba(96,165,250,.12);color:var(--accent);font:inherit;font-size:10px;font-weight:900;padding:2px 6px;border-radius:999px;cursor:pointer;margin-right:3px}.trade-sim-position:hover{background:rgba(96,165,250,.22)}.trade-sim-player.position-match{border-color:var(--accent);box-shadow:0 0 0 2px rgba(96,165,250,.18);background:rgba(96,165,250,.08)}.trade-sim-player-value{text-align:right}.trade-sim-player-value b{display:block}.trade-sim-player-value span{font-size:10px;color:var(--muted)}.trade-sim-result{margin-top:16px}.trade-sim-result.valid{border-color:#2f855a}.trade-sim-result.invalid{border-color:#b45309}.trade-sim-summary{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}.trade-sim-summary p{margin:7px 0 0;color:var(--muted);line-height:1.55}.trade-sim-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}.trade-sim-breakdown>div{background:#0f172a;border:1px solid var(--border);border-radius:9px;padding:10px}.positive-text{color:#86efac}.negative-text{color:#fca5a5}@media(max-width:720px){.trade-sim-manager-row,.trade-sim-grid,.trade-sim-breakdown{grid-template-columns:1fr}.trade-sim-versus{text-align:center;padding:0}}
+
+.analytics-subtabs { display:flex; gap:8px; margin:0 0 20px; overflow-x:auto; padding-bottom:3px; }
+.analytics-subtab { border:1px solid var(--border); background:#0f172a; color:var(--muted); border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:800; white-space:nowrap; }
+.analytics-subtab span { color:var(--accent); margin-left:5px; font-size:11px; }
+.analytics-subtab.active { color:white; border-color:var(--accent); background:#172033; box-shadow:inset 0 -2px 0 var(--accent); }
+.analytics-subpage { display:none; }
+.analytics-subpage.active { display:block; }
+.analytics-axis-title { color:var(--muted-dark); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.45px; }
+.analytics-axis-y { margin:0 0 8px 112px; }
+.analytics-axis-x { text-align:center; margin-top:9px; }
+.analytics-svg-axis-title { fill:#94a3b8; font-size:10px; font-weight:800; }
+.analytics-chart-card { min-width:0; }
+.analytics-manager-filter-card { margin-bottom:18px; }
+.analytics-manager-filter-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
+.analytics-manager-filter-head h2 { margin-bottom:4px; }
+.analytics-manager-chip-row { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
+.analytics-manager-hidden { display:none !important; }
+.analytics-bar-chart { display:flex; flex-direction:column; gap:9px; margin-top:14px; }
+.analytics-bar-row { display:grid; grid-template-columns:minmax(100px,160px) minmax(80px,1fr) 58px; gap:10px; align-items:center; }
+.analytics-bar-label { font-size:12px; font-weight:750; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.analytics-bar-track { height:9px; border-radius:999px; background:#0b1220; border:1px solid var(--border); overflow:hidden; }
+.analytics-bar-fill { height:100%; border-radius:999px; background:linear-gradient(90deg,var(--accent-dark),var(--accent)); }
+.analytics-bar-value { text-align:right; font-size:12px; font-weight:800; }
+.analytics-dual-chart { display:flex; flex-direction:column; gap:12px; margin-top:14px; }
+.analytics-dual-row { display:grid; grid-template-columns:minmax(100px,150px) 1fr; gap:12px; align-items:center; }
+.analytics-dual-bars { display:flex; flex-direction:column; gap:5px; }
+.analytics-dual-series { display:grid; grid-template-columns:118px 1fr 42px; gap:8px; align-items:center; font-size:10px; color:var(--muted); }
+.analytics-dual-series strong { color:var(--text); text-align:right; font-size:11px; }
+.analytics-bar-fill-secondary { opacity:.5; }
+.analytics-insight-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px; }
+.analytics-insight { border:1px solid var(--border); background:var(--bg-secondary); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:5px; }
+.analytics-insight span { color:var(--accent); text-transform:uppercase; font-size:10px; font-weight:900; letter-spacing:.08em; }
+.analytics-insight strong { font-size:14px; line-height:1.45; }
+.analytics-insight small { color:var(--muted); }
+.fixture-planner-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.fixture-week-block { margin:20px 0; }
+.fixture-week-block h3 { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.09em; }
+.fixture-planner-card { border:1px solid var(--border); border-radius:14px; background:var(--bg-secondary); padding:15px; }
+.fixture-rivalry-banner { margin:-4px 0 10px; text-align:center; font-size:11px; font-weight:900; color:var(--gold); text-transform:uppercase; letter-spacing:.08em; }
+.fixture-planner-gw { color:var(--muted); text-align:center; font-size:10px; font-weight:900; }
+.fixture-planner-match { display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:center; text-align:center; margin:8px 0 12px; }
+.fixture-planner-match span { color:var(--muted); font-size:11px; }
+.fixture-difficulty-row { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; }
+.fixture-difficulty-pill,.fixture-run-cell { border-radius:9px; padding:7px 9px; font-size:10px; font-weight:850; border:1px solid rgba(255,255,255,.08); }
+.fixture-diff-soft { background:rgba(74,222,128,.13); }
+.fixture-diff-kind { background:rgba(163,230,53,.11); }
+.fixture-diff-medium { background:rgba(250,204,21,.11); }
+.fixture-diff-hard { background:rgba(251,146,60,.13); }
+.fixture-diff-brutal { background:rgba(248,113,113,.16); }
+.fixture-run-cell { min-width:110px; display:flex; flex-direction:column; gap:3px; }
+.fixture-run-cell span { color:var(--muted); font-size:9px; }
+.trade-target-list { display:flex; flex-direction:column; gap:11px; }
+.trade-target-row { border:1px solid var(--border); border-radius:13px; background:var(--bg-secondary); padding:14px; display:grid; grid-template-columns:minmax(150px,1.2fr) minmax(160px,1fr) auto; gap:14px; align-items:center; }
+.trade-target-name { font-size:15px; font-weight:900; }
+.trade-target-meta,.trade-target-reason { color:var(--muted); font-size:11px; margin-top:3px; }
+.trade-target-scores { display:flex; gap:8px; flex-wrap:wrap; }
+.trade-target-score { border:1px solid var(--border); border-radius:9px; padding:6px 8px; font-size:10px; }
+.trade-target-score b { display:block; font-size:15px; color:var(--accent); }
+.trade-target-offer { text-align:right; font-size:11px; }
+.trade-target-offer b { display:block; color:var(--text); }
+@media (max-width:760px) { .analytics-chart-grid,.analytics-insight-grid,.fixture-planner-grid{grid-template-columns:1fr;} .analytics-bar-row{grid-template-columns:100px minmax(70px,1fr) 50px;} .analytics-dual-row{grid-template-columns:1fr;} .analytics-dual-series{grid-template-columns:100px 1fr 38px;} .trade-target-row{grid-template-columns:1fr;} .trade-target-offer{text-align:left;} }
+
 .future-fixtures-container { margin-top: 12px; }
 .future-fixture-slide { display: none; }
 .future-fixture-row { display:grid; grid-template-columns:minmax(0,1fr) 110px minmax(0,1fr); gap:12px; align-items:center; padding:13px 6px; border-bottom:1px solid var(--border); }
@@ -10797,6 +12213,7 @@ function changeMyTeam() {
     renderMyTeamSquad();
     renderMyTeamStatsCharts();
     renderMyTeamFreeAgents();
+    renderMyTeamTradeTargets();
     renderMyTeamH2H();
 }
 
@@ -10822,6 +12239,29 @@ function initialiseMyTeam() {
     select.value = String(selectedIndex);
     changeMyTeam();
 }
+
+/* ============================================================
+   GLOBAL SEARCH
+   ============================================================ */
+const GLOBAL_PAGES=[['Overview','overview'],['My Team','myteam'],['Gameweeks','gameweeks'],['Fixtures','fixtures'],['Players','players'],['Transfers','transfers'],['Analytics','analytics'],['Draft Centre','draft-centre'],['Season Summary','season-summary']];
+function globalSearchSelect(type,value,label){
+ const box=document.getElementById('global-search-results'),input=document.getElementById('global-search');
+ if(box){box.classList.remove('active');box.innerHTML='';} if(input)input.value='';
+ if(type==='page'){showPage(value);return;}
+ if(type==='manager'){showPage('myteam');const select=document.getElementById('my-team-select');if(select){for(let i=0;i<select.options.length;i++){if(select.options[i].text===label){select.value=String(i);changeMyTeam();break;}}}return;}
+ if(type==='player'){showPage('players');const p=document.getElementById('player-search');if(p){p.value=label;filterPlayers();}}
+}
+function runGlobalSearch(){
+ const input=document.getElementById('global-search'),box=document.getElementById('global-search-results'); if(!input||!box)return;
+ const q=input.value.trim().toLowerCase(); if(!q){box.classList.remove('active');box.innerHTML='';return;}
+ const results=[]; GLOBAL_PAGES.forEach(r=>{if(r[0].toLowerCase().includes(q))results.push({type:'page',label:r[0],value:r[1],meta:'Page'});});
+ (MANAGER_ORDER||[]).forEach(m=>{if(String(m).toLowerCase().includes(q))results.push({type:'manager',label:m,value:m,meta:'Manager'});});
+ (playerSearchData||[]).forEach(p=>{if(String(p.name||'').toLowerCase().includes(q))results.push({type:'player',label:p.name,value:String(p.id),meta:(p.position||'')+' · '+(p.team||'')});});
+ const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); const visible=results.slice(0,12);
+ box.innerHTML=visible.length?visible.map(r=>'<div class="global-search-result" data-type="'+r.type+'" data-value="'+esc(r.value)+'" data-label="'+esc(r.label)+'"><strong>'+esc(r.label)+'</strong><span>'+esc(r.meta)+'</span></div>').join(''):'<div class="global-search-result"><strong>No matches</strong><span>Try another search</span></div>';
+ box.classList.add('active'); box.querySelectorAll('[data-type]').forEach(el=>el.addEventListener('click',()=>globalSearchSelect(el.dataset.type,el.dataset.value,el.dataset.label)));
+}
+document.addEventListener('click',event=>{const wrap=document.querySelector('.global-search-wrap'),box=document.getElementById('global-search-results');if(wrap&&box&&!wrap.contains(event.target))box.classList.remove('active');});
 
 /* ============================================================
    PAGE NAVIGATION
@@ -10858,6 +12298,73 @@ function resizeCharts() {
 
 }
 
+
+const analyticsManagerState = { visible: new Set() };
+
+function initAnalyticsManagerFilter() {
+    analyticsManagerState.visible = new Set(MANAGER_ORDER);
+    renderAnalyticsManagerChips();
+    applyAnalyticsManagerFilter();
+}
+
+function setAnalyticsManagerPreset(preset) {
+    if (preset === "top5") {
+        analyticsManagerState.visible = new Set(MANAGER_ORDER.slice(0, Math.min(5, MANAGER_ORDER.length)));
+    } else if (preset === "all") {
+        analyticsManagerState.visible = new Set(MANAGER_ORDER);
+    } else if (preset === "none") {
+        analyticsManagerState.visible = new Set();
+    }
+    renderAnalyticsManagerChips();
+    applyAnalyticsManagerFilter();
+}
+
+function toggleAnalyticsManager(manager) {
+    if (analyticsManagerState.visible.has(manager)) analyticsManagerState.visible.delete(manager);
+    else analyticsManagerState.visible.add(manager);
+    renderAnalyticsManagerChips();
+    applyAnalyticsManagerFilter();
+}
+
+function renderAnalyticsManagerChips() {
+    const container = document.getElementById("analytics-manager-chips");
+    if (!container) return;
+    container.innerHTML = "";
+    [["Top 5","top5"],["All","all"],["None","none"]].forEach(function(pair) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chart-chip-action";
+        button.textContent = pair[0];
+        button.addEventListener("click", function(){ setAnalyticsManagerPreset(pair[1]); });
+        container.appendChild(button);
+    });
+    MANAGER_ORDER.forEach(function(manager) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chart-chip" + (analyticsManagerState.visible.has(manager) ? " active" : "");
+        button.style.setProperty("--chip-color", MANAGER_COLORS[manager]);
+        button.textContent = manager;
+        button.addEventListener("click", function(){ toggleAnalyticsManager(manager); });
+        container.appendChild(button);
+    });
+    const count = document.getElementById("analytics-manager-count");
+    if (count) count.textContent = analyticsManagerState.visible.size + " of " + MANAGER_ORDER.length + " managers selected";
+}
+
+function applyAnalyticsManagerFilter() {
+    document.querySelectorAll("#page-analytics [data-analytics-manager]").forEach(function(el) {
+        const manager = el.getAttribute("data-analytics-manager");
+        el.classList.toggle("analytics-manager-hidden", !analyticsManagerState.visible.has(manager));
+    });
+}
+
+function showAnalyticsSubtab(name, button) {
+    document.querySelectorAll('.analytics-subpage').forEach(function(page) { page.classList.remove('active'); });
+    document.querySelectorAll('.analytics-subtab').forEach(function(tab) { tab.classList.remove('active'); });
+    var target = document.getElementById('analytics-sub-' + name);
+    if (target) target.classList.add('active');
+    if (button) button.classList.add('active');
+}
 
 function showPage(
     pageName
@@ -11845,6 +13352,199 @@ function renderPlayerDirectoryCard(player) {
 }
 
 
+
+function showTransferSubtab(name, button) {
+ document.querySelectorAll('.transfer-subpanel').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.transfer-subtab').forEach(t=>t.classList.remove('active')); const p=document.getElementById('transfer-subpanel-'+name); if(p)p.classList.add('active'); if(button)button.classList.add('active');
+}
+const TRADE_SIMULATOR_DATA = __TRADE_SIMULATOR_DATA__;
+function renderTradeSimulator(){const a=document.getElementById('trade-sim-manager-a'),b=document.getElementById('trade-sim-manager-b'),ra=document.getElementById('trade-sim-roster-a'),rb=document.getElementById('trade-sim-roster-b');if(!a||!b||!ra||!rb)return;const ma=a.value,mb=b.value;document.getElementById('trade-sim-title-a').textContent=(ma||'Manager A')+' gives';document.getElementById('trade-sim-title-b').textContent=(mb||'Manager B')+' gives';if(!ma||!mb||ma===mb){ra.innerHTML=rb.innerHTML='<div class="notice">Choose two different managers.</div>';evaluateTradeSimulator();return;}ra.innerHTML=tradeSimRosterHtml(ma,'a');rb.innerHTML=tradeSimRosterHtml(mb,'b');evaluateTradeSimulator();}
+function tradeSimRosterHtml(manager,side){return(TRADE_SIMULATOR_DATA[manager]||[]).map(p=>'<label class="trade-sim-player" data-side="'+side+'" data-position="'+p.position+'"><input type="checkbox" class="trade-sim-check" data-side="'+side+'" data-id="'+p.id+'" onchange="evaluateTradeSimulator()"><span><b>'+escapePlayerHTML(p.name)+'</b><small><button type="button" class="trade-sim-position" onclick="highlightOpposingTradePosition(event, \''+side+'\', \''+p.position+'\')">'+p.position+'</button> · '+escapePlayerHTML(p.club)+' · '+p.points+' pts · form '+Number(p.form).toFixed(1)+'</small></span><span class="trade-sim-player-value"><b>'+Number(p.value).toFixed(1)+'</b><span>value</span></span></label>').join('');}
+function highlightOpposingTradePosition(event, side, position){
+    if(event){event.preventDefault();event.stopPropagation();}
+    document.querySelectorAll('.trade-sim-player.position-match').forEach(el=>el.classList.remove('position-match'));
+    const opposingSide=side==='a'?'b':'a';
+    document.querySelectorAll('.trade-sim-player[data-side="'+opposingSide+'"][data-position="'+position+'"]').forEach(el=>el.classList.add('position-match'));
+}
+function selectedTradePlayers(side,manager){const ids=Array.from(document.querySelectorAll('.trade-sim-check[data-side="'+side+'"]:checked')).map(el=>Number(el.dataset.id));return(TRADE_SIMULATOR_DATA[manager]||[]).filter(p=>ids.includes(Number(p.id)));}
+function tradePositionSignature(players){const c={GKP:0,DEF:0,MID:0,FWD:0};players.forEach(p=>{if(c[p.position]!==undefined)c[p.position]++});return c;} function samePositionSignature(a,b){return['GKP','DEF','MID','FWD'].every(pos=>a[pos]===b[pos]);}
+function evaluateTradeSimulator(){
+    const ae=document.getElementById('trade-sim-manager-a'),be=document.getElementById('trade-sim-manager-b'),result=document.getElementById('trade-sim-result'),score=document.getElementById('trade-sim-score');
+    if(!ae||!be||!result||!score)return;
+    const ma=ae.value,mb=be.value,pa=selectedTradePlayers('a',ma),pb=selectedTradePlayers('b',mb);
+    score.innerHTML='<span>Fairness</span><b>—</b>';
+    result.className='trade-sim-result notice';
+    if(!ma||!mb||ma===mb||(!pa.length&&!pb.length)){
+        result.innerHTML='Select managers and players to evaluate a deal.';
+        return;
+    }
+    if(!samePositionSignature(tradePositionSignature(pa),tradePositionSignature(pb))){
+        result.className='trade-sim-result notice invalid';
+        result.innerHTML='<b>Position mismatch.</b> Each side must give the same positional combination. DEF + MID can swap for DEF + MID; DEF + MID cannot swap for MID + FWD.';
+        return;
+    }
+    if(pa.length!==pb.length||pa.length===0){
+        result.className='trade-sim-result notice invalid';
+        result.innerHTML='<b>Incomplete deal.</b> Select the same number of players on each side.';
+        return;
+    }
+    const sums=ps=>ps.reduce((o,p)=>{
+        o.value+=Number(p.value||0);o.points+=Number(p.points||0);o.form+=Number(p.form||0);o.proj+=Number(p.projection||0);o.importance+=Number(p.importance||0);o.draft+=Number(p.draft_rank||151);return o;
+    },{value:0,points:0,form:0,proj:0,importance:0,draft:0});
+    const sa=sums(pa),sb=sums(pb),avg=(sa.value+sb.value)/2||1,gap=Math.abs(sa.value-sb.value),fair=Math.max(0,Math.min(100,100-gap/avg*100));
+    const lean=sa.value>sb.value+2?mb+' receives more model value':(sb.value>sa.value+2?ma+' receives more model value':'Model sees this as essentially even');
+    score.innerHTML='<span>Fairness</span><b>'+fair.toFixed(0)+'/100</b>';
+
+    const avgA=sa.value/pa.length,avgB=sb.value/pb.length;
+    const avgDraftA=sa.draft/pa.length,avgDraftB=sb.draft/pb.length;
+    const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+    const fmtManager=x=>escapePlayerHTML(x);
+    const reasons=[];
+
+    const fairnessPhrases={
+      elite:[
+        'This is about as close to a model-approved handshake as you are going to get.',
+        'The numbers have stared at this deal for a while and basically shrugged: very even.',
+        'Neither side is obviously nicking the silverware here — the packages are extremely close.',
+        'Model value is almost dead level. This one passes the pub-test surprisingly comfortably.',
+        'There is very little daylight between the two packages on blended value.',
+        'This is the statistical equivalent of splitting the bill down the middle.',
+        'On paper, this is a properly balanced exchange rather than daylight robbery.',
+        'The calculator is struggling to pick a side, which is usually a decent sign for a trade.'
+      ],
+      good:[
+        'The deal is broadly balanced, although one side has a modest edge.',
+        'There is a lean here, but not enough to make the proposal ridiculous.',
+        'This sits in the negotiable zone: close enough that team needs could easily outweigh the raw gap.',
+        'The values are not identical, but this is still well within sensible trade territory.',
+        'One package is a touch richer, though not by enough to kill the conversation.',
+        'This looks more like a genuine football trade than a hostage negotiation.',
+        'There is a detectable advantage to one side, but the deal remains defensible.',
+        'Close-ish rather than perfectly even — exactly the sort of trade where preference matters.'
+      ],
+      middling:[
+        'There is a noticeable value gap, so the weaker side would probably want a sweetener.',
+        'The numbers are beginning to squint at this one. It is possible, but somebody is conceding value.',
+        'This needs a reason beyond raw value — squad fit, fixture preference or an extra asset could get it there.',
+        'The calculator sees enough imbalance that the short side should probably ask for more.',
+        'Not outrageous, but definitely not one you accept without reading the small print.',
+        'There is a meaningful gap between the packages; team needs would have to do some heavy lifting.',
+        'This is drifting from even trade into persuasion-required territory.',
+        'One manager is paying a premium here. Whether that is sensible depends on what problem the deal solves.'
+      ],
+      ugly:[
+        'The model sees a substantial imbalance between the two packages.',
+        'This currently looks less like a trade and more like somebody has left their phone unlocked.',
+        'There is a fairly heroic value gap here. The weaker side should be asking awkward questions.',
+        'The calculator has raised an eyebrow. Then the other eyebrow. This is heavily tilted.',
+        'On the current numbers, one side is giving away considerably more than it receives.',
+        'This is a long way from neutral value and probably needs another player or a rethink.',
+        'The packages are operating in different postcodes on model value.',
+        'Unless there is a very specific squad need involved, the short side is taking a kicking here.'
+      ]
+    };
+    if(fair>=90) reasons.push(pick(fairnessPhrases.elite));
+    else if(fair>=75) reasons.push(pick(fairnessPhrases.good));
+    else if(fair>=55) reasons.push(pick(fairnessPhrases.middling));
+    else reasons.push(pick(fairnessPhrases.ugly));
+
+    if(Math.abs(sa.form-sb.form)>=1.5){
+      const who=sa.form>sb.form?ma:mb;
+      reasons.push(pick([
+        who+' is surrendering the hotter recent-form package.',
+        'Recent form leans toward the assets being sent by '+who+'.',
+        who+' would be parting with more short-term momentum.',
+        'On the last few gameweeks, '+who+' is giving up the livelier set of players.',
+        who+' is paying more of the current-form premium.',
+        'The hot-hand side of this deal belongs to the players leaving '+who+'.'
+      ]));
+    }
+    if(Math.abs(sa.proj-sb.proj)>=1.0){
+      const who=sa.proj>sb.proj?ma:mb;
+      reasons.push(pick([
+        who+' is giving up more projected weekly output.',
+        'The forward-looking projection favours the package leaving '+who+'.',
+        who+' is sacrificing the stronger near-term forecast.',
+        'Projected points put more weight on the assets being moved by '+who+'.',
+        'If the model is right about the next few weeks, '+who+' is sending away the better scoring package.',
+        'The projection engine would rather own the group currently sitting with '+who+'.'
+      ]));
+    }
+    if(Math.abs(sa.points-sb.points)>=8){
+      const who=sa.points>sb.points?ma:mb;
+      reasons.push(pick([
+        who+' is surrendering more proven season production.',
+        'The season-to-date points are stronger on the '+who+' side of the outgoing package.',
+        who+' is giving away the larger body of banked evidence.',
+        'Raw season scoring favours the players currently owned by '+who+'.',
+        who+' is putting more established points on the table.',
+        'If you value what has already happened, the outgoing '+who+' package has the edge.'
+      ]));
+    }
+    if(Math.abs(sa.importance-sb.importance)>=8){
+      const who=sa.importance>sb.importance?ma:mb;
+      reasons.push(pick([
+        who+' is giving up players who matter more to their current squad structure.',
+        'Squad importance makes this more painful for '+who+' than the headline values alone suggest.',
+        who+' is being asked to move more central pieces of their current XI.',
+        'The assets leaving '+who+' carry more internal value to their present squad.',
+        who+' would be breaking up a more important chunk of their team.',
+        'Current-owner dependence says '+who+' feels this loss more sharply.'
+      ]));
+    }
+    if(Math.abs(avgDraftA-avgDraftB)>=15){
+      const who=avgDraftA<avgDraftB?ma:mb;
+      reasons.push(pick([
+        who+' is giving up the stronger original draft pedigree.',
+        'Draft-night expectations were materially higher for the package leaving '+who+'.',
+        who+' is parting with the assets McDraft valued more highly before the season.',
+        'Original draft capital favours the players being sent by '+who+'.',
+        'On pre-season pedigree, '+who+' is contributing the more expensive package.',
+        'The old draft board still gives the '+who+' side of the outgoing deal more cachet.'
+      ]));
+    }
+    if(Math.abs(avgA-avgB)<2) reasons.push(pick([
+      'Average asset quality is almost identical once the package sizes are normalised.',
+      'On a per-player basis, there is barely anything between these groups.',
+      'Strip away the names and the average model value per asset is remarkably similar.',
+      'The individual-player value averages are basically neck and neck.',
+      'Per head, these packages are extremely close in model value.',
+      'The average player coming back is worth almost exactly what the average player going out is worth.'
+    ]));
+
+    const acceptA=[]; const acceptB=[];
+    if(sb.form>sa.form+0.75) acceptA.push(pick(['gets the hotter recent form','buys more short-term momentum','lands the stronger recent performers','improves current form']));
+    if(sb.proj>sa.proj+0.5) acceptA.push(pick(['raises projected weekly output','improves the near-term forecast','adds more projected points','wins on forward projection']));
+    if(sb.points>sa.points+5) acceptA.push(pick(['brings in more proven season points','adds more banked production','gets the stronger season-to-date output','trades into the better established scoring record']));
+    if(sb.importance<sa.importance-5) acceptA.push(pick(['can exchange highly important pieces for assets the other side relies on less','turns heavily-relied-upon assets into a less structurally costly package','may reduce dependence on a small core','gets comparable value without inheriting the same owner-dependence']));
+    if(avgDraftB<avgDraftA-10) acceptA.push(pick(['upgrades original draft pedigree','buys back into stronger pre-season pedigree','receives the more highly drafted package','improves draft-capital quality']));
+
+    if(sa.form>sb.form+0.75) acceptB.push(pick(['gets the hotter recent form','buys more short-term momentum','lands the stronger recent performers','improves current form']));
+    if(sa.proj>sb.proj+0.5) acceptB.push(pick(['raises projected weekly output','improves the near-term forecast','adds more projected points','wins on forward projection']));
+    if(sa.points>sb.points+5) acceptB.push(pick(['brings in more proven season points','adds more banked production','gets the stronger season-to-date output','trades into the better established scoring record']));
+    if(sa.importance<sb.importance-5) acceptB.push(pick(['can exchange highly important pieces for assets the other side relies on less','turns heavily-relied-upon assets into a less structurally costly package','may reduce dependence on a small core','gets comparable value without inheriting the same owner-dependence']));
+    if(avgDraftA<avgDraftB-10) acceptB.push(pick(['upgrades original draft pedigree','buys back into stronger pre-season pedigree','receives the more highly drafted package','improves draft-capital quality']));
+
+    const noIncentive=()=>pick([
+      'No obvious statistical incentive appears in the model — this side may need a preference, fixture or squad-balance reason.',
+      'The numbers do not hand this manager a clear reason to say yes; negotiation would need to lean on fit rather than raw value.',
+      'There is no screaming model-based incentive here. This would be a football-opinion trade rather than a spreadsheet trade.',
+      'Nothing in the core metrics obviously improves for this side, so they would probably need a strategic reason to bite.',
+      'The model cannot find an obvious carrot for this manager. You may need charm, threats, or a different player. Mostly charm.',
+      'Statistically, this side has little reason to rush to the accept button.'
+    ]);
+
+    const intro=pick(['Trade Lab read','Deal diagnosis','Model verdict','Trade-room read','What the numbers reckon','Negotiation read','Deal temperature']);
+    const acceptance='<div class="trade-sim-summary"><strong>'+intro+'</strong><p>'+reasons.map(escapePlayerHTML).join(' ')+'</p>'+ 
+      '<div class="trade-sim-breakdown"><div><strong>Why '+fmtManager(ma)+' might accept</strong><br>'+(acceptA.length?escapePlayerHTML(acceptA.join(' · ')):escapePlayerHTML(noIncentive()))+'</div>'+ 
+      '<div><strong>Why '+fmtManager(mb)+' might accept</strong><br>'+(acceptB.length?escapePlayerHTML(acceptB.join(' · ')):escapePlayerHTML(noIncentive()))+'</div></div></div>';
+
+    result.className='trade-sim-result notice valid';
+    result.innerHTML='<b>'+escapePlayerHTML(lean)+'.</b> The score blends form, total points, projection, original draft pedigree and importance to the current owner.'+
+      '<div class="trade-sim-breakdown"><div><strong>'+escapePlayerHTML(ma)+' gives</strong><br>Value '+sa.value.toFixed(1)+' · '+sa.points.toFixed(0)+' pts · form '+sa.form.toFixed(1)+' · projection '+sa.proj.toFixed(1)+' · owner importance '+sa.importance.toFixed(1)+'</div>'+
+      '<div><strong>'+escapePlayerHTML(mb)+' gives</strong><br>Value '+sb.value.toFixed(1)+' · '+sb.points.toFixed(0)+' pts · form '+sb.form.toFixed(1)+' · projection '+sb.proj.toFixed(1)+' · owner importance '+sb.importance.toFixed(1)+'</div></div>'+acceptance;
+}
+function filterWaivers(){const s=document.getElementById('waiver-team-filter'),rows=document.querySelectorAll('.waiver-row'),empty=document.getElementById('waiver-search-empty'),q=s?s.value.trim().toLowerCase():'';let visible=0;rows.forEach(r=>{const show=!q||(r.dataset.team||'').includes(q);r.style.display=show?'':'none';if(show)visible++});if(empty)empty.style.display=(rows.length&&visible===0)?'block':'none';}
+
 function filterTransfers() {
     const playerInput = document.getElementById("transfer-player-search");
     const teamSelect = document.getElementById("transfer-team-filter");
@@ -11967,6 +13667,9 @@ const FREE_AGENT_RECOMMENDATIONS =
 const H2H_RECORDS =
     __H2H_RECORDS__;
 
+const TRADE_TARGETS =
+    __TRADE_TARGETS__;
+
 
 function renderMyTeamFreeAgents() {
     const wrap = document.getElementById("myteam-free-agents");
@@ -12019,6 +13722,36 @@ function renderMyTeamFreeAgents() {
     wrap.innerHTML = html;
 }
 
+
+
+
+function renderMyTeamTradeTargets() {
+    const wrap = document.getElementById("myteam-trade-targets");
+    if (!wrap) return;
+    const manager = currentMyTeamManager();
+    const targets = TRADE_TARGETS[manager] || [];
+    if (!targets.length) {
+        wrap.innerHTML = '<div class="notice">No sensible trade targets found from the latest rosters.</div>';
+        return;
+    }
+    let html = '<div class="trade-target-list">';
+    targets.forEach(function(t) {
+        const clubNote = Number(t.same_club_owned || 0) >= 2
+            ? ' · club concentration penalty: already ' + t.same_club_owned + ' from ' + escapePlayerHTML(t.team)
+            : ' · diversification looks healthy';
+        html += '<div class="trade-target-row">' +
+            '<div><div class="trade-target-name">' + escapePlayerHTML(t.name) + '</div>' +
+            '<div class="trade-target-meta">' + escapePlayerHTML(t.position) + ' · ' + escapePlayerHTML(t.team) + ' · owned by ' + escapePlayerHTML(t.owner) + '</div>' +
+            '<div class="trade-target-reason">Projects ' + Number(t.upgrade || 0).toFixed(2) + ' pts/GW above ' + escapePlayerHTML(t.replace_name) + clubNote + '</div></div>' +
+            '<div class="trade-target-scores"><div class="trade-target-score"><span>Target fit</span><b>' + Number(t.fit_score || 0).toFixed(0) + '</b></div>' +
+            '<div class="trade-target-score"><span>Realism</span><b>' + Number(t.realism_score || 0).toFixed(0) + '</b></div>' +
+            '<div class="trade-target-score"><span>Projection</span><b>' + Number(t.projection || 0).toFixed(1) + '</b></div></div>' +
+            '<div class="trade-target-offer"><span>Comparable outgoing asset</span><b>' + escapePlayerHTML(t.offer_name) + '</b><span>' + Number(t.offer_projection || 0).toFixed(1) + ' projected</span></div>' +
+            '</div>';
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
+}
 
 function renderMyTeamH2H() {
     const wrap = document.getElementById("myteam-h2h-record");
@@ -12162,8 +13895,13 @@ function initialiseDashboard() {
         initAllTrendCharts();
     });
 
+    safeInit("Analytics manager filters", function() {
+        initAnalyticsManagerFilter();
+    });
+
     safeInit("My Team recommendations", function() {
         renderMyTeamFreeAgents();
+        renderMyTeamTradeTargets();
     });
 
     safeInit("My Team H2H", function() {
@@ -12238,6 +13976,11 @@ __CSS__
             </div>
 
 
+            <div class="global-search-wrap">
+                <input id="global-search" class="global-search-input" type="search" placeholder="Search player, manager or page…" autocomplete="off" oninput="runGlobalSearch()" onfocus="runGlobalSearch()">
+                <div id="global-search-results" class="global-search-results"></div>
+            </div>
+
             <div class="header-meta">
 
                 Last updated:
@@ -12284,6 +14027,15 @@ __CSS__
 
             <button
                 class="nav-button"
+                data-page="fixtures"
+                onclick="showPage('fixtures')"
+            >
+                Fixtures
+            </button>
+
+
+            <button
+                class="nav-button"
                 data-page="players"
                 onclick="showPage('players')"
             >
@@ -12302,19 +14054,28 @@ __CSS__
 
             <button
                 class="nav-button"
-                data-page="season-summary"
-                onclick="showPage('season-summary')"
+                data-page="analytics"
+                onclick="showPage('analytics')"
             >
-                Season Summary
+                Analytics
             </button>
 
 
             <button
                 class="nav-button"
-                data-page="stats"
-                onclick="showPage('stats')"
+                data-page="draft-centre"
+                onclick="showPage('draft-centre')"
             >
-                Stats
+                Draft Centre
+            </button>
+
+
+            <button
+                class="nav-button"
+                data-page="season-summary"
+                onclick="showPage('season-summary')"
+            >
+                Season Summary
             </button>
 
         </nav>
@@ -12534,6 +14295,12 @@ __CSS__
                     <div id="myteam-free-agents"></div>
                 </div>
 
+                <div class="card full">
+                    <h2>Realistic Transfer Targets</h2>
+                    <p class="card-description">Players owned elsewhere who fit your squad, improve a weak slot and are not completely deranged trade targets. Club concentration is penalised so you do not accidentally build Aston Villa in a fake moustache.</p>
+                    <div id="myteam-trade-targets"></div>
+                </div>
+
                 <div class="card">
                     <h2>Head-to-Head Record</h2>
                     <div id="myteam-h2h-record"></div>
@@ -12739,6 +14506,15 @@ __CSS__
 
 
         <!-- ==================================================
+             FIXTURES
+             ================================================== -->
+        <section class="page" id="page-fixtures">
+            <div class="page-heading"><h1>Fixtures</h1><p>Upcoming schedule, rivalry flags and the runs that look suspiciously pleasant or absolutely horrible.</p></div>
+            __FIXTURES_PAGE__
+        </section>
+
+
+        <!-- ==================================================
              PLAYERS
              ================================================== -->
 
@@ -12861,282 +14637,35 @@ __CSS__
         <!-- ==================================================
              TRANSFERS
              ================================================== -->
-
-        <section
-            class="page"
-            id="page-transfers"
-        >
-
-            <div class="page-heading">
-
-                <h1>
-                    Transfers
-                </h1>
-
-                <p>
-                    Ownership changes, manager hopping and transfer disasters.
-                </p>
-
+        <section class="page" id="page-transfers">
+            <div class="page-heading"><h1>Transfers</h1><p>Waivers, free-agent churn, negotiated deals and a mildly dangerous trade laboratory.</p></div>
+            <div class="transfer-subtabs" role="tablist" aria-label="Transfer sections"><button class="transfer-subtab active" type="button" onclick="showTransferSubtab('waivers', this)">Waivers</button><button class="transfer-subtab" type="button" onclick="showTransferSubtab('trades', this)">Trades</button></div>
+            <div class="transfer-subpanel active" id="transfer-subpanel-waivers">
+              <div class="card"><h2>Latest Waiver Activity · GW__LATEST_TRANSFER_GW__</h2><p class="card-description">A same-gameweek drop and pickup is shown as one completed waiver move.</p>__RECENT_WAIVER_ACTIVITY__</div>
+              <div class="card"><h2>Waiver History</h2><p class="card-description">All captured free-agent ins and outs, paired into manager transactions rather than double-counted player legs.</p><div class="player-filter-grid transfer-filter-grid"><select id="waiver-team-filter" class="player-filter" onchange="filterWaivers()"><option value="">All fantasy teams</option>__TRANSFER_TEAM_OPTIONS__</select></div>__WAIVER_ARCHIVE__</div>
+              <div class="card"><h2>Most Moved Players</h2>__TRANSFERS_CHART____TRANSFER_TABLE__</div><div class="card"><h2>Players Used By The Most Managers</h2>__TEAM_HOPPERS_CHART__</div><div class="card"><h2>Waiver / Market ROI</h2><p class="card-description">Points gained from post-draft acquisitions minus points subsequently scored by players after they were dropped.</p>__TRANSFER_ROI__</div><div class="card"><h2>Hall of Shame</h2>__ABANDONED_ASSETS__</div><div class="card"><h2>Best Historical Pickups</h2>__BEST_HISTORICAL_TRANSFERS__</div>
             </div>
-
-
-            <div class="card">
-
-                <h2>Recent Transfers · GW__LATEST_TRANSFER_GW__</h2>
-                <p class="card-description">
-                    Processed ownership moves for the active gameweek. During the preview window this updates as waivers, pickups, drops and transfers appear.
-                </p>
-                __RECENT_TRANSFER_ACTIVITY__
-
+            <div class="transfer-subpanel" id="transfer-subpanel-trades">
+              <div class="card">__TRADE_SIMULATOR__</div><div class="card"><h2>Recent League Trades · GW__LATEST_TRANSFER_GW__</h2><p class="card-description">Negotiated manager-to-manager trades only.</p>__TRADES_TABLE__</div><div class="card"><h2>Historical Trades</h2><div class="player-filter-grid transfer-filter-grid"><select id="historical-trade-team-filter" class="player-filter" onchange="filterHistoricalTrades()"><option value="">All fantasy teams</option>__TRANSFER_TEAM_OPTIONS__</select></div>__HISTORICAL_TRADES__</div>
             </div>
-
-
-            <div class="card">
-
-                <h2>Search Transfer History</h2>
-                <p class="card-description">
-                    Search every captured ownership move by player or fantasy team.
-                </p>
-                <div class="player-filter-grid transfer-filter-grid">
-                    <input id="transfer-player-search" class="player-search-box" type="search" placeholder="Search player…" oninput="filterTransfers()">
-                    <select id="transfer-team-filter" class="player-filter" onchange="filterTransfers()">
-                        <option value="">All fantasy teams</option>
-                        __TRANSFER_TEAM_OPTIONS__
-                    </select>
-                </div>
-                __TRANSFER_ARCHIVE__
-
-            </div>
-
-
-            <div class="card">
-
-                <h2>Recent League Trades · GW__LATEST_TRANSFER_GW__</h2>
-                <p class="card-description">
-                    Only negotiated trades belonging to the active gameweek live here. The running trade rater starts counting from the gameweek the deal became active.
-                </p>
-                __TRADES_TABLE__
-
-            </div>
-
-
-            <div class="card">
-
-                <h2>Historical Trades</h2>
-                <p class="card-description">
-                    Older negotiated deals and their running trade grades. Filter by either fantasy team involved in the trade.
-                </p>
-                <div class="player-filter-grid transfer-filter-grid">
-                    <select id="historical-trade-team-filter" class="player-filter" onchange="filterHistoricalTrades()">
-                        <option value="">All fantasy teams</option>
-                        __TRANSFER_TEAM_OPTIONS__
-                    </select>
-                </div>
-                __HISTORICAL_TRADES__
-
-            </div>
-
-
-            <div class="card">
-
-                <h2>
-                    Most Transferred Players
-                </h2>
-
-                __TRANSFERS_CHART__
-
-                __TRANSFER_TABLE__
-
-            </div>
-
-
-            <div class="card">
-
-                <h2>
-                    Players Used By The Most Managers
-                </h2>
-
-                __TEAM_HOPPERS_CHART__
-
-            </div>
-
-
-            <div class="card">
-
-                <h2>
-                    Transfer Market ROI
-                </h2>
-
-                <p class="card-description">
-                    Points scored by players picked up after the draft,
-                    minus points scored by players after they were dropped.
-                </p>
-
-                __TRANSFER_ROI__
-
-            </div>
-
-
-            <div class="card">
-
-                <h2>
-                    Transfer Hall of Shame
-                </h2>
-
-                <p class="card-description">
-                    Players who were dropped and subsequently
-                    scored points for the rest of the captured period.
-                </p>
-
-                __ABANDONED_ASSETS__
-
-            </div>
-
-
-            <div class="card">
-
-                <h2>Best Historical Transfers</h2>
-                <p class="card-description">
-                    The best post-draft pickups so far, ranked by points delivered while the player was actually on that fantasy roster.
-                    Acquisition-gameweek points are included.
-                </p>
-                __BEST_HISTORICAL_TRANSFERS__
-
-            </div>
-
         </section>
 
 
         <!-- ==================================================
-             STATS
+             DRAFT CENTRE
              ================================================== -->
-
-        <section
-            class="page"
-            id="page-stats"
-        >
-
-            <div class="page-heading">
-
-                <h1>
-                    League Stats
-                </h1>
-
-                <p>
-                    The numbers nobody asked for but everybody needs.
-                </p>
-
-            </div>
+        <section class="page" id="page-draft-centre">
+            <div class="page-heading"><h1>Draft Centre</h1><p>The original draft board, re-ranked by reality: steals, busts, retention, round value and a live redraft.</p></div>
+            __DRAFT_CENTRE__
+        </section>
 
 
-            <div class="card">
-
-                <h2>
-                    Fun Stats
-                </h2>
-
-                __FUN_STATS__
-
-            </div>
-
-
-            <div class="card">
-                <h2>Manager Profiles</h2>
-                <div class="manager-profile-grid">
-                    __MANAGER_PROFILE_CARDS__
-                </div>
-            </div>
-
-            <div class="card">
-
-                <h2>
-                    League Records
-                </h2>
-                <div class="records-grid">
-                    __LEAGUE_RECORDS__
-                </div>
-            </div>
-
-            <div class="card">
-
-                <h2>
-                    League Summary
-                </h2>
-
-
-                <div class="stats-grid">
-
-                    <div class="stat-card">
-
-                        <div class="stat-label">
-                            Managers
-                        </div>
-
-                        <div class="stat-value">
-                            __MANAGER_COUNT__
-                        </div>
-
-                        <div class="stat-description">
-                            Active league managers
-                        </div>
-
-                    </div>
-
-
-                    <div class="stat-card">
-
-                        <div class="stat-label">
-                            Completed Gameweeks
-                        </div>
-
-                        <div class="stat-value">
-                            __FINISHED_COUNT__
-                        </div>
-
-                        <div class="stat-description">
-                            Gameweeks captured
-                        </div>
-
-                    </div>
-
-
-                    <div class="stat-card">
-
-                        <div class="stat-label">
-                            Players Analysed
-                        </div>
-
-                        <div class="stat-value">
-                            __PLAYER_COUNT__
-                        </div>
-
-                        <div class="stat-description">
-                            Players appearing in the draft
-                        </div>
-
-                    </div>
-
-
-                    <div class="stat-card">
-
-                        <div class="stat-label">
-                            Fixtures
-                        </div>
-
-                        <div class="stat-value">
-                            __FIXTURE_COUNT__
-                        </div>
-
-                        <div class="stat-description">
-                            Completed H2H fixtures
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
+        <!-- ==================================================
+             ANALYTICS LAB
+             ================================================== -->
+        <section class="page" id="page-analytics">
+            <div class="page-heading"><h1>Analytics Lab</h1><p>Thirty-plus views of performance, luck, squad construction, the market and all the other numbers that can ruin a perfectly civil group chat.</p></div>
+            __ANALYTICS_PAGE__
         </section>
 
 
@@ -13176,6 +14705,46 @@ def safe_js_json(raw):
         .replace("\u2029", "\\u2029")
     )
 
+
+def _last_sunday(year, month):
+    """Return the day number of the last Sunday in a month."""
+    last_day = calendar.monthrange(year, month)[1]
+    dt = datetime(year, month, last_day)
+    return last_day - ((dt.weekday() + 1) % 7)
+
+
+def format_london_timestamp(raw):
+    """Format an ISO UTC timestamp as UK local time without requiring tzdata.
+
+    Prefer the system IANA database when it exists. Pydroid installations often
+    omit it, so fall back to the UK DST rule: BST runs from 01:00 UTC on the
+    last Sunday in March until 01:00 UTC on the last Sunday in October.
+    """
+    if not raw:
+        return ""
+
+    dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    dt_utc = dt.astimezone(timezone.utc)
+
+    try:
+        return dt_utc.astimezone(ZoneInfo("Europe/London")).strftime(
+            "%d %b %Y, %H:%M %Z"
+        )
+    except Exception:
+        year = dt_utc.year
+        bst_start = datetime(
+            year, 3, _last_sunday(year, 3), 1, 0, tzinfo=timezone.utc
+        )
+        bst_end = datetime(
+            year, 10, _last_sunday(year, 10), 1, 0, tzinfo=timezone.utc
+        )
+        is_bst = bst_start <= dt_utc < bst_end
+        local_dt = dt_utc + (timedelta(hours=1) if is_bst else timedelta(0))
+        return local_dt.strftime("%d %b %Y, %H:%M") + (" BST" if is_bst else " GMT")
+
+
 html = html_template
 
 replacements = {
@@ -13187,10 +14756,7 @@ replacements = {
 
     "__LAST_UPDATED__":
         escape_html(
-            history.get(
-                "last_updated",
-                ""
-            )
+            format_london_timestamp(history.get("last_updated", ""))
         ),
 
     "__FINISHED_COUNT__":
@@ -13224,6 +14790,18 @@ replacements = {
 
     "__TRADES_TABLE__":
         trades_table(latest_transfer_gw),
+
+    "__TRADE_SIMULATOR__":
+        trade_simulator_html(),
+
+    "__TRADE_SIMULATOR_DATA__":
+        json.dumps(_trade_simulator_payload(), ensure_ascii=False),
+
+    "__RECENT_WAIVER_ACTIVITY__":
+        waiver_activity_table(current_only=True),
+
+    "__WAIVER_ARCHIVE__":
+        waiver_activity_table(current_only=False),
 
     "__HISTORICAL_TRADES__":
         historical_trades_table(),
@@ -13266,6 +14844,15 @@ replacements = {
             f'<option value="{escape_html(manager)}">{escape_html(manager)}</option>'
             for manager in current_standings
         ),
+
+    "__FIXTURES_PAGE__":
+        fixtures_page_html(),
+
+    "__DRAFT_CENTRE__":
+        draft_centre_page_html(),
+
+    "__ANALYTICS_PAGE__":
+        analytics_page_html(),
 
     "__STANDINGS_TABLE__":
         standings_table(),
@@ -13412,11 +14999,17 @@ replacements = {
             "__H2H_RECORDS__",
             safe_js_json(h2h_records_json)
         ).replace(
+            "__TRADE_TARGETS__",
+            safe_js_json(trade_targets_json)
+        ).replace(
             "__DEFAULT_MY_TEAM_INDEX__",
             str(default_my_team_index())
         ).replace(
             "__MY_TEAM_HISTORY_DATA__",
             safe_js_json(my_team_history_json)
+        ).replace(
+            "__TRADE_SIMULATOR_DATA__",
+            safe_js_json(json.dumps(_trade_simulator_payload(), ensure_ascii=False))
         ).replace(
             "__CHART_H2H_DATA__",
             safe_js_json(chart_h2h_json)
@@ -13437,12 +15030,19 @@ replacements = {
 }
 
 
-for placeholder, value in replacements.items():
-
-    html = html.replace(
-        placeholder,
-        value
-    )
+# Run more than one pass because some generated page fragments contain
+# placeholders of their own (for example League Stats is injected by the
+# Analytics page). A single ordered pass can therefore leave literal
+# __PLACEHOLDER__ text behind if the inner placeholder was processed first.
+for _ in range(3):
+    changed = False
+    for placeholder, value in replacements.items():
+        updated = html.replace(placeholder, value)
+        if updated != html:
+            changed = True
+            html = updated
+    if not changed:
+        break
 
 
 # ============================================================
@@ -13510,7 +15110,7 @@ print(
     "  4. Transfers"
 )
 print(
-    "  5. Stats"
+    "  5. Analytics"
 )
 print()
 
