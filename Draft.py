@@ -9241,6 +9241,54 @@ def _trade_player_projection(pid):
     return float(meta.get("points_per_game", 0) or 0)
 
 
+# ---------------------------- My Team positional needs ----------------------------
+# Strength is calculated against the other McDraft squads at the same position,
+# using current projected output. Need is simply the inverse percentile: a weak
+# position across the league becomes an urgent target; a stacked position becomes
+# a low priority. This is also fed back into trade-target ranking.
+_POSITION_ORDER = ["GKP", "DEF", "MID", "FWD"]
+_position_avg_projection = {m: {} for m in current_standings}
+for _m in current_standings:
+    _by_pos = defaultdict(list)
+    for _pid in _trade_rosters.get(_m, []):
+        _metric = _player_current_metrics(_pid)
+        _pos = _metric.get("position")
+        if _pos in _POSITION_ORDER:
+            _by_pos[_pos].append(_trade_player_projection(_pid))
+    for _pos in _POSITION_ORDER:
+        _vals = _by_pos.get(_pos, [])
+        _position_avg_projection[_m][_pos] = statistics.mean(_vals) if _vals else 0.0
+
+positional_need_map = {m: {} for m in current_standings}
+for _pos in _POSITION_ORDER:
+    _ranked = sorted(
+        [(m, float(_position_avg_projection.get(m, {}).get(_pos, 0.0) or 0.0)) for m in current_standings],
+        key=lambda x: x[1]
+    )
+    _n = max(1, len(_ranked))
+    for _idx, (_m, _avg) in enumerate(_ranked):
+        # Weakest manager ~= 0th percentile; strongest ~= 100th percentile.
+        _pct = 50.0 if _n == 1 else (_idx / (_n - 1)) * 100.0
+        _need = 100.0 - _pct
+        if _need >= 75:
+            _label = "Urgent need"
+        elif _need >= 55:
+            _label = "High need"
+        elif _need >= 35:
+            _label = "Balanced"
+        elif _need >= 15:
+            _label = "Strong"
+        else:
+            _label = "Overloaded"
+        positional_need_map[_m][_pos] = {
+            "avg_projection": round(_avg, 2),
+            "strength_percentile": round(_pct, 1),
+            "need_score": round(_need, 1),
+            "label": _label,
+        }
+
+positional_need_json = json.dumps(positional_need_map, ensure_ascii=False)
+
 def build_trade_targets(manager, limit=12):
     own_ids = _trade_rosters.get(manager, [])
     if not own_ids:
@@ -9278,10 +9326,10 @@ def build_trade_targets(manager, limit=12):
             if upgrade <= -0.35:
                 continue
 
-            # Need: larger when this position is weak relative to the manager's own squad.
-            pos_avg = statistics.mean([own_proj.get(p["id"], 0) for p in own_by_pos[pos]]) if own_by_pos[pos] else 0
-            all_avg = statistics.mean(list(own_proj.values())) if own_proj else 0
-            need = max(0.0, min(100.0, 50.0 + (all_avg - pos_avg) * 22.0))
+            # Need: league-relative positional weakness. A manager stacked at MID
+            # should not be pushed toward another midfielder while an anaemic FWD
+            # line is ignored. This score also powers the My Team need map.
+            need = float(positional_need_map.get(manager, {}).get(pos, {}).get("need_score", 50.0))
 
             # Attainability: only propose like-for-like positional swaps.
             # A midfielder target should suggest a midfielder going the other way, etc.
@@ -9301,7 +9349,7 @@ def build_trade_targets(manager, limit=12):
 
             form_score = max(0.0, min(100.0, 20.0 + cand["form"]*12.0))
             upgrade_score = max(0.0, min(100.0, 50.0 + upgrade*24.0))
-            fit = 0.30*upgrade_score + 0.20*need + 0.20*attainability + 0.10*seller_flex + 0.10*diversification + 0.10*form_score
+            fit = 0.28*upgrade_score + 0.30*need + 0.17*attainability + 0.08*seller_flex + 0.09*diversification + 0.08*form_score
             realism = 0.55*attainability + 0.25*seller_flex + 0.20*diversification
 
             targets.append({
@@ -9310,6 +9358,7 @@ def build_trade_targets(manager, limit=12):
                 "upgrade": upgrade, "fit_score": round(fit,1), "realism_score": round(realism,1),
                 "offer_name": best_offer["name"], "offer_projection": own_proj.get(best_offer["id"],0),
                 "same_club_owned": existing_same_club,
+                "position_need": round(need, 1),
             })
     targets.sort(key=lambda x:(-x["fit_score"], -x["realism_score"], -x["projection"], x["name"]))
     # Avoid one selling team monopolising the recommendations.
@@ -12357,6 +12406,19 @@ tbody tr:hover {
 .transfer-subtab { border:1px solid var(--border); background:#0f172a; color:var(--muted); border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:800; white-space:nowrap; }
 .transfer-subtab.active { color:white; border-color:var(--accent); background:#172033; box-shadow:inset 0 -2px 0 var(--accent); }
 .transfer-subpanel { display:none; } .transfer-subpanel.active { display:block; }
+
+.myteam-position-need-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+.position-need-card{border:1px solid var(--border);border-radius:12px;padding:13px;background:#0f172a;position:relative;overflow:hidden}
+.position-need-card:before{content:"";position:absolute;inset:0;opacity:.12;pointer-events:none;background:var(--need-colour,#64748b)}
+.position-need-top{display:flex;justify-content:space-between;gap:8px;align-items:center;position:relative}
+.position-need-pos{font-size:12px;font-weight:900;letter-spacing:.08em}.position-need-score{font-size:22px;font-weight:900}
+.position-need-label{font-size:11px;font-weight:850;margin-top:5px;position:relative}.position-need-meta{font-size:10px;color:var(--muted);margin-top:5px;position:relative}
+.position-need-track{height:7px;border-radius:999px;background:#0b1220;border:1px solid var(--border);overflow:hidden;margin-top:10px;position:relative}
+.position-need-fill{height:100%;border-radius:999px;background:var(--need-colour,#64748b)}
+@media(max-width:720px){.myteam-position-need-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.trade-sim-player.position-match{animation:positionPulse 1s ease-in-out 2}
+.trade-sim-player.position-match .trade-sim-position{background:var(--accent);color:#07111f}
+@keyframes positionPulse{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
 .trade-sim-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; } .trade-sim-score{text-align:right;min-width:110px}.trade-sim-score span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase}.trade-sim-score b{font-size:28px}
 .trade-sim-manager-row{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:end;margin:18px 0}.trade-sim-manager-row label{font-size:12px;color:var(--muted);font-weight:800}.trade-sim-manager-row select{width:100%;margin-top:6px;background:#0b1220;border:1px solid var(--border);color:white;border-radius:9px;padding:10px}.trade-sim-versus{font-size:22px;padding-bottom:9px}.trade-sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.trade-sim-roster{display:grid;gap:7px}.trade-sim-player{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;padding:9px 10px;border:1px solid var(--border);border-radius:9px;background:#0f172a;cursor:pointer}.trade-sim-player small{display:block;color:var(--muted);margin-top:2px}.trade-sim-position{appearance:none;border:0;background:rgba(96,165,250,.12);color:var(--accent);font:inherit;font-size:10px;font-weight:900;padding:2px 6px;border-radius:999px;cursor:pointer;margin-right:3px}.trade-sim-position:hover{background:rgba(96,165,250,.22)}.trade-sim-player.position-match{border-color:var(--accent);box-shadow:0 0 0 2px rgba(96,165,250,.18);background:rgba(96,165,250,.08)}.trade-sim-player-value{text-align:right}.trade-sim-player-value b{display:block}.trade-sim-player-value span{font-size:10px;color:var(--muted)}.trade-sim-result{margin-top:16px}.trade-sim-result.valid{border-color:#2f855a}.trade-sim-result.invalid{border-color:#b45309}.trade-sim-summary{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}.trade-sim-summary p{margin:7px 0 0;color:var(--muted);line-height:1.55}.trade-sim-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}.trade-sim-breakdown>div{background:#0f172a;border:1px solid var(--border);border-radius:9px;padding:10px}.positive-text{color:#86efac}.negative-text{color:#fca5a5}@media(max-width:720px){.trade-sim-manager-row,.trade-sim-grid,.trade-sim-breakdown{grid-template-columns:1fr}.trade-sim-versus{text-align:center;padding:0}}
 
@@ -12471,6 +12533,7 @@ function changeMyTeam() {
 
     renderMyTeamSquad();
     renderMyTeamStatsCharts();
+    renderMyTeamPositionNeeds();
     renderMyTeamFreeAgents();
     renderMyTeamTradeTargets();
     renderMyTeamH2H();
@@ -13132,6 +13195,7 @@ function initAllTrendCharts() {
    ============================================================ */
 
 const MY_TEAM_HISTORY = __MY_TEAM_HISTORY_DATA__;
+const MY_TEAM_POSITION_NEEDS = __MY_TEAM_POSITION_NEEDS__;
 
 let myTeamSquadIndex = -1;
 let myTeamSquadManager = null;
@@ -13684,7 +13748,13 @@ function showTransferSubtab(name, button) {
 }
 const TRADE_SIMULATOR_DATA = __TRADE_SIMULATOR_DATA__;
 function renderTradeSimulator(){const a=document.getElementById('trade-sim-manager-a'),b=document.getElementById('trade-sim-manager-b'),ra=document.getElementById('trade-sim-roster-a'),rb=document.getElementById('trade-sim-roster-b');if(!a||!b||!ra||!rb)return;const ma=a.value,mb=b.value;document.getElementById('trade-sim-title-a').textContent=(ma||'Manager A')+' gives';document.getElementById('trade-sim-title-b').textContent=(mb||'Manager B')+' gives';if(!ma||!mb||ma===mb){ra.innerHTML=rb.innerHTML='<div class="notice">Choose two different managers.</div>';evaluateTradeSimulator();return;}ra.innerHTML=tradeSimRosterHtml(ma,'a');rb.innerHTML=tradeSimRosterHtml(mb,'b');evaluateTradeSimulator();}
-function tradeSimRosterHtml(manager,side){return(TRADE_SIMULATOR_DATA[manager]||[]).map(p=>'<label class="trade-sim-player" data-side="'+side+'" data-position="'+p.position+'"><input type="checkbox" class="trade-sim-check" data-side="'+side+'" data-id="'+p.id+'" onchange="evaluateTradeSimulator()"><span><b>'+escapePlayerHTML(p.name)+'</b><small><button type="button" class="trade-sim-position" onclick="highlightOpposingTradePosition(event, \''+side+'\', \''+p.position+'\')">'+p.position+'</button> · '+escapePlayerHTML(p.club)+' · '+p.points+' pts · form '+Number(p.form).toFixed(1)+'</small></span><span class="trade-sim-player-value"><b>'+Number(p.value).toFixed(1)+'</b><span>value</span></span></label>').join('');}
+function tradeSimRosterHtml(manager,side){return(TRADE_SIMULATOR_DATA[manager]||[]).map(p=>'<label class="trade-sim-player" data-side="'+side+'" data-position="'+p.position+'" onclick="tradeSimPlayerClicked(event, \''+side+'\', \''+p.position+'\')"><input type="checkbox" class="trade-sim-check" data-side="'+side+'" data-id="'+p.id+'" onchange="evaluateTradeSimulator()"><span><b>'+escapePlayerHTML(p.name)+'</b><small><button type="button" class="trade-sim-position" onclick="highlightOpposingTradePosition(event, \''+side+'\', \''+p.position+'\')">'+p.position+'</button> · '+escapePlayerHTML(p.club)+' · '+p.points+' pts · form '+Number(p.form).toFixed(1)+'</small></span><span class="trade-sim-player-value"><b>'+Number(p.value).toFixed(1)+'</b><span>value</span></span></label>').join('');}
+function tradeSimPlayerClicked(event, side, position){
+    // Clicking anywhere on a player row highlights every like-for-like option
+    // on the opposing roster. Do not prevent the label's checkbox behaviour.
+    if(event && event.target && event.target.classList && event.target.classList.contains('trade-sim-position')) return;
+    highlightOpposingTradePosition(null, side, position);
+}
 function highlightOpposingTradePosition(event, side, position){
     if(event){event.preventDefault();event.stopPropagation();}
     document.querySelectorAll('.trade-sim-player.position-match').forEach(el=>el.classList.remove('position-match'));
@@ -14051,6 +14121,27 @@ function renderMyTeamFreeAgents() {
 
 
 
+function renderMyTeamPositionNeeds(){
+    const wrap=document.getElementById('myteam-position-needs');
+    if(!wrap)return;
+    const manager=currentMyTeamManager();
+    const data=(manager&&MY_TEAM_POSITION_NEEDS[manager])||{};
+    const positions=[['GKP','GK'],['DEF','DEF'],['MID','MID'],['FWD','FWD']];
+    if(!Object.keys(data).length){wrap.innerHTML='<div class="notice">No positional-strength data available yet.</div>';return;}
+    const colour=score=>score>=75?'#ef4444':score>=55?'#f97316':score>=35?'#eab308':score>=15?'#84cc16':'#22c55e';
+    let html='<div class="myteam-position-need-grid">';
+    positions.forEach(([key,label])=>{
+        const r=data[key]||{need_score:50,strength_percentile:50,avg_projection:0,label:'Balanced'};
+        const need=Number(r.need_score||0), pct=Number(r.strength_percentile||0), avg=Number(r.avg_projection||0), c=colour(need);
+        html+='<div class="position-need-card" style="--need-colour:'+c+'">'+
+          '<div class="position-need-top"><span class="position-need-pos">'+label+'</span><span class="position-need-score">'+need.toFixed(0)+'</span></div>'+
+          '<div class="position-need-label">'+escapePlayerHTML(r.label||'Balanced')+'</div>'+
+          '<div class="position-need-meta">Strength '+pct.toFixed(0)+'th percentile · avg projection '+avg.toFixed(1)+'</div>'+
+          '<div class="position-need-track"><div class="position-need-fill" style="width:'+Math.max(3,need).toFixed(0)+'%"></div></div></div>';
+    });
+    wrap.innerHTML=html+'</div>';
+}
+
 function renderMyTeamTradeTargets() {
     const wrap = document.getElementById("myteam-trade-targets");
     if (!wrap) return;
@@ -14068,7 +14159,7 @@ function renderMyTeamTradeTargets() {
         html += '<div class="trade-target-row">' +
             '<div><div class="trade-target-name">' + escapePlayerHTML(t.name) + '</div>' +
             '<div class="trade-target-meta">' + escapePlayerHTML(t.position) + ' · ' + escapePlayerHTML(t.team) + ' · owned by ' + escapePlayerHTML(t.owner) + '</div>' +
-            '<div class="trade-target-reason">Projects ' + Number(t.upgrade || 0).toFixed(2) + ' pts/GW above ' + escapePlayerHTML(t.replace_name) + clubNote + '</div></div>' +
+            '<div class="trade-target-reason">Projects ' + Number(t.upgrade || 0).toFixed(2) + ' pts/GW above ' + escapePlayerHTML(t.replace_name) + ' · positional need ' + Number(t.position_need || 0).toFixed(0) + '/100' + clubNote + '</div></div>' +
             '<div class="trade-target-scores"><div class="trade-target-score"><span>Target fit</span><b>' + Number(t.fit_score || 0).toFixed(0) + '</b></div>' +
             '<div class="trade-target-score"><span>Realism</span><b>' + Number(t.realism_score || 0).toFixed(0) + '</b></div>' +
             '<div class="trade-target-score"><span>Projection</span><b>' + Number(t.projection || 0).toFixed(1) + '</b></div></div>' +
@@ -14612,6 +14703,12 @@ __CSS__
 
 
             <div class="dashboard-grid">
+
+                <div class="card full">
+                    <h2>Positional Need</h2>
+                    <p class="card-description">How urgently this squad needs help at each position, graded against the other McDraft teams. Red means a genuine weakness; green means you are already stacked. This directly influences trade-target ranking.</p>
+                    <div id="myteam-position-needs"></div>
+                </div>
 
                 <div class="card">
                     <h2>Free Agents Who Could Improve You</h2>
@@ -15349,6 +15446,9 @@ replacements = {
         ).replace(
             "__MY_TEAM_HISTORY_DATA__",
             safe_js_json(my_team_history_json)
+        ).replace(
+            "__MY_TEAM_POSITION_NEEDS__",
+            safe_js_json(positional_need_json)
         ).replace(
             "__TRADE_SIMULATOR_DATA__",
             safe_js_json(json.dumps(_trade_simulator_payload(), ensure_ascii=False))
