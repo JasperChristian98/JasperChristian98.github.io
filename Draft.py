@@ -7759,8 +7759,9 @@ def _fixture_odds_for_match(team1, team2, simulations=10000, seed=17288):
     target_gw = int(fixture_prediction_gw or dashboard_target_gw or 0)
     mu1 = float((p1.get("model_weekly_score_by_gw", {}) or {}).get(target_gw, p1.get("model_weekly_score", 45.0)) or 45.0)
     mu2 = float((p2.get("model_weekly_score_by_gw", {}) or {}).get(target_gw, p2.get("model_weekly_score", 45.0)) or 45.0)
-    sd1 = max(float(p1.get("model_volatility", 10.0) or 10.0), 4.0)
-    sd2 = max(float(p2.get("model_volatility", 10.0) or 10.0), 4.0)
+    # A little extra match-to-match variance avoids overconfident favourites.
+    sd1 = max(float(p1.get("model_volatility", 10.0) or 10.0), 4.0) * 1.15
+    sd2 = max(float(p2.get("model_volatility", 10.0) or 10.0), 4.0) * 1.15
 
     stable = sum((i + 1) * ord(ch) for i, ch in enumerate(f"{team1}|{team2}"))
     rng = random.Random(int(seed) + stable)
@@ -7786,10 +7787,12 @@ def _fixture_odds_for_match(team1, team2, simulations=10000, seed=17288):
     raw_draw = 100.0 * draws / simulations
     raw_team2_win = 100.0 * wins2 / simulations
     completed_count = len(finished_gws)
-    evidence = min(1.0, max(0.0, (completed_count / 12.0) ** 1.20))
-    # Fixture odds keep a draw-aware neutral prior. As evidence grows, the raw
-    # simulated matchup frequencies increasingly take over.
-    neutral_win, neutral_draw = 42.5, 15.0
+    # Start less certain about the favourite, then let actual season data
+    # gradually replace the neutral prior. A draw is an exact integer-score
+    # tie in Draft, NOT the ~15% frequency typical of football match results.
+    evidence = min(1.0, max(0.0, (completed_count / 15.0) ** 1.15))
+    neutral_draw = 3.0
+    neutral_win = (100.0 - neutral_draw) / 2.0
     team1_win = (evidence * raw_team1_win) + ((1.0 - evidence) * neutral_win)
     draw_pct = (evidence * raw_draw) + ((1.0 - evidence) * neutral_draw)
     team2_win = (evidence * raw_team2_win) + ((1.0 - evidence) * neutral_win)
@@ -7808,6 +7811,50 @@ def _fixture_odds_for_match(team1, team2, simulations=10000, seed=17288):
         "team2_low": _prediction_percentile(score2_samples, 0.10),
         "team2_high": _prediction_percentile(score2_samples, 0.90),
     }
+
+
+def _fair_fractional_odds(probability_pct):
+    """Convert a model percentage into approximate fair UK fractional odds.
+
+    Use familiar betting-price fractions for readability, selecting the one
+    whose implied probability is closest to the actual model probability.
+    These are display prices, not actual bookmaker odds or model adjustments.
+    """
+    try:
+        pct = float(probability_pct)
+    except (TypeError, ValueError):
+        return "—"
+    if not math.isfinite(pct) or pct <= 0.0:
+        return "—"
+    if pct >= 100.0:
+        return "0/1"
+    exact_ratio = (100.0 - pct) / pct
+    # Prevent a finite but extreme price being rounded up to zero/one.
+    if exact_ratio < 1.0 / 100.0:
+        return f"1/{min(999999, max(101, round(1.0 / exact_ratio)))}"
+    if exact_ratio > 1000.0:
+        return f"{min(999999, round(exact_ratio))}/1"
+
+    standard_prices = [
+        (1,100),(1,80),(1,66),(1,50),(1,40),(1,33),(1,28),
+        (1,25),(1,20),(1,16),(1,14),(1,12),(1,10),(1,8),
+        (1,7),(1,6),(1,5),(2,9),(1,4),(2,7),(3,10),(1,3),
+        (4,11),(2,5),(4,9),(1,2),(8,15),(4,7),(3,5),
+        (8,13),(4,6),(8,11),(4,5),(5,6),(10,11),
+        (1,1),(11,10),(6,5),(5,4),(11,8),(6,4),
+        (13,8),(7,4),(15,8),(2,1),(9,4),(5,2),(11,4),
+        (3,1),(10,3),(7,2),(4,1),(9,2),(5,1),(11,2),
+        (6,1),(13,2),(7,1),(15,2),(8,1),(17,2),(9,1),
+        (10,1),(11,1),(12,1),(14,1),(16,1),(18,1),
+        (20,1),(22,1),(25,1),(28,1),(33,1),(40,1),
+        (50,1),(66,1),(80,1),(100,1),(125,1),(150,1),
+        (200,1),(250,1),(500,1),(1000,1),
+    ]
+    numerator, denominator = min(
+        standard_prices,
+        key=lambda ratio: abs(100.0 * ratio[1] / (ratio[0] + ratio[1]) - pct),
+    )
+    return f"{numerator}/{denominator}"
 
 
 def projected_fixture_odds_table():
@@ -7829,9 +7876,9 @@ def projected_fixture_odds_table():
         rows += f'''
 <tr>
 <td class="manager-name">{escape_html(t1)}</td>
-<td><b>{odds["team1_win"]:.1f}%</b></td>
-<td>{odds["draw"]:.1f}%</td>
-<td><b>{odds["team2_win"]:.1f}%</b></td>
+<td title="Model probability: {odds['team1_win']:.1f}%"><b>{_fair_fractional_odds(odds['team1_win'])}</b></td>
+<td title="Model probability: {odds['draw']:.1f}%">{_fair_fractional_odds(odds['draw'])}</td>
+<td title="Model probability: {odds['team2_win']:.1f}%"><b>{_fair_fractional_odds(odds['team2_win'])}</b></td>
 <td class="manager-name">{escape_html(t2)}</td>
 <td>{odds["team1_mean"]:.1f}–{odds["team2_mean"]:.1f}</td>
 <td>{odds["team1_low"]:.0f}–{odds["team1_high"]:.0f} / {odds["team2_low"]:.0f}–{odds["team2_high"]:.0f}</td>
@@ -7839,8 +7886,9 @@ def projected_fixture_odds_table():
 </tr>'''
 
     return f'''
+<p class="card-description">Fair fractional odds (no bookmaker margin), converted from the same model percentages shown in the War Room. Hover over a price for its underlying probability. Lower odds indicate a more likely outcome.</p>
 <div class="table-wrap"><table>
-<thead><tr><th>Team</th><th>Win</th><th>Draw</th><th>Win</th><th>Team</th><th>Avg Score</th><th>80% Score Range</th><th>Confidence</th></tr></thead>
+<thead><tr><th>Team</th><th>Win odds</th><th>Draw odds</th><th>Win odds</th><th>Team</th><th>Avg Score</th><th>80% Score Range</th><th>Confidence</th></tr></thead>
 <tbody>{rows}</tbody></table></div>'''
 
 
@@ -8069,17 +8117,18 @@ def live_fixture_odds_table():
 <td class="manager-name">{escape_html(odds['team1'])}</td>
 <td>{odds['current1']}</td>
 <td>{odds['players_left1']}</td>
-<td><b>{odds['team1_win']:.1f}%</b></td>
-<td>{odds['draw']:.1f}%</td>
-<td><b>{odds['team2_win']:.1f}%</b></td>
+<td title="Model probability: {odds['team1_win']:.1f}%"><b>{_fair_fractional_odds(odds['team1_win'])}</b></td>
+<td title="Model probability: {odds['draw']:.1f}%">{_fair_fractional_odds(odds['draw'])}</td>
+<td title="Model probability: {odds['team2_win']:.1f}%"><b>{_fair_fractional_odds(odds['team2_win'])}</b></td>
 <td>{odds['players_left2']}</td>
 <td>{odds['current2']}</td>
 <td class="manager-name">{escape_html(odds['team2'])}</td>
 <td>{odds['final1_mean']:.1f}–{odds['final2_mean']:.1f}</td>
 </tr>"""
 
-    return f"""<div class="table-wrap"><table>
-<thead><tr><th>Team</th><th>Now</th><th>Left</th><th>Win</th><th>Draw</th><th>Win</th><th>Left</th><th>Now</th><th>Team</th><th>Projected Final</th></tr></thead>
+    return f"""<p class="card-description">Live fair fractional odds (no bookmaker margin), based on current XI points and remaining players. Hover over a price for the model probability. A late live draw may legitimately be much more likely than a pre-match draw.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Team</th><th>Now</th><th>Left</th><th>Win odds</th><th>Draw odds</th><th>Win odds</th><th>Left</th><th>Now</th><th>Team</th><th>Projected Final</th></tr></thead>
 <tbody>{rows}</tbody></table></div>"""
 
 
@@ -19404,11 +19453,11 @@ __CSS__
 
             <div class="card" id="fixture-odds-card" style="display:none;">
                 <div id="upcoming-fixture-odds">
-                    <h2>Projected Fixture Odds</h2>
+                    <h2>Projected Fixture Odds · Fractional</h2>
                     __PROJECTED_FIXTURE_ODDS__
                 </div>
                 <div id="live-fixture-odds" style="display:none;">
-                    <h2>Live Win Probabilities</h2>
+                    <h2>Live Fixture Odds · Fractional</h2>
                     __LIVE_FIXTURE_ODDS__
                 </div>
             </div>
