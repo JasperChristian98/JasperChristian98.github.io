@@ -10844,7 +10844,195 @@ def _build_five_gw_planner():
                            'warning':None if roster else 'No current roster is available for this manager.'}
     return result
 
-five_gw_planner_json = json.dumps(_build_five_gw_planner(), ensure_ascii=False)
+five_gw_planner_data = _build_five_gw_planner()
+five_gw_planner_json = json.dumps(five_gw_planner_data, ensure_ascii=False)
+
+# ---------------------------- Manager War Room ----------------------------
+def _build_manager_war_room(planner_data):
+    roster_map = _current_roster_by_manager()
+    roster_map_fallback = globals().get('current_rosters_by_manager', {})
+    all_owned = {int(pid) for pids in roster_map.values() for pid in pids}
+    free_by_position = defaultdict(list)
+    for pid, meta in elements.items():
+        if int(pid) in all_owned:
+            continue
+        pos = positions_lookup.get(meta.get('element_type'), '')
+        if pos in ('GKP','DEF','MID','FWD'):
+            free_by_position[pos].append(int(pid))
+
+    def project(pid, gw):
+        return round(float(_player_weekly_projection(
+            pid, _global_position_baselines, _global_league_player_mean, target_gw=gw
+        ) or 0), 3)
+
+    def row(pid, gw):
+        meta = elements.get(pid, {}) or {}
+        return {
+            'id': int(pid),
+            'name': meta.get('web_name', f'Player {pid}'),
+            'position': positions_lookup.get(meta.get('element_type'), '—'),
+            'club': _pl_team_meta_by_id.get(int(meta.get('team') or 0), {}).get('short_name', '—'),
+            'projection': project(pid, gw),
+            'availability': round(_availability_factor(pid, gw), 2),
+            'status': _fpl_availability.get(pid, {}).get('status', 'a'),
+            'news': _fpl_availability.get(pid, {}).get('news', ''),
+        }
+
+    payload = {}
+    for manager in managers:
+        plan = planner_data.get(manager, {}) or {}
+        weeks = plan.get('weeks', []) or []
+        if not weeks:
+            payload[manager] = {'warning': 'No upcoming fixture is available yet.'}
+            continue
+        week = weeks[0]
+        gw = int(week.get('gw') or 0)
+        opponent = str(week.get('opponent') or 'TBC').split(' / ')[0]
+        opp_plan = planner_data.get(opponent, {}) or {}
+        opp_week = next((w for w in (opp_plan.get('weeks', []) or []) if int(w.get('gw', -1)) == gw), None)
+
+        own_xi = week.get('starters', []) or []
+        opp_xi = (opp_week or {}).get('starters', []) or []
+        own_bench = week.get('bench', []) or []
+        opp_bench = (opp_week or {}).get('bench', []) or []
+
+        def enrich_importance(starters, bench):
+            pool = list(starters) + list(bench)
+            if not pool:
+                return [], []
+            max_projection = max([float(p.get('projection', 0) or 0) for p in pool] or [1.0]) or 1.0
+            enriched = []
+            for player in pool:
+                p = dict(player)
+                projection = float(p.get('projection', 0) or 0)
+                pos = p.get('position')
+                alternatives = [float(a.get('projection', 0) or 0) for a in pool if a.get('id') != p.get('id') and a.get('position') == pos]
+                best_alt = max(alternatives) if alternatives else 0.0
+                replacement_gap = max(0.0, projection - best_alt)
+                projection_component = 65.0 * min(1.0, projection / max_projection)
+                gap_component = 35.0 * min(1.0, replacement_gap / max(1.0, projection))
+                p['importance'] = round(min(100.0, projection_component + gap_component), 1)
+                p['replacement_gap'] = round(replacement_gap, 2)
+                p['importance_label'] = ('Critical' if p['importance'] >= 80 else 'High' if p['importance'] >= 65 else 'Medium' if p['importance'] >= 45 else 'Low')
+                enriched.append(p)
+            starters_ids = {p.get('id') for p in starters}
+            return ([p for p in enriched if p.get('id') in starters_ids], [p for p in enriched if p.get('id') not in starters_ids])
+
+        own_xi, own_bench = enrich_importance(own_xi, own_bench)
+        opp_xi, opp_bench = enrich_importance(opp_xi, opp_bench)
+        own_by_pos = {p: round(float((week.get('by_position', {}) or {}).get(p, 0) or 0), 2) for p in ('GKP','DEF','MID','FWD')}
+        opp_by_pos = {p: round(float(((opp_week or {}).get('by_position', {}) or {}).get(p, 0) or 0), 2) for p in ('GKP','DEF','MID','FWD')}
+        positional = []
+        for pos in ('GKP','DEF','MID','FWD'):
+            diff = round(own_by_pos[pos] - opp_by_pos[pos], 2)
+            positional.append({'position': pos, 'you': own_by_pos[pos], 'opponent': opp_by_pos[pos], 'edge': diff})
+
+        roster = [int(pid) for pid in (roster_map.get(manager) or roster_map_fallback.get(manager, []))]
+        base_pool = [row(pid, gw) for pid in roster]
+        base_best = _best_projected_xi(base_pool)
+        base_total = float((base_best or {}).get('total', 0) or 0)
+        upgrades = []
+        for pos in ('GKP','DEF','MID','FWD'):
+            own_pos = [pid for pid in roster if positions_lookup.get(elements.get(pid, {}).get('element_type')) == pos]
+            candidates = sorted(free_by_position.get(pos, []), key=lambda pid: project(pid, gw), reverse=True)[:10]
+            for incoming in candidates:
+                best_gain, best_out = 0.0, None
+                for outgoing in own_pos:
+                    candidate_ids = [pid for pid in roster if pid != outgoing] + [incoming]
+                    candidate_best = _best_projected_xi([row(pid, gw) for pid in candidate_ids])
+                    total = float((candidate_best or {}).get('total', 0) or 0)
+                    gain = total - base_total
+                    if gain > best_gain:
+                        best_gain, best_out = gain, outgoing
+                if best_out is not None and best_gain > 0.10:
+                    upgrades.append({
+                        'in_id': incoming,
+                        'in_name': elements.get(incoming, {}).get('web_name', f'Player {incoming}'),
+                        'out_id': best_out,
+                        'out_name': elements.get(best_out, {}).get('web_name', f'Player {best_out}'),
+                        'position': pos,
+                        'gain': round(best_gain, 2),
+                        'incoming_projection': project(incoming, gw),
+                        'outgoing_projection': project(best_out, gw),
+                    })
+        upgrades.sort(key=lambda r: (-r['gain'], -r['incoming_projection'], r['in_name']))
+
+        own_flags = [p for p in (week.get('starters', []) + week.get('bench', [])) if p.get('status') != 'a' or float(p.get('availability', 1) or 0) < .75]
+        opp_flags = [p for p in (((opp_week or {}).get('starters', []) or []) + ((opp_week or {}).get('bench', []) or [])) if p.get('status') != 'a' or float(p.get('availability', 1) or 0) < .75]
+
+        odds = None
+        if opponent in managers and int(fixture_prediction_gw or 0) == gw:
+            odds_raw = _fixture_odds_for_match(manager, opponent)
+            if odds_raw:
+                odds = {
+                    'you_win': round(float(odds_raw.get('team1_win', 0)), 1),
+                    'draw': round(float(odds_raw.get('draw', 0)), 1),
+                    'opponent_win': round(float(odds_raw.get('team2_win', 0)), 1),
+                    'you_mean': round(float(odds_raw.get('team1_mean', 0)), 1),
+                    'opponent_mean': round(float(odds_raw.get('team2_mean', 0)), 1),
+                    'you_low': round(float(odds_raw.get('team1_low', 0)), 1),
+                    'you_high': round(float(odds_raw.get('team1_high', 0)), 1),
+                    'opponent_low': round(float(odds_raw.get('team2_low', 0)), 1),
+                    'opponent_high': round(float(odds_raw.get('team2_high', 0)), 1),
+                    'confidence': (odds_raw.get('confidence') or {}).get('label', '—'),
+                }
+
+        largest_edge = max(positional, key=lambda r: abs(r['edge'])) if positional else None
+        keys = []
+        if largest_edge:
+            if largest_edge['edge'] > 0:
+                keys.append(f"Your biggest positional edge is {largest_edge['position']} (+{largest_edge['edge']:.1f} projected points).")
+            elif largest_edge['edge'] < 0:
+                keys.append(f"The largest matchup concern is {largest_edge['position']} ({largest_edge['edge']:.1f} projected points versus the opponent).")
+        if own_flags:
+            keys.append(f"You have {len(own_flags)} flagged squad asset{'s' if len(own_flags)!=1 else ''} to monitor before GW{gw}.")
+        if opp_flags:
+            keys.append(f"{opponent} have {len(opp_flags)} flagged squad asset{'s' if len(opp_flags)!=1 else ''}; their projected XI could move before kickoff.")
+        if upgrades:
+            keys.append(f"The strongest available one-move waiver improvement currently adds about {upgrades[0]['gain']:.1f} projected XI points for GW{gw}.")
+        if not keys:
+            keys.append('No single risk or positional mismatch dominates this matchup on the current projections.')
+
+        payload[manager] = {
+            'gw': gw,
+            'opponent': opponent,
+            'you': {
+                'xi': round(float(week.get('xi', 0) or 0), 2),
+                'managed': round(float(week.get('managed', 0) or 0), 2),
+                'formation': week.get('formation', '—'),
+                'bench_cover': round(float(week.get('bench_cover', 0) or 0), 2),
+                'starters': own_xi,
+                'bench': own_bench,
+                'flags': own_flags,
+            },
+            'opponent_team': {
+                'xi': round(float((opp_week or {}).get('xi', 0) or 0), 2),
+                'managed': round(float((opp_week or {}).get('managed', 0) or 0), 2),
+                'formation': (opp_week or {}).get('formation', '—'),
+                'bench_cover': round(float((opp_week or {}).get('bench_cover', 0) or 0), 2),
+                'starters': opp_xi,
+                'bench': opp_bench,
+                'flags': opp_flags,
+            },
+            'positional': positional,
+            'upgrades': upgrades[:8],
+            'odds': odds,
+            'keys': keys[:4],
+        }
+    return payload
+
+
+def manager_war_room_html():
+    return '''<div class="war-room-shell">
+      <div class="card war-room-hero">
+        <div><span class="relationship-eyebrow">NEXT MATCHUP · DECISION SUPPORT</span><h2>Manager War Room</h2><p class="card-description">Prepare for the next McDraft fixture with two projected formations on the pitch, benches, positional matchup edges, availability risk and next-GW-specific free-agent improvements. Click any player for opponent, injury risk, projected points and team importance.</p></div>
+        <label class="war-room-manager-select">Manager<select id="war-room-manager" onchange="renderManagerWarRoom()"></select></label>
+      </div>
+      <div id="war-room-content"></div>
+    </div>'''
+
+
+manager_war_room_json = json.dumps(_build_manager_war_room(five_gw_planner_data), ensure_ascii=False)
 
 
 def build_trade_targets(manager, limit=12):
@@ -11395,6 +11583,249 @@ def player_relationship_html():
         <aside class="relationship-detail" id="relationship-detail"><h3>Explore the network</h3><p>Select a player to see their current owner, former squadmates, shared gameweeks and trade connections.</p></aside>
       </div>
       <p class="relationship-footnote" id="relationship-footnote">Default view shows the strongest connections to avoid a wall of lines. Use “Show all links” to see the full network. The shared Analytics manager filter applies here too.</p>
+    </div>'''
+
+# ---------------------------- Transfer River + Player Passport ----------------------------
+def _transfer_river_passport_payload():
+    observed = set()
+    for pid in (player_ownership or {}).keys():
+        try:
+            observed.add(int(pid))
+        except (TypeError, ValueError):
+            pass
+    for pid in elements.keys():
+        try:
+            observed.add(int(pid))
+        except (TypeError, ValueError):
+            pass
+    for pid_text in (history.get('original_draft_rank', {}) or {}).keys():
+        try:
+            observed.add(int(pid_text))
+        except (TypeError, ValueError):
+            pass
+    for row in transfer_movements:
+        try:
+            observed.add(int(row.get('player_id')))
+        except (TypeError, ValueError):
+            pass
+    for snapshot in (history.get('gameweeks', {}) or {}).values():
+        for squad in ((snapshot or {}).get('teams', {}) or {}).values():
+            for pick in (squad.get('starters') or []) + (squad.get('bench') or []):
+                try:
+                    observed.add(int(pick.get('element_id')))
+                except (TypeError, ValueError):
+                    continue
+
+    owner_by_gw = defaultdict(dict)
+    name_by_snapshot = {}
+    for gw in finished_gws:
+        snap = (history.get('gameweeks', {}) or {}).get(str(gw), {}) or {}
+        for squad in (snap.get('teams') or {}).values():
+            manager = squad.get('manager') or 'Unknown'
+            for pick in (squad.get('starters') or []) + (squad.get('bench') or []):
+                try:
+                    pid = int(pick.get('element_id'))
+                except (TypeError, ValueError):
+                    continue
+                owner_by_gw[pid][gw] = manager
+                if pick.get('web_name'):
+                    name_by_snapshot[pid] = pick.get('web_name')
+
+    current_owner = {int(pid): owner for pid, owner in (_dashboard_current_owner or {}).items()}
+    points_lookup = {int(row.get('id')): float(row.get('season_points', 0) or 0) for row in player_form_stats if row.get('id') is not None}
+    original = history.get('original_draft_rank', {}) or {}
+
+    river_edges = defaultdict(lambda: {'moves': 0, 'players': set(), 'gws': set(), 'kinds': defaultdict(int), 'points': 0.0})
+    journeys = defaultdict(list)
+    for pid_text, info in original.items():
+        try:
+            pid = int(pid_text)
+            pick = int(info.get('overall_pick', UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK)
+        except (TypeError, ValueError):
+            continue
+        manager = info.get('manager')
+        if not manager or pick > DRAFTED_PLAYER_COUNT:
+            continue
+        edge = river_edges[('Draft Night', manager)]
+        edge['moves'] += 1
+        edge['players'].add(pid)
+        edge['gws'].add(0)
+        edge['kinds']['Drafted'] += 1
+        edge['points'] += float(points_lookup.get(pid, elements.get(pid, {}).get('total_points', 0) or 0))
+        journeys[pid].append({'gw': 0, 'source': 'Draft Night', 'target': manager, 'kind': 'Drafted', 'label': f'Original draft pick #{pick}'})
+
+    trade_move_index = defaultdict(list)
+    for trade in normalised_trades:
+        if str(trade.get('status', '')).lower() != 'processed':
+            continue
+        try:
+            gw = int(trade.get('gw', 0) or 0)
+        except (TypeError, ValueError):
+            gw = 0
+        m1 = trade.get('manager1') or 'Unknown'
+        m2 = trade.get('manager2') or 'Unknown'
+        for pid in trade.get('player_ids1', []) or []:
+            try:
+                pid = int(pid)
+            except (TypeError, ValueError):
+                continue
+            pname = elements.get(pid, {}).get('web_name') or name_by_snapshot.get(pid) or f'Player {pid}'
+            trade_move_index[pid].append({'gw': gw, 'kind': 'Trade', 'from_team': m1, 'to_team': m2, 'summary': f'{m1} traded {pname} to {m2}'})
+        for pid in trade.get('player_ids2', []) or []:
+            try:
+                pid = int(pid)
+            except (TypeError, ValueError):
+                continue
+            pname = elements.get(pid, {}).get('web_name') or name_by_snapshot.get(pid) or f'Player {pid}'
+            trade_move_index[pid].append({'gw': gw, 'kind': 'Trade', 'from_team': m2, 'to_team': m1, 'summary': f'{m2} traded {pname} to {m1}'})
+
+    for row in _all_activity_movements_for_market_pages():
+        try:
+            pid = int(row.get('player_id'))
+        except (TypeError, ValueError):
+            continue
+        gw = int(row.get('gw', 0) or 0)
+        from_team = row.get('from_team') or 'Free Agent'
+        to_team = row.get('to_team') or 'Free Agent'
+        if from_team == to_team:
+            continue
+        kind = row.get('move') or row.get('action') or 'Move'
+        edge = river_edges[(from_team, to_team)]
+        edge['moves'] += 1
+        edge['players'].add(pid)
+        edge['gws'].add(gw)
+        edge['kinds'][kind] += 1
+        edge['points'] += float(points_lookup.get(pid, elements.get(pid, {}).get('total_points', 0) or 0))
+        journeys[pid].append({'gw': gw, 'source': from_team, 'target': to_team, 'kind': kind, 'label': f'GW{gw} · {kind}'})
+
+    players = []
+    passports = {}
+    movers = []
+    for pid in sorted(observed):
+        meta = elements.get(pid, {}) or {}
+        draft_row = original.get(str(pid), {}) or {}
+        name = meta.get('web_name') or name_by_snapshot.get(pid) or player_ownership.get(pid, {}).get('name') or f'Player #{pid}'
+        club = teams_lookup.get(meta.get('team'), '—')
+        position = positions_lookup.get(meta.get('element_type'), '—')
+        total_points = float(points_lookup.get(pid, meta.get('total_points', 0) or 0))
+        current = current_owner.get(pid, 'Free Agent')
+        player_gw_owner = {gw: owner_by_gw.get(pid, {}).get(gw, 'Free Agent') for gw in finished_gws}
+        stints = []
+        if finished_gws:
+            active_owner = player_gw_owner.get(finished_gws[0], 'Free Agent')
+            start_gw = finished_gws[0]
+            for gw in finished_gws[1:]:
+                owner = player_gw_owner.get(gw, 'Free Agent')
+                if owner != active_owner:
+                    pts = sum(float(player_form.get(pid, {}).get(g, 0) or 0) for g in finished_gws if start_gw <= g < gw)
+                    stints.append({'owner': active_owner, 'start_gw': start_gw, 'end_gw': gw - 1, 'points': round(pts, 1)})
+                    active_owner = owner
+                    start_gw = gw
+            pts = sum(float(player_form.get(pid, {}).get(g, 0) or 0) for g in finished_gws if g >= start_gw)
+            stints.append({'owner': active_owner, 'start_gw': start_gw, 'end_gw': finished_gws[-1], 'points': round(pts, 1)})
+
+        owner_points = defaultdict(float)
+        owner_weeks = defaultdict(int)
+        for gw in finished_gws:
+            owner = player_gw_owner.get(gw, 'Free Agent')
+            owner_points[owner] += float(player_form.get(pid, {}).get(gw, 0) or 0)
+            owner_weeks[owner] += 1
+        owner_breakdown = [
+            {'owner': owner, 'points': round(points, 1), 'weeks': owner_weeks.get(owner, 0)}
+            for owner, points in owner_points.items()
+        ]
+        owner_breakdown.sort(key=lambda row: (-row['points'], row['owner']))
+
+        movement_rows = []
+        for step in journeys.get(pid, []):
+            movement_rows.append({'gw': step['gw'], 'kind': step['kind'], 'from': step['source'], 'to': step['target'], 'summary': step['label']})
+        for trade_row in trade_move_index.get(pid, []):
+            movement_rows.append({'gw': trade_row['gw'], 'kind': 'Trade', 'from': trade_row['from_team'], 'to': trade_row['to_team'], 'summary': trade_row['summary']})
+        seen = set()
+        dedup = []
+        for item in sorted(movement_rows, key=lambda r: (r['gw'], r['kind'], r['from'], r['to'], r['summary'])):
+            key = (item['gw'], item['kind'], item['from'], item['to'], item['summary'])
+            if key in seen:
+                continue
+            seen.add(key)
+            dedup.append(item)
+        movement_rows = sorted(dedup, key=lambda r: (r['gw'], r['kind'] != 'Drafted', r['from'], r['to']))
+
+        passport = {
+            'id': pid,
+            'name': name,
+            'club': club,
+            'position': position,
+            'current_owner': current,
+            'total_points': round(total_points, 1),
+            'original_manager': draft_row.get('manager') or 'Undrafted / unknown',
+            'original_pick': int(draft_row.get('overall_pick')) if str(draft_row.get('overall_pick', '')).isdigit() else None,
+            'official_rank': _official_draft_rank(pid),
+            'blended_rank': _blended_draft_rank(pid),
+            'transactions': movement_rows,
+            'stints': stints,
+            'owner_breakdown': owner_breakdown,
+            'fpl_id': meta.get('fpl_player_id', fpl_id_for_draft(pid)),
+        }
+        passports[str(pid)] = passport
+        players.append({'id': pid, 'name': name, 'owner': current, 'club': club, 'position': position, 'points': round(total_points, 1)})
+        movers.append({'id': pid, 'name': name, 'moves': len([m for m in movement_rows if m['gw'] > 0]), 'owner': current, 'points': round(total_points, 1)})
+
+    movers.sort(key=lambda row: (-row['moves'], -row['points'], row['name']))
+    edges = []
+    for (source, target), info in river_edges.items():
+        edges.append({
+            'source': source,
+            'target': target,
+            'moves': info['moves'],
+            'players': sorted(info['players']),
+            'player_names': [passports.get(str(pid), {}).get('name', f'Player {pid}') for pid in sorted(info['players'])[:8]],
+            'gws': sorted(g for g in info['gws'] if g),
+            'kinds': dict(info['kinds']),
+            'points': round(info['points'], 1),
+        })
+
+    journey_payload = {}
+    for pid, rows in journeys.items():
+        ordered = sorted(rows, key=lambda r: (r['gw'], r['kind'] != 'Drafted', r['source'], r['target']))
+        journey_payload[str(pid)] = ordered
+
+    return {
+        'players': players,
+        'passports': passports,
+        'river_edges': edges,
+        'journeys': journey_payload,
+        'top_movers': movers[:18],
+        'summary': {
+            'players': len(players),
+            'edges': len(edges),
+            'moves': int(sum(edge['moves'] for edge in edges if edge['source'] != 'Draft Night')),
+        },
+    }
+
+
+transfer_river_passport_json = json.dumps(_transfer_river_passport_payload(), ensure_ascii=False, separators=(',', ':'))
+
+
+def transfer_river_passport_html():
+    return '''<div class="card river-passport-card">
+      <div class="river-passport-head"><div><span class="relationship-eyebrow">MARKET FLOWS · OWNERSHIP BIOGRAPHIES</span>
+      <h2>The Transfer River + Player Passport</h2>
+      <p class="card-description">Follow the season’s player movement between McDraft teams, then drill into any individual player’s full biography: original draft slot, current owner, scoring by owner, roster stints and key transactions. The shared Analytics manager filter controls the league-wide River view; searching for a player opens their full Passport.</p></div>
+      <div class="river-passport-tools">
+        <label>Find a player<input id="passport-player-search" type="search" list="passport-player-list" placeholder="Search any player…" onchange="focusPassportSearch()" onkeydown="if(event.key==='Enter')focusPassportSearch()"><datalist id="passport-player-list"></datalist></label>
+        <div class="river-passport-buttons"><button type="button" class="relationship-reset" onclick="focusPassportSearch()">Open passport</button><button type="button" class="relationship-reset" onclick="clearPassportPlayer()">Clear player</button></div>
+      </div></div>
+      <div id="transfer-river-stats" class="relationship-stats" aria-live="polite"></div>
+      <div class="river-passport-layout">
+        <div class="river-panel">
+          <div class="relationship-graph-toolbar"><span id="transfer-river-caption">Transfer River · selected McDraft teams</span><div class="muted" id="transfer-river-subcaption">League-wide movement view</div></div>
+          <div id="transfer-river-chart" class="transfer-river-chart"></div>
+          <div id="transfer-river-empty" class="notice" hidden></div>
+          <div class="relationship-legend river-legend"><span><i style="background:#64748b"></i> Free agent pool</span><span><i style="background:#94a3b8"></i> Draft night</span><span><i style="background:#38bdf8"></i> League movement</span><span><i style="background:#f59e0b"></i> Focused player journey</span></div>
+        </div>
+        <aside id="player-passport-detail" class="passport-detail"><h3>Open a passport</h3><p>Search any player above to view their McDraft biography. Without a selected player, the passport panel shows the season’s biggest movers.</p></aside>
+      </div>
     </div>'''
 
 # ---------------------------- Analytics Lab ----------------------------
@@ -12895,6 +13326,7 @@ def analytics_page_html():
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('matrices', this)">Matrix Lab <span>{len(_matrix_cards)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('player', this)">Player Analytics <span>{len(player_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('relationships', this)">Player Relationships <span>NEW</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('river-passport', this)">Transfer River + Player Passport <span>NEW</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('club', this)">Club Analytics <span>{len(club_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-strength', this)">Squad Strength <span>{len(squad_strength_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-build', this)">Squad Construction <span>{len(squad_construction_charts)}</span></button>
@@ -12905,7 +13337,7 @@ def analytics_page_html():
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('league-stats', this)">League Stats</button>
     </div>
     <div class="card analytics-manager-filter-card">
-        <div class="analytics-manager-filter-head"><div><h2>Manager filter</h2><p class="card-description">Select multiple managers to filter every manager-based chart, including the Matrix Lab and currently-owned players in Player Analytics. Use Top 5, All or None for quick selections. Free agents affect Player Analytics and Player Relationships; Premier League club charts remain league-wide.</p></div><span id="analytics-manager-count" class="muted"></span></div>
+        <div class="analytics-manager-filter-head"><div><h2>Manager filter</h2><p class="card-description">Select multiple managers to filter every manager-based chart, including the Matrix Lab and currently-owned players in Player Analytics. Use Top 5, All or None for quick selections. Free agents affect Player Analytics, Player Relationships and the Transfer River; Premier League club charts remain league-wide.</p></div><span id="analytics-manager-count" class="muted"></span></div>
         <div id="analytics-manager-chips" class="chart-chip-row analytics-manager-chip-row"></div>
         <label class="analytics-average-toggle"><input id="analytics-average-toggle" type="checkbox" onchange="toggleAnalyticsLeagueAverage(this.checked)"> Compare with league average</label>
     </div>
@@ -12916,6 +13348,7 @@ def analytics_page_html():
         <div class="analytics-chart-grid">{''.join(player_charts)}</div>
     </div>
     <div class="analytics-subpage" id="analytics-sub-relationships">{player_relationship_html()}</div>
+    <div class="analytics-subpage" id="analytics-sub-river-passport">{transfer_river_passport_html()}</div>
     <div class="analytics-subpage" id="analytics-sub-club"><div class="analytics-chart-grid">{''.join(club_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-squad-strength"><div class="analytics-chart-grid">{''.join(squad_strength_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-squad-build"><div class="analytics-chart-grid">{''.join(squad_construction_charts)}</div></div>
@@ -15369,7 +15802,52 @@ tbody tr:hover {
 # JAVASCRIPT
 # ============================================================
 
+river_passport_css = r'''
+.river-passport-card { display:flex; flex-direction:column; gap:16px; }
+.river-passport-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+.river-passport-tools { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+.river-passport-tools label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-weight:700; min-width:240px; }
+.river-passport-tools input { background:#0f172a; color:var(--text); border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
+.river-passport-buttons { display:flex; gap:8px; flex-wrap:wrap; }
+.river-passport-layout { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr); gap:18px; align-items:start; }
+.river-panel, .passport-detail { background:rgba(15,23,42,.45); border:1px solid var(--border); border-radius:18px; padding:16px; }
+.passport-detail h3 { margin:0 0 6px; }
+.passport-detail p { color:var(--muted); }
+.transfer-river-chart { min-height:480px; }
+.river-legend { margin-top:10px; }
+.passport-hero { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+.passport-owner-chip { display:inline-flex; align-items:center; gap:8px; background:#0f172a; border:1px solid var(--border); border-radius:999px; padding:6px 10px; font-weight:700; }
+.passport-owner-chip i { width:12px; height:12px; border-radius:999px; display:inline-block; }
+.passport-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:12px 0 14px; }
+.passport-metrics div { background:#0f172a; border:1px solid var(--border); border-radius:14px; padding:12px; }
+.passport-metrics strong { display:block; font-size:20px; }
+.passport-metrics small { color:var(--muted); }
+.passport-section { margin-top:14px; }
+.passport-section h4 { margin:0 0 8px; }
+.passport-stints { display:flex; flex-direction:column; gap:8px; }
+.passport-stint { display:flex; justify-content:space-between; gap:12px; background:#0f172a; border:1px solid var(--border); border-radius:12px; padding:10px 12px; flex-wrap:wrap; }
+.passport-table { width:100%; border-collapse:collapse; }
+.passport-table th, .passport-table td { padding:8px 10px; border-bottom:1px solid rgba(148,163,184,.18); text-align:left; }
+.passport-table th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+.passport-transactions { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.passport-transactions li { background:#0f172a; border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
+.passport-transactions b { color:var(--text); }
+.passport-mover-list { list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.passport-mover-list li { display:flex; justify-content:space-between; gap:10px; padding:10px 12px; background:#0f172a; border:1px solid var(--border); border-radius:12px; }
+.passport-mover-list button { background:none; border:none; color:inherit; text-align:left; width:100%; cursor:pointer; display:flex; justify-content:space-between; gap:10px; }
+.passport-mover-list small { color:var(--muted); display:block; }
+@media (max-width: 980px) {
+  .river-passport-layout { grid-template-columns:1fr; }
+  .passport-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 640px) {
+  .passport-metrics { grid-template-columns:1fr 1fr; }
+  .transfer-river-chart { min-height:380px; }
+}
+'''
+
 relationship_css = r"""
+
 /* v48 — Player Relationship Graph */
 .relationship-intro{margin-bottom:18px;min-width:0}
 .relationship-eyebrow{display:block;font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:900;color:var(--accent);margin-bottom:9px}
@@ -15413,6 +15891,39 @@ relationship_css = r"""
 @media(max-width:650px){.relationship-intro h2{font-size:20px}.relationship-mode-controls{gap:5px}.relationship-mode{flex:1 1 45%;font-size:10px;padding:9px 5px}.relationship-controls>label{flex:1 1 46%}.relationship-controls>label:has(input[type=search]){flex:1 1 100%}.relationship-stats strong{font-size:18px}.relationship-graph-toolbar{font-size:10px}.relationship-legend{font-size:9px}}
 
 """
+
+war_room_css = r'''
+.war-room-shell{display:flex;flex-direction:column;gap:16px}
+.war-room-hero{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.war-room-manager-select{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-weight:800;min-width:230px}
+.war-room-manager-select select{background:#0f172a;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.war-room-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.war-room-card{background:rgba(15,23,42,.45);border:1px solid var(--border);border-radius:16px;padding:15px}
+.war-room-card.full{grid-column:1/-1}
+.war-room-matchup{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:14px;align-items:center;text-align:center}
+.war-room-side{background:#0f172a;border:1px solid var(--border);border-radius:14px;padding:14px}
+.war-room-side h3{margin:0 0 6px;font-size:16px}.war-room-side strong{font-size:28px;display:block}.war-room-side small{color:var(--muted)}
+.war-room-vs{font-weight:900;color:var(--muted)}
+.war-room-prob{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.war-room-prob div{background:#0f172a;border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center}.war-room-prob strong{display:block;font-size:20px}.war-room-prob small{color:var(--muted)}
+.war-room-pos-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.war-room-pos{background:#0f172a;border:1px solid var(--border);border-radius:12px;padding:12px}.war-room-pos b{display:block;margin-bottom:7px}.war-room-pos .edge{font-size:18px;font-weight:900}.war-room-pos .positive{color:#34d399}.war-room-pos .negative{color:#f87171}.war-room-pos small{color:var(--muted)}
+.war-room-xi{display:grid;grid-template-columns:1fr 1fr;gap:18px}.war-room-xi-col h3{margin-top:0}
+.war-room-pitch-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.war-room-team-panel{min-width:0}
+.war-room-pitch{position:relative;min-height:560px;border-radius:18px;padding:20px 12px;background:linear-gradient(180deg,rgba(21,94,59,.92),rgba(20,83,45,.96));border:2px solid rgba(255,255,255,.18);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+.war-room-pitch:before{content:'';position:absolute;inset:7% 4%;border:2px solid rgba(255,255,255,.28);border-radius:2px;pointer-events:none}.war-room-pitch:after{content:'';position:absolute;left:4%;right:4%;top:50%;border-top:2px solid rgba(255,255,255,.28);pointer-events:none}
+.war-room-formation{position:relative;z-index:1;display:flex;flex-direction:column;justify-content:space-between;min-height:520px}
+.war-room-line{display:flex;justify-content:center;gap:10px;align-items:center;min-height:100px}
+.war-room-player-card{width:min(118px,24%);min-width:74px;background:rgba(15,23,42,.91);border:1px solid rgba(255,255,255,.2);border-radius:12px;color:#fff;padding:8px 7px;cursor:pointer;text-align:center;box-shadow:0 6px 16px rgba(0,0,0,.22);transition:transform .12s,border-color .12s}
+.war-room-player-card:hover,.war-room-player-card:focus{transform:translateY(-3px);border-color:#7dd3fc;outline:none}.war-room-player-card b{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.war-room-player-card small{display:block;color:#b8c5d6;font-size:10px;margin-top:2px}.war-room-player-card .wr-proj{font-size:15px;font-weight:900;color:#fff;margin-top:4px}.war-room-player-card .wr-risk{display:inline-block;margin-top:4px;padding:2px 5px;border-radius:999px;font-size:9px;font-weight:850;background:#334155}.war-room-player-card .wr-risk.medium{background:#92400e}.war-room-player-card .wr-risk.high{background:#991b1b}
+.war-room-bench{margin-top:12px;background:#0f172a;border:1px solid var(--border);border-radius:14px;padding:11px}.war-room-bench h4{margin:0 0 9px}.war-room-bench-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.war-room-bench .war-room-player-card{width:100%;min-width:0;padding:7px 5px}
+.war-room-player-detail{margin-top:16px;background:#0f172a;border:1px solid var(--border);border-radius:16px;padding:16px}.war-room-player-detail[hidden]{display:none}.war-room-player-detail-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:12px}.war-room-player-detail-grid div{background:#111827;border:1px solid rgba(148,163,184,.18);border-radius:12px;padding:10px}.war-room-player-detail-grid strong{display:block;font-size:18px}.war-room-player-detail-grid small{color:var(--muted)}.war-room-player-news{margin-top:12px;padding:10px 12px;border-left:3px solid #f59e0b;background:#111827;border-radius:8px}.war-room-player-fixtures{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.war-room-player-fixture{background:#111827;border:1px solid var(--border);border-radius:999px;padding:6px 9px;font-size:11px}
+.war-room-flags{display:flex;flex-direction:column;gap:8px}.war-room-flag{background:#0f172a;border:1px solid var(--border);border-radius:12px;padding:10px 12px}.war-room-flag b{display:block}.war-room-flag small{color:var(--muted)}
+.war-room-keys{margin:0;padding-left:20px}.war-room-keys li{margin:7px 0}
+.war-room-upgrades{display:flex;flex-direction:column;gap:8px}.war-room-upgrade{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;background:#0f172a;border:1px solid var(--border);border-radius:12px;padding:11px 12px}.war-room-upgrade small{display:block;color:var(--muted)}.war-room-upgrade strong{font-size:18px;color:#34d399}
+@media(max-width:900px){.war-room-grid{grid-template-columns:1fr}.war-room-card.full{grid-column:auto}.war-room-pos-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.war-room-xi{grid-template-columns:1fr}.war-room-matchup{grid-template-columns:1fr}.war-room-vs{padding:2px 0}.war-room-pitch-wrap{grid-template-columns:1fr}.war-room-player-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.war-room-pitch{min-height:500px;padding:12px 7px}.war-room-formation{min-height:470px}.war-room-line{gap:5px;min-height:90px}.war-room-player-card{min-width:62px;padding:6px 4px}.war-room-player-card b{font-size:10px}.war-room-player-card .wr-proj{font-size:13px}.war-room-bench-list{grid-template-columns:repeat(2,minmax(0,1fr))}.war-room-player-detail-grid{grid-template-columns:1fr 1fr}}
+'''
+
 
 javascript = r"""
 /* ============================================================
@@ -15782,6 +16293,7 @@ function applyAnalyticsManagerFilter() {
     applyPlayerAnalyticsFilter();
     refreshMatrixManagerState();
     renderPlayerRelationshipGraph();
+    renderTransferRiverPassport();
 }
 
 function toggleAnalyticsLeagueAverage(enabled) {
@@ -15834,6 +16346,86 @@ function renderSeasonTimeline(index) {
     if(summary) summary.innerHTML='<div><span>Leader</span><strong>'+snap.leader+'</strong></div><div><span>GW high</span><strong>'+snap.high_score+'</strong></div><div><span>GW average</span><strong>'+Number(snap.average_score).toFixed(1)+'</strong></div>';
     const wrap=document.getElementById('season-slider-table'); if(!wrap)return;
     wrap.innerHTML='<table><thead><tr><th>#</th><th>Manager</th><th>Record</th><th>LP</th><th>PF</th><th>PA</th><th>GW'+snap.gw+'</th></tr></thead><tbody>'+snap.rows.map(r=>'<tr><td>'+r.rank+'</td><td class="manager-name">'+r.manager+'</td><td>'+r.record+'</td><td><strong>'+r.league_points+'</strong></td><td>'+r.pf+'</td><td>'+r.pa+'</td><td>'+r.gw_score+'</td></tr>').join('')+'</tbody></table>';
+}
+
+const MANAGER_WAR_ROOM = __MANAGER_WAR_ROOM__;
+
+function initManagerWarRoom(){
+  const select=document.getElementById('war-room-manager');
+  if(!select)return;
+  if(!select.dataset.ready){
+    select.innerHTML=MANAGER_ORDER.map(m=>'<option value="'+escapePlayerHTML(m)+'">'+escapePlayerHTML(m)+'</option>').join('');
+    const mine=document.getElementById('my-team-selector');
+    if(mine && MANAGER_ORDER.includes(mine.options[mine.selectedIndex]?.text)) select.value=mine.options[mine.selectedIndex].text;
+    else if(MANAGER_ORDER.includes('Kamararama FC')) select.value='Kamararama FC';
+    select.dataset.ready='1';
+  }
+  renderManagerWarRoom();
+}
+function warRoomRisk(player){
+  const a=Number(player?.availability ?? 1), status=String(player?.status||'a');
+  if(status!=='a' || a<0.6) return {label:'High risk',cls:'high'};
+  if(a<0.85) return {label:'Monitor',cls:'medium'};
+  return {label:'Available',cls:''};
+}
+function warRoomPlayerCard(player,side){
+  const risk=warRoomRisk(player);
+  return '<button type="button" class="war-room-player-card" onclick="showWarRoomPlayer('+Number(player.id)+',\''+side+'\')" title="Open '+escapePlayerHTML(player.name)+' details">'+
+    '<b>'+escapePlayerHTML(player.name)+'</b><small>'+escapePlayerHTML(player.position||'—')+' · '+escapePlayerHTML(player.club||'—')+'</small><div class="wr-proj">'+Number(player.projection||0).toFixed(1)+' pts</div><span class="wr-risk '+risk.cls+'">'+risk.label+'</span></button>';
+}
+function warRoomFormation(rows,bench,formation,side,teamName){
+  const groups={GKP:[],DEF:[],MID:[],FWD:[]};
+  (rows||[]).forEach(p=>{if(groups[p.position])groups[p.position].push(p)});
+  const line=pos=>'<div class="war-room-line war-room-line-'+pos.toLowerCase()+'">'+groups[pos].map(p=>warRoomPlayerCard(p,side)).join('')+'</div>';
+  const benchHtml=(bench||[]).slice(0,4).map(p=>warRoomPlayerCard(p,side)).join('');
+  return '<div class="war-room-team-panel"><h3>'+escapePlayerHTML(teamName)+' · '+escapePlayerHTML(formation||'—')+'</h3><div class="war-room-pitch"><div class="war-room-formation">'+line('FWD')+line('MID')+line('DEF')+line('GKP')+'</div></div><div class="war-room-bench"><h4>Bench</h4><div class="war-room-bench-list">'+(benchHtml||'<div class="muted">No bench available.</div>')+'</div></div></div>';
+}
+function warRoomFlagRows(rows){
+  return (rows||[]).map(p=>'<div class="war-room-flag"><b>'+escapePlayerHTML(p.name)+'</b><small>'+escapePlayerHTML(p.position||'—')+' · '+Math.round(Number(p.availability||0)*100)+'% availability'+(p.news?' · '+escapePlayerHTML(p.news):'')+'</small></div>').join('')||'<div class="notice">No major availability flags in the captured squad.</div>';
+}
+function showWarRoomPlayer(playerId,side){
+  const select=document.getElementById('war-room-manager'),detail=document.getElementById('war-room-player-detail');
+  if(!select||!detail)return;
+  const data=MANAGER_WAR_ROOM[select.value];if(!data)return;
+  const team=side==='opponent'?data.opponent_team:data.you;
+  const player=[...(team.starters||[]),...(team.bench||[])].find(p=>Number(p.id)===Number(playerId));
+  if(!player)return;
+  const risk=warRoomRisk(player),fixtures=(player.fixtures||[]);
+  const fixtureHtml=fixtures.length?fixtures.map(f=>'<span class="war-room-player-fixture">'+(f.home?'vs ':'@ ')+escapePlayerHTML(f.opponent||'—')+' · FDR '+escapePlayerHTML(f.difficulty||'—')+'</span>').join(''):'<span class="muted">No PL fixture captured for this gameweek.</span>';
+  detail.hidden=false;
+  detail.innerHTML='<div class="passport-hero"><div><span class="relationship-eyebrow">PLAYER INTELLIGENCE</span><h3>'+escapePlayerHTML(player.name)+'</h3><p>'+escapePlayerHTML(player.club||'—')+' · '+escapePlayerHTML(player.position||'—')+' · '+escapePlayerHTML(side==='opponent'?data.opponent:select.value)+'</p></div><span class="wr-risk '+risk.cls+'">'+risk.label+'</span></div>'+
+    '<div class="war-room-player-detail-grid"><div><strong>'+Number(player.projection||0).toFixed(1)+'</strong><small>Projected points</small></div><div><strong>'+Math.round(Number(player.availability||0)*100)+'%</strong><small>Availability</small></div><div><strong>'+Number(player.importance||0).toFixed(0)+'/100</strong><small>Importance · '+escapePlayerHTML(player.importance_label||'—')+'</small></div><div><strong>'+Number(player.replacement_gap||0).toFixed(1)+'</strong><small>Replacement gap</small></div><div><strong>'+fixtures.length+'</strong><small>PL fixture'+(fixtures.length===1?'':'s')+'</small></div></div>'+
+    '<div class="passport-section"><h4>Who are they playing?</h4><div class="war-room-player-fixtures">'+fixtureHtml+'</div></div>'+
+    (player.news?'<div class="war-room-player-news"><b>FPL availability news</b><br>'+escapePlayerHTML(player.news)+'</div>':'<div class="war-room-player-news"><b>Availability</b><br>No current FPL injury/suspension news captured.</div>');
+  detail.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function initManagerWarRoom(){
+  const select=document.getElementById('war-room-manager');
+  if(!select)return;
+  if(!select.options.length){
+    select.innerHTML=MANAGER_ORDER.map(m=>'<option value="'+escapePlayerHTML(m)+'">'+escapePlayerHTML(m)+'</option>').join('');
+    const preferred=(typeof MY_TEAM_DEFAULT_MANAGER!=='undefined'&&MY_TEAM_DEFAULT_MANAGER)||MANAGER_ORDER[0];
+    if(MANAGER_WAR_ROOM[preferred])select.value=preferred;
+  }
+  renderManagerWarRoom();
+}
+function renderManagerWarRoom(){
+  const select=document.getElementById('war-room-manager'),wrap=document.getElementById('war-room-content');
+  if(!select||!wrap)return;
+  const manager=select.value||MANAGER_ORDER[0],data=MANAGER_WAR_ROOM[manager];
+  if(!data||data.warning){wrap.innerHTML='<div class="card"><div class="notice">'+escapePlayerHTML(data?.warning||'No War Room data available.')+'</div></div>';return;}
+  const opp=data.opponent,odds=data.odds;
+  const probs=odds?'<div class="war-room-prob"><div><strong>'+Number(odds.you_win).toFixed(1)+'%</strong><small>'+escapePlayerHTML(manager)+' win</small></div><div><strong>'+Number(odds.draw).toFixed(1)+'%</strong><small>Draw</small></div><div><strong>'+Number(odds.opponent_win).toFixed(1)+'%</strong><small>'+escapePlayerHTML(opp)+' win</small></div></div><p class="card-description">Modelled score range: '+Number(odds.you_low).toFixed(0)+'–'+Number(odds.you_high).toFixed(0)+' vs '+Number(odds.opponent_low).toFixed(0)+'–'+Number(odds.opponent_high).toFixed(0)+' · confidence '+escapePlayerHTML(odds.confidence||'—')+'.</p>':'<p class="card-description">Pre-game fixture probabilities are only shown when this is the dashboard’s next unplayed prediction gameweek.</p>';
+  const pos=(data.positional||[]).map(r=>{const e=Number(r.edge||0);return '<div class="war-room-pos"><b>'+escapePlayerHTML(r.position)+'</b><div class="edge '+(e>0?'positive':e<0?'negative':'')+'">'+(e>0?'+':'')+e.toFixed(1)+'</div><small>'+Number(r.you||0).toFixed(1)+' vs '+Number(r.opponent||0).toFixed(1)+' projected</small></div>'}).join('');
+  const upgrades=(data.upgrades||[]).map(r=>'<div class="war-room-upgrade"><div><b>'+escapePlayerHTML(r.in_name)+' in · '+escapePlayerHTML(r.out_name)+' out</b><small>'+escapePlayerHTML(r.position)+' · '+Number(r.incoming_projection||0).toFixed(1)+' vs '+Number(r.outgoing_projection||0).toFixed(1)+' individual projection</small></div><strong>+'+Number(r.gain||0).toFixed(1)+'</strong></div>').join('')||'<div class="notice">No free-agent move improves the projected optimal XI by more than 0.1 points right now.</div>';
+  wrap.innerHTML='<div class="war-room-grid">'+
+    '<div class="war-room-card full"><div class="war-room-matchup"><div class="war-room-side"><h3>'+escapePlayerHTML(manager)+'</h3><strong>'+Number(data.you.xi||0).toFixed(1)+'</strong><small>projected XI · '+escapePlayerHTML(data.you.formation||'—')+'</small></div><div class="war-room-vs">GW'+data.gw+'<br>VS</div><div class="war-room-side"><h3>'+escapePlayerHTML(opp)+'</h3><strong>'+Number(data.opponent_team.xi||0).toFixed(1)+'</strong><small>projected XI · '+escapePlayerHTML(data.opponent_team.formation||'—')+'</small></div></div>'+probs+'</div>'+
+    '<div class="war-room-card full"><h2>Projected Matchup</h2><p class="card-description">Both optimal projected XIs in formation. Click any player card for opponent, availability risk, projected points and importance to their team.</p><div class="war-room-pitch-wrap">'+warRoomFormation(data.you.starters,data.you.bench,data.you.formation,'you',manager)+warRoomFormation(data.opponent_team.starters,data.opponent_team.bench,data.opponent_team.formation,'opponent',opp)+'</div><div id="war-room-player-detail" class="war-room-player-detail" hidden></div></div>'+
+    '<div class="war-room-card full"><h2>Positional Battle</h2><p class="card-description">Projected starting-XI contribution by position. Positive edge means your side projects higher.</p><div class="war-room-pos-grid">'+pos+'</div></div>'+
+    '<div class="war-room-card"><h2>Matchup Keys</h2><ul class="war-room-keys">'+(data.keys||[]).map(k=>'<li>'+escapePlayerHTML(k)+'</li>').join('')+'</ul></div>'+
+    '<div class="war-room-card"><h2>Availability Watch</h2><h3>'+escapePlayerHTML(manager)+'</h3><div class="war-room-flags">'+warRoomFlagRows(data.you.flags)+'</div><h3>'+escapePlayerHTML(opp)+'</h3><div class="war-room-flags">'+warRoomFlagRows(data.opponent_team.flags)+'</div></div>'+
+    '<div class="war-room-card full"><h2>Best Next-GW Waiver Improvements</h2><p class="card-description">Like-for-like free agents ranked by improvement to your optimal projected XI for GW'+data.gw+' only. This does not account for waiver priority or moves made after the dashboard refresh.</p><div class="war-room-upgrades">'+upgrades+'</div></div>'+
+    '</div>';
 }
 
 function showOverviewSubtab(name, button) {
@@ -16194,6 +16786,174 @@ function renderPlayerRelationshipGraph(){
     renderRelationshipDetail(selected,links);
 }
 
+const TRANSFER_RIVER_PASSPORT = __TRANSFER_RIVER_PASSPORT__;
+const passportState = { focusPlayer: null };
+
+function passportEscape(value){
+    return String(value ?? '')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+}
+function riverNodeColor(name){
+    if(name==='Draft Night') return '#94a3b8';
+    if(name==='Free Agent') return '#64748b';
+    return MANAGER_COLORS[name] || '#38bdf8';
+}
+function initTransferRiverPassport(){
+    const list = document.getElementById('passport-player-list');
+    if(list && !list.dataset.ready){
+        list.innerHTML = (TRANSFER_RIVER_PASSPORT.players||[])
+          .slice().sort((a,b)=>String(a.name).localeCompare(String(b.name)))
+          .map(p=>'<option value="'+passportEscape(p.name)+'"></option>').join('');
+        list.dataset.ready='1';
+    }
+    renderTransferRiverPassport();
+}
+function focusPassportSearch(){
+    const input = document.getElementById('passport-player-search');
+    const query = input ? input.value.trim().toLowerCase() : '';
+    if(!query){ renderTransferRiverPassport(); return; }
+    const match = (TRANSFER_RIVER_PASSPORT.players||[]).find(p=>String(p.name).toLowerCase()===query)
+      || (TRANSFER_RIVER_PASSPORT.players||[]).find(p=>String(p.name).toLowerCase().includes(query));
+    if(match){ passportState.focusPlayer = Number(match.id); if(input) input.value = match.name; }
+    renderTransferRiverPassport();
+}
+function clearPassportPlayer(){
+    passportState.focusPlayer = null;
+    const input = document.getElementById('passport-player-search');
+    if(input) input.value = '';
+    renderTransferRiverPassport();
+}
+function renderTransferRiverPassport(){
+    const page = document.getElementById('analytics-sub-river-passport');
+    if(!page || !page.classList.contains('active')) return;
+    const chart = document.getElementById('transfer-river-chart');
+    const empty = document.getElementById('transfer-river-empty');
+    const caption = document.getElementById('transfer-river-caption');
+    const subcaption = document.getElementById('transfer-river-subcaption');
+    const stats = document.getElementById('transfer-river-stats');
+    if(!chart) return;
+
+    const selectedManagers = MANAGER_ORDER.filter(m=>analyticsManagerState.visible.has(m));
+    const includeFree = analyticsManagerState.includeFreeAgents;
+    let labels = [];
+    let linkRows = [];
+
+    if(passportState.focusPlayer !== null){
+        const player = TRANSFER_RIVER_PASSPORT.passports[String(passportState.focusPlayer)];
+        const journey = (TRANSFER_RIVER_PASSPORT.journeys[String(passportState.focusPlayer)]||[]).slice();
+        const seen = new Set();
+        journey.forEach(step=>{ seen.add(step.source); seen.add(step.target); });
+        labels = Array.from(seen);
+        linkRows = journey.map(step=>({source:step.source,target:step.target,value:1,color:'#f59e0b',hover:step.label}));
+        if(caption) caption.textContent = (player ? player.name : 'Player') + ' · full McDraft journey';
+        if(subcaption) subcaption.textContent = 'Focused player view ignores manager filtering so the whole biography stays intact.';
+    }else{
+        const allowed = new Set(selectedManagers);
+        if(includeFree) allowed.add('Free Agent');
+        labels = ['Draft Night', ...selectedManagers];
+        if(includeFree) labels.push('Free Agent');
+        linkRows = (TRANSFER_RIVER_PASSPORT.river_edges||[]).filter(edge=>{
+            if(edge.source==='Draft Night') return allowed.has(edge.target);
+            return allowed.has(edge.source) && allowed.has(edge.target);
+        }).map(edge=>({
+            source:edge.source,
+            target:edge.target,
+            value:Math.max(1, Number(edge.moves)||0),
+            color: edge.source==='Draft Night' ? 'rgba(148,163,184,.45)' : 'rgba(56,189,248,.35)',
+            hover:(edge.player_names||[]).join(', ') + ((edge.player_names||[]).length>=8 ? '…' : '') + '<br>' + Object.entries(edge.kinds||{}).map(([k,v])=>k+': '+v).join(' · ')
+        }));
+        if(caption) caption.textContent = 'Transfer River · selected McDraft teams';
+        if(subcaption) subcaption.textContent = 'Shared Analytics manager filter applied · Draft Night → managers → free-agent churn.';
+    }
+
+    const labelIndex = new Map();
+    labels.forEach((name, idx)=>labelIndex.set(name, idx));
+    const filteredLinks = linkRows.filter(row=>labelIndex.has(row.source) && labelIndex.has(row.target));
+    if(stats){
+        const nodeCount = passportState.focusPlayer !== null ? labels.length : new Set(filteredLinks.flatMap(l=>[l.source,l.target])).size;
+        stats.innerHTML = '<div><strong>'+nodeCount+'</strong><span>'+(passportState.focusPlayer!==null?'Nodes in journey':'Nodes shown')+'</span></div>'+
+            '<div><strong>'+filteredLinks.length+'</strong><span>'+(passportState.focusPlayer!==null?'Career steps':'River links')+'</span></div>'+
+            '<div><strong>'+TRANSFER_RIVER_PASSPORT.summary.moves+'</strong><span>Season movements</span></div>'+
+            '<div><strong>'+TRANSFER_RIVER_PASSPORT.summary.players+'</strong><span>Players tracked</span></div>';
+    }
+    if(empty){
+        empty.hidden = filteredLinks.length > 0;
+        empty.textContent = passportState.focusPlayer !== null ? 'No journey data found for that player yet.' : 'No movement links match the current manager filter.';
+    }
+    if(!filteredLinks.length){
+        if(window.Plotly){ Plotly.purge(chart); }
+        chart.innerHTML = '';
+        renderPlayerPassportDetail();
+        return;
+    }
+    if(typeof Plotly === 'undefined'){
+        chart.innerHTML = '<div class="notice">Plotly failed to load, so the River chart cannot render right now.</div>';
+        renderPlayerPassportDetail();
+        return;
+    }
+    Plotly.react(chart, [{
+        type: 'sankey',
+        arrangement: 'snap',
+        node: {
+            label: labels,
+            color: labels.map(riverNodeColor),
+            pad: 18,
+            thickness: 18,
+            line: {color:'rgba(15,23,42,.95)', width:1}
+        },
+        link: {
+            source: filteredLinks.map(row=>labelIndex.get(row.source)),
+            target: filteredLinks.map(row=>labelIndex.get(row.target)),
+            value: filteredLinks.map(row=>row.value),
+            color: filteredLinks.map(row=>row.color),
+            customdata: filteredLinks.map(row=>row.hover),
+            hovertemplate: '%{source.label} → %{target.label}<br><b>%{value}</b> move(s)<br>%{customdata}<extra></extra>'
+        }
+    }], {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: {l:10,r:10,t:10,b:10},
+        font: {color:'#e5eefb', size:12},
+        height: passportState.focusPlayer !== null ? 440 : 520,
+    }, {displayModeBar:false, responsive:true, scrollZoom:false});
+    renderPlayerPassportDetail();
+}
+function renderPlayerPassportDetail(){
+    const detail = document.getElementById('player-passport-detail');
+    if(!detail) return;
+    const passport = passportState.focusPlayer !== null ? TRANSFER_RIVER_PASSPORT.passports[String(passportState.focusPlayer)] : null;
+    if(!passport){
+        const top = (TRANSFER_RIVER_PASSPORT.top_movers||[]).map(row=>
+          '<li><button type="button" onclick="passportState.focusPlayer='+row.id+';document.getElementById(\'passport-player-search\').value=\''+passportEscape(row.name)+'\';renderTransferRiverPassport()"><span><b>'+passportEscape(row.name)+'</b><small>'+passportEscape(row.owner)+' · '+passportEscape(row.points)+' points</small></span><span><strong>'+row.moves+'</strong><small>moves</small></span></button></li>'
+        ).join('');
+        detail.innerHTML = '<h3>Season biggest movers</h3><p>Open one of these passports or search for anyone in the league.</p><ol class="passport-mover-list">'+top+'</ol>';
+        return;
+    }
+    const ownerRows = (passport.owner_breakdown||[]).map(row=>
+        '<tr><td><span class="passport-owner-chip"><i style="background:'+riverNodeColor(row.owner)+'"></i>'+passportEscape(row.owner)+'</span></td><td><strong>'+row.points.toFixed(1)+'</strong></td><td>'+row.weeks+'</td></tr>'
+    ).join('');
+    const stints = (passport.stints||[]).map(stint=>
+        '<div class="passport-stint"><span><span class="passport-owner-chip"><i style="background:'+riverNodeColor(stint.owner)+'"></i>'+passportEscape(stint.owner)+'</span></span><span>GW'+stint.start_gw+'–GW'+stint.end_gw+' · <strong>'+stint.points.toFixed(1)+'</strong> pts</span></div>'
+    ).join('') || '<p class="muted">No finished-gameweek ownership stints captured yet.</p>';
+    const tx = (passport.transactions||[]).map(item=>
+        '<li><b>'+(item.gw ? ('GW'+item.gw) : 'Draft')+'</b> · '+passportEscape(item.kind)+'<br><span class="muted">'+passportEscape(item.from)+' → '+passportEscape(item.to)+'</span><br>'+passportEscape(item.summary)+'</li>'
+    ).join('') || '<li>No movement history captured yet.</li>';
+    detail.innerHTML = '<div class="passport-hero"><div><h3>'+passportEscape(passport.name)+'</h3><p>'+passportEscape(passport.club)+' · '+passportEscape(passport.position)+'</p></div><span class="passport-owner-chip"><i style="background:'+riverNodeColor(passport.current_owner)+'"></i>'+passportEscape(passport.current_owner)+'</span></div>'+
+        '<div class="passport-metrics">'+
+        '<div><strong>'+passport.total_points.toFixed(1)+'</strong><small>Season points</small></div>'+
+        '<div><strong>'+(passport.original_pick ? ('#'+passport.original_pick) : '—')+'</strong><small>Original draft pick</small></div>'+
+        '<div><strong>'+passportEscape(passport.original_manager)+'</strong><small>Original manager</small></div>'+
+        '<div><strong>#'+passport.blended_rank+'</strong><small>McDraft blended rank</small></div>'+
+        '</div>'+
+        '<div class="passport-section"><h4>Ownership stints</h4><div class="passport-stints">'+stints+'</div></div>'+
+        '<div class="passport-section"><h4>Points by owner</h4><table class="passport-table"><thead><tr><th>Owner</th><th>Points</th><th>Weeks</th></tr></thead><tbody>'+ownerRows+'</tbody></table></div>'+
+        '<div class="passport-section"><h4>Transaction log</h4><ol class="passport-transactions">'+tx+'</ol></div>';
+}
+
 function showAnalyticsSubtab(name, button) {
     document.querySelectorAll('.analytics-subpage').forEach(function(page) { page.classList.remove('active'); });
     document.querySelectorAll('#page-analytics .analytics-subtab').forEach(function(tab) { tab.classList.remove('active'); });
@@ -16203,6 +16963,7 @@ function showAnalyticsSubtab(name, button) {
     // The shared Manager filter stays visible on every Analytics subtab.
     if(name==='player') applyPlayerAnalyticsFilter();
     if(name==='relationships') requestAnimationFrame(renderPlayerRelationshipGraph);
+    if(name==='river-passport') requestAnimationFrame(renderTransferRiverPassport);
 }
 
 function showPage(
@@ -16274,6 +17035,8 @@ function showPage(
         resizeCharts,
         50
     );
+
+    if (pageName === "war-room") requestAnimationFrame(renderManagerWarRoom);
 
 }
 
@@ -18192,6 +18955,8 @@ function initialiseDashboard() {
     safeInit("Analytics manager filters", function() {
         initAnalyticsManagerFilter();
         initPlayerRelationships();
+        initTransferRiverPassport();
+        initManagerWarRoom();
 if ((SEASON_TIMELINE_DATA||[]).length) renderSeasonTimeline(SEASON_TIMELINE_DATA.length-1);
     });
 
@@ -18346,6 +19111,15 @@ __CSS__
 
             <button
                 class="nav-button"
+                data-page="war-room"
+                onclick="showPage('war-room')"
+            >
+                War Room
+            </button>
+
+
+            <button
+                class="nav-button"
                 data-page="gameweeks"
                 onclick="showPage('gameweeks')"
             >
@@ -18494,6 +19268,15 @@ __CSS__
             </div>
 
             </div>
+        </section>
+
+
+        <!-- ==================================================
+             MANAGER WAR ROOM
+             ================================================== -->
+        <section class="page" id="page-war-room">
+            <div class="page-heading"><h1>Manager War Room</h1><p>Next-opponent preparation, projected formations, player risk and matchup-specific decisions.</p></div>
+            __MANAGER_WAR_ROOM_HTML__
         </section>
 
 
@@ -19117,11 +19900,16 @@ replacements = {
     "__ANALYTICS_PAGE__":
         analytics_page_html(),
     "__PLAYER_RELATIONSHIPS__": safe_js_json(player_relationships_json),
+    "__MANAGER_WAR_ROOM__": safe_js_json(manager_war_room_json),
+    "__TRANSFER_RIVER_PASSPORT__": safe_js_json(transfer_river_passport_json),
     "__HEALTH_OWNER_OPTIONS__": "".join(f'<option value="{escape_html(m)}">{escape_html(m)}</option>' for m in managers),
     "__HEALTH_CLUB_OPTIONS__": "".join(f'<option value="{escape_html(t)}">{escape_html(t)}</option>' for t in sorted(set(teams_lookup.values()))),
 
     "__STANDINGS_TABLE__":
         standings_table(),
+
+    "__MANAGER_WAR_ROOM_HTML__":
+        manager_war_room_html(),
 
     "__OVERVIEW_UPCOMING_FIXTURES__":
         overview_next_fixtures_html(),
@@ -19258,7 +20046,7 @@ replacements = {
         fun_stats_html,
 
     "__CSS__":
-        css + radar_health_css + relationship_css,
+        css + radar_health_css + relationship_css + river_passport_css + war_room_css,
 
     "__JAVASCRIPT__":
         javascript.replace("__HEALTH_ANALYTICS__", safe_js_json(json.dumps(health_analytics_data, ensure_ascii=False))).replace(
