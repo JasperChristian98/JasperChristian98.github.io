@@ -11503,6 +11503,305 @@ def _player_position_totals_chart_html(rows):
             '<div class="analytics-player-chart-empty" hidden>No eligible players for this team.</div></div>')
 
 
+# v47: Matrix-specific names in logical order: low X/high Y, high X/high Y,
+# low X/low Y, high X/low Y. Screen positions account for reversed axes.
+MATRIX_QUADRANT_LABELS = {'Form vs quality': ('Punching above weight',
+                     'Quality in form',
+                     'Underpowered and cold',
+                     'Quality not clicking'),
+ 'Squad quality vs season output': ('Outscoring expectations',
+                                    'Quality delivering',
+                                    'Modest on both fronts',
+                                    'Talent not translating'),
+ 'Recent form vs season pace': ('Recent resurgence',
+                                'Sustained scorers',
+                                'Still searching',
+                                'Cooling off'),
+ '5GW baseline vs 3GW form': ('Recent resurgence',
+                              'Strong across both',
+                              'Cold across both',
+                              'Recent dip'),
+ 'Quality vs momentum': ('Underdogs on the rise',
+                         'Quality gathering pace',
+                         'Weak and losing steam',
+                         'Quality losing momentum'),
+ 'Consistency vs recent form': ('Reliable scorers',
+                                'Volatile but firing',
+                                'Steady but quiet',
+                                'Erratic and cold'),
+ 'Recent form vs win rate': ('Wins despite cold form',
+                             'Form and results',
+                             'Neither clicking',
+                             'Form without the wins'),
+ 'Draft pedigree vs current quality': ('Pedigree delivers',
+                                       'Underdogs delivering',
+                                       'High picks underperform',
+                                       'Long-shot squad'),
+ 'Draft pedigree vs recent form': ('Top picks firing',
+                                   'Underdogs firing',
+                                   'Pedigree in a slump',
+                                   'Little pedigree or form'),
+ 'Elite talent vs squad depth': ('Depth without stars',
+                                 'Stars and support',
+                                 'Thin across the board',
+                                 'Top-heavy talent'),
+ 'Depth vs projected XI': ('Strong XI, thin bench',
+                           'Deep and dangerous',
+                           'Thin squad, weak XI',
+                           'Depth beyond the XI'),
+ 'Depth vs star reliance': ('Three players carry',
+                            'Deep but star-led',
+                            'Shallow but balanced',
+                            'Depth across the squad'),
+ 'Star reliance vs consistency': ('Shared load, erratic',
+                                  'Star-driven swings',
+                                  'Balanced and steady',
+                                  'Stars deliver steadily'),
+ 'Club diversity vs fragility': ('Stacked and fragile',
+                                 'Spread but fragile',
+                                 'Stacked yet robust',
+                                 'Spread and resilient'),
+ 'Club concentration vs volatility': ('Diverse but erratic',
+                                      'Club stack, big swings',
+                                      'Spread and stable',
+                                      'Club stack, stable'),
+ 'Original draft retention vs quality': ('Successful rebuild',
+                                         'Original core firing',
+                                         'Rebuild needs work',
+                                         'Loyal but underpowered'),
+ 'Defensive spine': ('Defenders lead',
+                     'Complete defensive unit',
+                     'Defensive weak spot',
+                     'Keepers carry defence'),
+ 'Attacking balance': ('Strikers lead',
+                       'Full attacking force',
+                       'Attack needs help',
+                       'Midfield carries attack'),
+ 'Elite percentile vs star reliance': ('Reliance without elite',
+                                       'Elite stars carry load',
+                                       'Few stars, shared load',
+                                       'Elite talent shared'),
+ 'Transfer activity vs ROI': ('Selective, strong return',
+                              'Busy and productive',
+                              'Quiet, modest return',
+                              'Busy, modest return'),
+ 'Market ROI vs recent momentum': ('Momentum beyond moves',
+                                   'Strong ROI and momentum',
+                                   'Both metrics subdued',
+                                   'ROI without momentum'),
+ 'Transfer activity vs scoring': ('Set-and-forget scorers',
+                                  'Active and scoring',
+                                  'Quiet and low scoring',
+                                  'Busy, little scoring'),
+ 'Draft loyalty vs trading': ('Full squad overhaul',
+                              'Loyal core, active market',
+                              'Rebuilt then settled',
+                              'Draft-day loyalists'),
+ 'Selection efficiency vs scoring': ('Scoring despite choices',
+                                     'Sharp and productive',
+                                     'Poor choices, low output',
+                                     'Good choices, low output'),
+ 'Bench wastage vs selection': ('Efficient and tidy',
+                                'Good calls, strong bench',
+                                'Low waste, poor picks',
+                                'Bench points squandered'),
+ 'Bench wastage vs win rate': ('Lean bench, many wins',
+                               'Winning despite waste',
+                               'Low waste, few wins',
+                               'Bench waste, few wins'),
+ 'Dream-team picks vs win rate': ('Winning without stars',
+                                  'Standouts and wins',
+                                  'Few standouts or wins',
+                                  'Standouts, little reward'),
+ 'Market ROI vs win rate': ('Winning without ROI',
+                            'Trade returns and wins',
+                            'Neither metric strong',
+                            'Good ROI, few wins'),
+ 'Squad quality vs H2H return': ('Results exceed pedigree',
+                                 'Quality rewarded',
+                                 'Weak squad, low return',
+                                 'Quality without results'),
+ 'Expected vs actual league points': ('Surprise points haul',
+                                      'High expected and actual',
+                                      'Modest on both counts',
+                                      'Expected more points'),
+ 'Season scoring vs league return': ('Low scoring, strong H2H',
+                                     'Goals and table points',
+                                     'Low scoring, low return',
+                                     'Scorers unrewarded'),
+ 'Scoring vs fixture luck': ('Favourable draw, few pts',
+                             'Scoring and good fortune',
+                             'Low output, tough luck',
+                             'Scoring but unlucky'),
+ 'Points conceded vs H2H return': ('Kind draw, strong return',
+                                   'Thriving in hard fixtures',
+                                   'Kind draw, few wins',
+                                   'Tough draw, few wins'),
+ 'Volatility vs luck': ('Steady, favourable swing',
+                        'Wild scores, good fortune',
+                        'Steady, tough luck',
+                        'Erratic and unlucky'),
+ 'Opponent strength vs win rate': ('Kind draw, many wins',
+                                   'Winning tough fixtures',
+                                   'Kind draw, few wins',
+                                   'Tough draw, few wins'),
+ 'Current injury risk vs squad quality': ('Strong with low risk',
+                                          'Powerhouse under threat',
+                                          'Healthy but underpowered',
+                                          'Weak and injury-exposed'),
+ 'Unavailable players vs projected loss': ('Few out, big impact',
+                                           'Absences taking a toll',
+                                           'Few out, little impact',
+                                           'Many out, depth holding'),
+ 'Injury count vs recent form': ('Healthy and in form',
+                                 'Form despite injuries',
+                                 'Few injuries, cold form',
+                                 'Injury-hit and cold'),
+ 'Squad fragility vs injury exposure': ('Robust but exposed',
+                                        'Brittle and exposed',
+                                        'Robust and low risk',
+                                        'Brittle but available'),
+ 'Upcoming fixtures vs recent form': ('In form, kind run',
+                                      'In form, tough run',
+                                      'Cold but kind fixtures',
+                                      'Cold with a hard run'),
+ 'Upcoming fixtures vs win rate': ('Winning, kind run',
+                                   'Winners face tough run',
+                                   'Few wins, kind run',
+                                   'Few wins, tough run'),
+ 'Quality vs resilience': ('Resilient but modest',
+                           'Strong and resilient',
+                           'Weak and brittle',
+                           'Strong but brittle'),
+ 'Club concentration vs injuries': ('Spread and injury-hit',
+                                    'Club stack, injury-hit',
+                                    'Spread and available',
+                                    'Club stack, healthy')}
+
+# ---------------------------- Matrix Lab ----------------------------
+def _matrix_chart_html(title, x_values, y_values, *, group, x_label, y_label,
+                       description='', quadrants=None, reverse_x=False,
+                       reverse_y=False, require_gws=False):
+    """Manager-coloured, shared-filter-compatible quadrant scatter.
+
+    Crosshair is fixed to whole-league medians, even when the user filters to
+    one manager; this makes comparisons meaningful across filter changes.
+    Unknown/missing values are skipped rather than silently plotting at zero.
+    """
+    if require_gws and not finished_gws:
+        return (f'<div class="card analytics-chart-card matrix-card" data-matrix-group="{escape_html(group)}">'
+                f'<h2>{escape_html(title)}</h2><div class="notice">Waiting for completed gameweeks.</div></div>')
+    clean=[]
+    for m in current_standings:
+        try:
+            rawx=x_values.get(m); rawy=y_values.get(m)
+            if rawx is None or rawy is None: continue
+            x=float(rawx); y=float(rawy)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(x) and math.isfinite(y): clean.append((m,x,y))
+    if len(clean)<2:
+        return (f'<div class="card analytics-chart-card matrix-card" data-matrix-group="{escape_html(group)}">'
+                f'<h2>{escape_html(title)}</h2><div class="notice">Not enough comparable teams yet.</div></div>')
+    xs=[r[1] for r in clean]; ys=[r[2] for r in clean]
+    med_x=statistics.median(xs); med_y=statistics.median(ys)
+    minx,maxx=min(xs),max(xs); miny,maxy=min(ys),max(ys)
+    dx=max(maxx-minx, 1.0 if maxx==minx else 0.01)
+    dy=max(maxy-miny, 1.0 if maxy==miny else 0.01)
+    xmin,xmax=minx-0.10*dx,maxx+0.10*dx
+    ymin,ymax=miny-0.13*dy,maxy+0.13*dy
+    W,H,PL,PR,PT,PB=760,370,65,22,28,59
+    pw,ph=W-PL-PR,H-PT-PB
+    def mapx(v):
+        z=(v-xmin)/(xmax-xmin)
+        return PL+pw*(1-z if reverse_x else z)
+    def mapy(v):
+        z=(v-ymin)/(ymax-ymin)
+        return PT+ph*(z if reverse_y else 1-z)
+    mx,my=mapx(med_x),mapy(med_y)
+    grid='';ticks=''
+    def fmt(v):
+        return f'{v:.0f}' if abs(v)>=20 else f'{v:.1f}'
+    for i in range(5):
+        px=PL+pw*i/4; py=PT+ph*i/4
+        valx=(xmax-(xmax-xmin)*i/4) if reverse_x else (xmin+(xmax-xmin)*i/4)
+        valy=(ymin+(ymax-ymin)*i/4) if reverse_y else (ymax-(ymax-ymin)*i/4)
+        grid += (f'<line class="matrix-gridline" x1="{px:.1f}" x2="{px:.1f}" y1="{PT}" y2="{PT+ph}"/>'
+                 f'<line class="matrix-gridline" x1="{PL}" x2="{PL+pw}" y1="{py:.1f}" y2="{py:.1f}"/>')
+        ticks += (f'<text class="matrix-tick" x="{px:.1f}" y="{H-36}" text-anchor="middle">{fmt(valx)}</text>'
+                  f'<text class="matrix-tick" x="{PL-8}" y="{py+3:.1f}" text-anchor="end">{fmt(valy)}</text>')
+    # Logical quadrants become visible names AND a compact legend. For very
+    # narrow quadrants the legend keeps the descriptor accessible even when
+    # there isn't enough room for readable text inside the plot.
+    quadrants=quadrants or MATRIX_QUADRANT_LABELS.get(title)
+    if quadrants is None:
+        quadrants=(f'Lower {x_label}, higher {y_label}',
+                   f'Higher {x_label} and {y_label}',
+                   f'Lower {x_label} and {y_label}',
+                   f'Higher {x_label}, lower {y_label}')
+    assert len(quadrants)==4, (title, quadrants)
+    qlabels=''; qlegend=''
+    for low_x,high_y,label in [(True,True,quadrants[0]),(False,True,quadrants[1]),
+                               (True,False,quadrants[2]),(False,False,quadrants[3])]:
+        axis_left=(low_x != reverse_x)
+        axis_top=(high_y != reverse_y)
+        position=('left' if axis_left else 'right', 'top' if axis_top else 'bottom')
+        arrows={('left','top'):'↖',('right','top'):'↗',
+                ('left','bottom'):'↙',('right','bottom'):'↘'}
+        arrow=arrows[position]
+        x0,x1=(PL,mx) if axis_left else (mx,PL+pw)
+        y0,y1=(PT,my) if axis_top else (my,PT+ph)
+        explanation=(f'{x_label}: {"below" if low_x else "above"} league median; '
+                     f'{y_label}: {"above" if high_y else "below"} league median.')
+        qlegend += (f'<span class="matrix-quad-key" title="{escape_html(explanation)}">'
+                    f'<b aria-hidden="true">{arrow}</b> {escape_html(label)}</span>')
+        if x1-x0<115 or y1-y0<35: continue
+        tx=(x0+x1)/2
+        max_chars=max(13,int((x1-x0-16)/5.8))
+        words=label.split()
+        pieces=[]
+        if len(label)>max_chars and len(words)>1:
+            # Two balanced lines: avoid a long one-line label overflowing a
+            # median boundary at narrower viewport dimensions.
+            best=min(range(1,len(words)),
+                     key=lambda i:abs(len(' '.join(words[:i]))-len(' '.join(words[i:]))))
+            pieces=[' '.join(words[:best]),' '.join(words[best:])]
+        else:
+            pieces=[label]
+        ty=y0+min(24,(y1-y0)*0.38)
+        if len(pieces)>1 and y1-y0<49: continue
+        if len(pieces)==1:
+            text_lines=escape_html(label)
+        else:
+            text_lines=''.join(f'<tspan x="{tx:.1f}" dy="{0 if i==0 else 12}">{escape_html(piece)}</tspan>'
+                               for i,piece in enumerate(pieces))
+        qlabels += (f'<text class="matrix-quadrant-label" x="{tx:.1f}" y="{ty:.1f}" '
+                    f'text-anchor="middle" aria-label="{escape_html(label)}">{text_lines}</text>')
+    dots=''
+    for m,x,y in clean:
+        px,py=mapx(x),mapy(y)
+        hover=escape_html(f'{m} | {x_label}: {x:.2f} | {y_label}: {y:.2f}')
+        dots += (f'<g class="analytics-manager-mark matrix-manager-point" data-analytics-manager="{escape_html(m)}" '
+                 f'tabindex="0" role="img" aria-label="{hover}">'
+                 f'<circle class="matrix-dot" cx="{px:.1f}" cy="{py:.1f}" r="7" fill="{manager_color(m)}" '
+                 f'stroke="#0f172a" stroke-width="1.8"><title>{hover}</title></circle>'
+                 f'<text class="matrix-dot-label" x="{px+10:.1f}" y="{py+4:.1f}">{escape_html(m[:22])}</text></g>')
+    axes=(f'<text class="matrix-axis-label" x="{PL+pw/2:.1f}" y="{H-8}" text-anchor="middle">{escape_html(x_label)}</text>'
+          f'<text class="matrix-axis-label" transform="translate(15 {PT+ph/2:.1f}) rotate(-90)" text-anchor="middle">{escape_html(y_label)}</text>')
+    desc=(f'<p class="card-description">{escape_html(description)}</p>' if description else '')
+    return (f'<div class="card analytics-chart-card matrix-card" data-matrix-group="{escape_html(group)}">'
+            f'<div class="matrix-card-top"><div><span class="matrix-category">{escape_html(group)}</span><h2>{escape_html(title)}</h2></div>'
+            f'<span class="matrix-visible-count">{len(clean)} / {len(clean)} teams</span></div>{desc}'
+            f'<div class="matrix-plot-wrap"><svg class="matrix-svg" viewBox="0 0 {W} {H}" role="group" aria-label="{escape_html(title)}">'
+            f'{grid}<line class="matrix-median" x1="{mx:.1f}" x2="{mx:.1f}" y1="{PT}" y2="{PT+ph}"/>'
+            f'<line class="matrix-median" x1="{PL}" x2="{PL+pw}" y1="{my:.1f}" y2="{my:.1f}"/>'
+            f'{qlabels}{ticks}{dots}{axes}</svg></div>'
+            f'<div class="matrix-quadrant-key" aria-label="Quadrant descriptions">{qlegend}</div>'
+            f'<div class="matrix-meta"><span>League medians: {escape_html(x_label)} {fmt(med_x)} · '
+            f'{escape_html(y_label)} {fmt(med_y)}</span><span>Hover or focus a coloured dot</span></div>'
+            '<div class="matrix-empty" hidden>Select a fantasy manager to show teams here.</div></div>')
+
+
 def _analytics_observations():
     if not managers: return []
     observations=[]
@@ -12120,6 +12419,156 @@ def analytics_page_html():
         extra_obs.append(('Positional elite', f"{_elite} have the strongest top-end positional profile: their best player at GK, DEF, MID and FWD averages the {positional_elite_score[_elite]:.0f}th percentile across McDraft."))
         extra_obs.append(('Positional depth', f"{_depth} lead the league for average current-squad production across the four positions ({positional_depth_score[_depth]:.1f} points per player on the positional-average measure)."))
         extra_obs.append(('Positional weak spot', f"{_weak} currently have the lowest average best-player positional percentile ({positional_elite_score[_weak]:.0f}th), suggesting fewer elite anchors across the four positions."))
+    # Matrix Lab shares *all* manager metrics with existing Analytics, and uses
+    # the same manager chips rather than inventing a separate filter.
+    matrix_recent5={m:_manager_last_n_avg(m,5) for m in managers}
+    matrix_momentum={m:last3.get(m,0)-avg_score.get(m,0) for m in managers}
+    matrix_ppg={m:(float(league_points.get(m,0) or 0)/max(1,int(matches_played.get(m,0) or 0)))
+                for m in managers}
+    matrix_conceded={m:(float(points_against.get(m,0) or 0)/max(1,int(matches_played.get(m,0) or 0)))
+                     for m in managers}
+    matrix_injury_risk={m:0.0 for m in managers}
+    matrix_injuries={m:0 for m in managers}
+    matrix_absent={m:0 for m in managers}
+    for _row in injury_list_rows:
+        try: _pid=int(_row.get('id'))
+        except (TypeError, ValueError): continue
+        _owner=_analytics_owner_by_id.get(_pid)
+        if _owner not in matrix_injury_risk: continue
+        _status=str(_row.get('status') or 'a')
+        matrix_injury_risk[_owner] += max(0.0,float(_row.get('points_at_risk') or 0))
+        matrix_injuries[_owner] += int(_status=='i')
+        matrix_absent[_owner] += int(_status in ('i','s','u','n'))
+    _risk_inverse={m:max(0.0,100.0-squad_fragility_score.get(m,0)) for m in managers}
+    _ppg_note='League points per completed McDraft fixture, not total points (avoids games-played bias).'
+    _matrix_cards=[]
+    def matrix(group,title,x,y,xlab,ylab,description='',quadrants=None,**kwargs):
+        # Every existing matrix has its own four descriptive quadrant names;
+        # fail visibly if a new matrix is added without descriptors.
+        labels=MATRIX_QUADRANT_LABELS[title]
+        _matrix_cards.append(_matrix_chart_html(title,x,y,group=group,x_label=xlab,y_label=ylab,
+                                                description=description,quadrants=labels,**kwargs))
+    q=('Underpowered / firing','Strong and firing','Underpowered / struggling','Strong on paper / cold')
+    matrix('Form & Quality','Form vs quality',squad_strength,last3,'Projected managed XI','Last 3 GW avg',
+           'The headline matrix: current fixture-aware XI projection against recent completed-gameweek scoring. Medians use every manager.',q,require_gws=True)
+    matrix('Form & Quality','Squad quality vs season output',squad_strength,avg_score,'Projected managed XI','Season points / GW',
+           'Who has converted their current squad projection into fantasy points?',require_gws=True)
+    matrix('Form & Quality','Recent form vs season pace',avg_score,last3,'Season points / GW','Last 3 GW avg',
+           'Upper-left = recent improvement from a modest season baseline.',
+           ('Recent surge','Sustained scorers','Cold season / still cold','High season pace / cooling'),require_gws=True)
+    matrix('Form & Quality','5GW baseline vs 3GW form',matrix_recent5,last3,'Last 5 GW avg','Last 3 GW avg',
+           'The two windows overlap. Use as a visual form comparison, not independent signals.',require_gws=True)
+    matrix('Form & Quality','Quality vs momentum',squad_strength,matrix_momentum,'Projected managed XI','3GW minus season avg',
+           'Positive Y means recent scoring is above the manager’s season average.',require_gws=True)
+    matrix('Form & Quality','Consistency vs recent form',volatility,last3,'Scoring volatility','Last 3 GW avg',
+           'Low X means lower gameweek-to-gameweek scoring variability.',require_gws=True)
+    matrix('Form & Quality','Recent form vs win rate',last3,win_pct,'Last 3 GW avg','H2H win rate (%)',
+           'Compares latest scoring form with cumulative head-to-head results.',require_gws=True)
+    matrix('Form & Quality','Draft pedigree vs current quality',draft_total,squad_strength,'Current squad draft-rank total','Projected managed XI',
+           'Lower draft-rank totals mean earlier combined McDraft/FPL picks; the X-axis runs from high rank to low rank.',
+           reverse_x=True)
+    matrix('Form & Quality','Draft pedigree vs recent form',draft_total,last3,'Current squad draft-rank total','Last 3 GW avg',
+           'Original pick pedigree of the current squad versus recent form; high rank on the left, strong pedigree on the right.',
+           reverse_x=True,require_gws=True)
+
+    matrix('Squad Construction','Elite talent vs squad depth',positional_elite_score,positional_depth_score,
+           'Best-player percentile (%)','Cross-position depth',
+           'Top-end talent at each position versus how much the whole squad contributes.')
+    matrix('Squad Construction','Depth vs projected XI',positional_depth_score,squad_strength,'Average positional points','Projected managed XI')
+    matrix('Squad Construction','Depth vs star reliance',positional_depth_score,top3_reliance_overall,
+           'Average positional points','Top-3 scoring share (%)',
+           'Measures whether deep squads also depend heavily on weekly star performances.',require_gws=True)
+    matrix('Squad Construction','Star reliance vs consistency',top3_reliance_overall,volatility,
+           'Top-3 scoring share (%)','Score volatility',
+           'Does relying on a handful of players correspond to more volatile weekly totals?',require_gws=True)
+    matrix('Squad Construction','Club diversity vs fragility',club_div,squad_fragility_score,
+           'Premier League clubs represented','Modelled XI fragility (%)',
+           'Fragility is loss of projected XI output when one, two or three stars are replaced.')
+    matrix('Squad Construction','Club concentration vs volatility',club_conc,volatility,
+           'Largest same-club group','Score volatility',require_gws=True)
+    matrix('Squad Construction','Original draft retention vs quality',retained,squad_strength,
+           'Original picks still owned','Projected managed XI')
+    matrix('Squad Construction','Defensive spine',positional_avg_points['GKP'],positional_avg_points['DEF'],
+           'Average GK points','Average DEF points','Current roster, not just the players selected in recent XIs.')
+    matrix('Squad Construction','Attacking balance',positional_avg_points['MID'],positional_avg_points['FWD'],
+           'Average MID points','Average FWD points')
+    matrix('Squad Construction','Elite percentile vs star reliance',positional_elite_score,top3_reliance_overall,
+           'Best-player percentile (%)','Top-3 scoring share (%)',require_gws=True)
+
+    matrix('Transfers & Decisions','Transfer activity vs ROI',moves,roi_map,'Completed roster moves','Net transfer ROI',
+           'Net ROI uses the dashboard’s existing gained-minus-given-away metric, not a causal measure.')
+    matrix('Transfers & Decisions','Market ROI vs recent momentum',roi_map,matrix_momentum,'Net transfer ROI','3GW minus season avg',
+           'Whether strong past acquisitions coincide with recently improving team scores.',require_gws=True)
+    matrix('Transfers & Decisions','Transfer activity vs scoring',moves,avg_score,'Completed roster moves','Season points / GW',require_gws=True)
+    matrix('Transfers & Decisions','Draft loyalty vs trading',retained,moves,'Original picks still owned','Completed roster moves')
+    matrix('Transfers & Decisions','Selection efficiency vs scoring',selection,avg_score,
+           'Selection efficiency (%)','Season points / GW',require_gws=True)
+    matrix('Transfers & Decisions','Bench wastage vs selection',bench_avg,selection,
+           'Bench points / GW','Selection efficiency (%)',require_gws=True)
+    matrix('Transfers & Decisions','Bench wastage vs win rate',bench_avg,win_pct,
+           'Bench points / GW','H2H win rate (%)',require_gws=True)
+    matrix('Transfers & Decisions','Dream-team picks vs win rate',dream_avg,win_pct,
+           'Dream-team starters / GW','H2H win rate (%)',require_gws=True)
+    matrix('Transfers & Decisions','Market ROI vs win rate',roi_map,win_pct,
+           'Net transfer ROI','H2H win rate (%)',require_gws=True)
+
+    matrix('Results & Luck','Squad quality vs H2H return',squad_strength,matrix_ppg,
+           'Projected managed XI','League points / match',_ppg_note,require_gws=True)
+    matrix('Results & Luck','Expected vs actual league points',exp_lp,actual_lp,
+           'Expected league points','Actual league points',require_gws=True)
+    matrix('Results & Luck','Season scoring vs league return',avg_score,matrix_ppg,
+           'Season points / GW','League points / match',_ppg_note,require_gws=True)
+    matrix('Results & Luck','Scoring vs fixture luck',points_for,luck_index,
+           'Season fantasy points','League-point luck index',
+           'The existing Luck Index is actual minus expected head-to-head league points.',require_gws=True)
+    matrix('Results & Luck','Points conceded vs H2H return',matrix_conceded,matrix_ppg,
+           'Opponent points / match','League points / match',_ppg_note,require_gws=True)
+    matrix('Results & Luck','Volatility vs luck',volatility,luck_index,
+           'Scoring volatility','League-point luck index',require_gws=True)
+    matrix('Results & Luck','Opponent strength vs win rate',opp,win_pct,
+           'Opponent avg fantasy score','H2H win rate (%)',require_gws=True)
+
+    matrix('Availability & Fixtures','Current injury risk vs squad quality',matrix_injury_risk,squad_strength,
+           'Next-GW projected points at risk','Projected managed XI',
+           'Availability risk is modelled for next GW, not verified historical injury points.')
+    matrix('Availability & Fixtures','Unavailable players vs projected loss',matrix_absent,matrix_injury_risk,
+           'Unavailable owned players','Next-GW points at risk',
+           'A status flag and a modelled risk are different measures; a bench player may add little points risk.')
+    matrix('Availability & Fixtures','Injury count vs recent form',matrix_injuries,last3,
+           'Currently injured players','Last 3 GW avg',
+           'Current injuries need not have affected all three historical weeks.',require_gws=True)
+    matrix('Availability & Fixtures','Squad fragility vs injury exposure',squad_fragility_score,matrix_injury_risk,
+           'Modelled XI fragility (%)','Next-GW points at risk')
+    matrix('Availability & Fixtures','Upcoming fixtures vs recent form',schedule,last3,
+           'Next 5 GW difficulty /5','Last 3 GW avg',
+           'Left means a kinder forthcoming run; high Y means better recent results.',require_gws=True)
+    matrix('Availability & Fixtures','Upcoming fixtures vs win rate',schedule,win_pct,
+           'Next 5 GW difficulty /5','H2H win rate (%)',require_gws=True)
+    matrix('Availability & Fixtures','Quality vs resilience',squad_strength,_risk_inverse,
+           'Projected managed XI','Modelled resilience /100',
+           'Resilience = 100 minus the existing Squad Fragility Index; a scenario metric, not medical certainty.')
+    matrix('Availability & Fixtures','Club concentration vs injuries',club_conc,matrix_injuries,
+           'Largest same-club group','Currently injured players')
+    matrix_groups=('Form & Quality','Squad Construction','Transfers & Decisions',
+                   'Results & Luck','Availability & Fixtures')
+    matrix_group_counts={g:sum(1 for c in _matrix_cards if f'data-matrix-group="{escape_html(g)}"' in c) for g in matrix_groups}
+    matrix_controls=''.join(
+        f'<button type="button" class="matrix-group-chip{" active" if i==0 else ""}" '
+        f'data-matrix-group-button="{escape_html(group)}" onclick="setMatrixGroup({escape_html(json.dumps(group))})">'
+        f'{escape_html(group)} <span>{matrix_group_counts[group]}</span></button>'
+        for i,group in enumerate(matrix_groups)
+    )
+    matrix_controls += (f'<button type="button" class="matrix-group-chip" data-matrix-group-button="All" '
+                        f'onclick="setMatrixGroup(\'All\')">All <span>{len(_matrix_cards)}</span></button>')
+    matrix_html=(f'<div class="card matrix-intro"><div><h2>Matrix Lab · {len(_matrix_cards)} comparisons</h2>'
+                 '<p class="card-description">Every dot is a McDraft team and always keeps its team colour. '
+                 'Dashed lines show whole-league medians. The named quadrants compare teams to those medians and remain fixed when you change the shared manager filter. '
+                 'These are descriptive comparisons, not causal findings.</p></div>'
+                 '<span id="matrix-manager-summary" class="muted" aria-live="polite"></span></div>'
+                 f'<div class="matrix-group-controls" role="group" aria-label="Matrix categories">{matrix_controls}</div>'
+                 f'<div class="analytics-chart-grid matrix-grid">{"".join(_matrix_cards)}</div>')
+
+
     insight_rows = _analytics_observations() + extra_obs
     insights=''.join(f'<div class="analytics-insight"><span>{escape_html(k)}</span><strong>{escape_html(v)}</strong></div>' for k,v in insight_rows[:13])
     player_charts=[
@@ -12264,6 +12713,7 @@ def analytics_page_html():
     ]
     return f'''<div class="analytics-subtabs" role="tablist" aria-label="Analytics sections">
         <button class="analytics-subtab active" type="button" onclick="showAnalyticsSubtab('insights', this)">McDraft Insights <span>{len(insight_rows[:13])}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('matrices', this)">Matrix Lab <span>{len(_matrix_cards)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('player', this)">Player Analytics <span>{len(player_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('club', this)">Club Analytics <span>{len(club_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-strength', this)">Squad Strength <span>{len(squad_strength_charts)}</span></button>
@@ -12275,11 +12725,12 @@ def analytics_page_html():
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('league-stats', this)">League Stats</button>
     </div>
     <div class="card analytics-manager-filter-card">
-        <div class="analytics-manager-filter-head"><div><h2>Manager filter</h2><p class="card-description">Select multiple managers to filter every manager-based chart, including players currently owned in Player Analytics. Use Top 5, All or None for quick selections. Free agents affect Player Analytics only; Premier League club charts remain league-wide.</p></div><span id="analytics-manager-count" class="muted"></span></div>
+        <div class="analytics-manager-filter-head"><div><h2>Manager filter</h2><p class="card-description">Select multiple managers to filter every manager-based chart, including the Matrix Lab and currently-owned players in Player Analytics. Use Top 5, All or None for quick selections. Free agents affect Player Analytics only; Premier League club charts remain league-wide.</p></div><span id="analytics-manager-count" class="muted"></span></div>
         <div id="analytics-manager-chips" class="chart-chip-row analytics-manager-chip-row"></div>
         <label class="analytics-average-toggle"><input id="analytics-average-toggle" type="checkbox" onchange="toggleAnalyticsLeagueAverage(this.checked)"> Compare with league average</label>
     </div>
     <div class="analytics-subpage active" id="analytics-sub-insights"><div class="card analytics-hero"><h2>McDraft Insights</h2><p class="card-description">Generated from the latest captured league, squad, fixture and transfer data.</p><div class="analytics-insight-grid">{insights}</div></div></div>
+    <div class="analytics-subpage" id="analytics-sub-matrices">{matrix_html}</div>
     <div class="analytics-subpage" id="analytics-sub-player">
         <div class="analytics-player-summary"><p class="card-description">Use the shared Manager filter above to choose one or more current fantasy owners. Player dots and bars retain each team’s colour; free agents are grey. League-wide positional-scarcity comparisons remain unchanged.</p><span id="analytics-player-count" class="muted" aria-live="polite"></span></div>
         <div class="analytics-chart-grid">{''.join(player_charts)}</div>
@@ -14528,6 +14979,46 @@ tbody tr:hover {
 
 }
 
+
+/* v46 — Matrix Lab: responsive quadrants, existing owner palette, shared filter. */
+.matrix-intro{margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.matrix-intro h2{margin:0 0 5px;font-size:18px}
+.matrix-intro .card-description{max-width:820px;margin:0}
+.matrix-group-controls{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 17px}
+.matrix-group-chip{border:1px solid var(--border);background:#131f32;color:#b7c7de;border-radius:99px;padding:9px 12px;cursor:pointer;font-size:11px;font-weight:850;transition:border-color .12s,background .12s}
+.matrix-group-chip.active{color:#fff;background:#20344c;border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.matrix-group-chip span{color:var(--accent);margin-left:5px;font-weight:800}
+.matrix-card{min-width:0;display:flex;flex-direction:column;gap:9px}
+.matrix-card[hidden],.matrix-empty[hidden]{display:none!important}
+.matrix-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.matrix-card-top h2{font-size:15px;line-height:1.35;margin:5px 0 0}
+.matrix-category{color:var(--accent);font-size:9px;letter-spacing:.12em;font-weight:900;text-transform:uppercase}
+.matrix-visible-count{white-space:nowrap;color:var(--muted);font-size:10px;font-weight:800}
+.matrix-plot-wrap{width:100%;margin-top:auto}
+.matrix-svg{width:100%;height:auto;display:block;overflow:visible}
+.matrix-gridline{stroke:#334155;stroke-opacity:.6;stroke-width:.75}
+.matrix-median{stroke:#e2e8f0;stroke-dasharray:5 5;stroke-width:1;stroke-opacity:.62}
+.matrix-tick{fill:#94a3b8;font-size:11px}
+.matrix-axis-label{fill:#b8c5d6;font-size:12px;font-weight:800}
+.matrix-quadrant-label{fill:#94a3b8;font-size:10px;font-weight:850;opacity:.8;paint-order:stroke;stroke:#111827;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+
+/* v47 — readable, chart-specific quadrant key; positions remain correct on reverse-X axes. */
+.matrix-quadrant-label{font-size:10.5px;fill:#b0c5da;opacity:.92}
+.matrix-quadrant-key{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 10px;margin-top:0;padding:6px 9px;border:1px solid #293d52;background:#111f31;border-radius:9px}
+.matrix-quad-key{min-width:0;color:#cad8e9;font-size:10.5px;line-height:1.3;font-weight:650;display:flex;align-items:flex-start;gap:6px}
+.matrix-quad-key b{flex:0 0 auto;color:#79c5e6;font-size:13px;line-height:1.0}
+@media(max-width:460px){.matrix-quadrant-key{gap:7px 8px;padding:7px}.matrix-quad-key{font-size:10px}}
+
+.matrix-manager-point{cursor:crosshair;outline:none}
+.matrix-dot{transition:opacity .12s,r .12s;opacity:.88}
+.matrix-dot-label{display:none;fill:#f8fafc;font-size:12px;font-weight:850;paint-order:stroke;stroke:#0b1220;stroke-width:4px;stroke-linejoin:round;pointer-events:none}
+.matrix-manager-point:hover .matrix-dot,.matrix-manager-point:focus .matrix-dot{opacity:1;r:10;stroke:#fff;stroke-width:2.5px}
+.matrix-manager-point:hover .matrix-dot-label,.matrix-manager-point:focus .matrix-dot-label,.matrix-card.matrix-focus-labels .matrix-dot-label{display:block}
+.matrix-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--muted)}
+.matrix-empty{background:#152234;border:1px dashed var(--border);border-radius:10px;padding:12px;color:var(--muted);font-size:12px}
+@media(max-width:800px){.matrix-intro{align-items:flex-start;flex-direction:column}.matrix-grid{grid-template-columns:1fr}}
+@media(max-width:460px){.matrix-group-controls{gap:6px}.matrix-group-chip{padding:7px 9px}.matrix-meta{font-size:9px}}
+
 .analytics-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
 
 .transfer-subtabs { display:flex; gap:8px; margin:0 0 20px; overflow-x:auto; padding-bottom:3px; }
@@ -14990,6 +15481,7 @@ function initAnalyticsManagerFilter() {
     analyticsManagerState.includeFreeAgents = true;
     renderAnalyticsManagerChips();
     applyAnalyticsManagerFilter();
+    setMatrixGroup(matrixSelectedGroup);
 }
 
 function setAnalyticsManagerPreset(preset) {
@@ -15062,11 +15554,48 @@ function applyAnalyticsManagerFilter() {
         el.classList.toggle("analytics-manager-hidden", !analyticsManagerState.visible.has(manager));
     });
     applyPlayerAnalyticsFilter();
+    refreshMatrixManagerState();
 }
 
 function toggleAnalyticsLeagueAverage(enabled) {
     const page=document.getElementById('page-analytics');
     if(page) page.classList.toggle('show-league-average', !!enabled);
+}
+
+
+// v46 — category controls do not replace the existing shared manager chips.
+let matrixSelectedGroup='Form & Quality';
+function setMatrixGroup(group){
+    const page=document.getElementById('analytics-sub-matrices');
+    if(!page)return;
+    matrixSelectedGroup=group;
+    page.querySelectorAll('.matrix-group-chip').forEach(function(btn){
+        const active=btn.getAttribute('data-matrix-group-button')===group;
+        btn.classList.toggle('active',active);
+        btn.setAttribute('aria-pressed',String(active));
+    });
+    page.querySelectorAll('.matrix-card').forEach(function(card){
+        card.hidden=(group!=='All' && card.getAttribute('data-matrix-group')!==group);
+    });
+}
+function refreshMatrixManagerState(){
+    const page=document.getElementById('analytics-sub-matrices');
+    if(!page)return;
+    const selected=analyticsManagerState.visible;
+    page.querySelectorAll('.matrix-card').forEach(function(card){
+        let available=0, visible=0;
+        card.querySelectorAll('.matrix-manager-point').forEach(function(dot){
+            available++;
+            if(selected.has(dot.getAttribute('data-analytics-manager')))visible++;
+        });
+        const count=card.querySelector('.matrix-visible-count');
+        if(count)count.textContent=visible+' / '+available+' teams';
+        const empty=card.querySelector('.matrix-empty');
+        if(empty)empty.hidden=visible>0 || available===0;
+        card.classList.toggle('matrix-focus-labels',visible>0 && visible<=2);
+    });
+    const summary=document.getElementById('matrix-manager-summary');
+    if(summary)summary.textContent=selected.size+' of '+MANAGER_ORDER.length+' managers selected';
 }
 
 const SEASON_TIMELINE_DATA = __SEASON_TIMELINE_DATA__;
