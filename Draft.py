@@ -939,6 +939,29 @@ positions_lookup = {
     )
 }
 
+# Live FPL status, probability estimates and dated audit snapshots.
+# Retain the original player news verbatim: return-date prose is NOT treated
+# as a confirmed medical clearance date.
+_fpl_availability = {}
+for _pid, _meta in elements.items():
+    _fpl_availability[int(_pid)] = {
+        "status": str(_meta.get("status") or "a"),
+        "chance_next": _meta.get("chance_of_playing_next_round"),
+        "chance_this": _meta.get("chance_of_playing_this_round"),
+        "news": str(_meta.get("news") or "").strip(),
+        "news_updated": _meta.get("news_added") or None,
+    }
+_availability_snapshots = history.setdefault("fpl_availability_snapshots", {})
+_availability_stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+_availability_snapshots[_availability_stamp] = {
+    str(_pid): row for _pid, row in _fpl_availability.items()
+    if row["status"] != "a" or row["news"] or row["chance_next"] not in (None, 100)
+}
+# Cap storage: these snapshots are for retrospective forecast audits, not a
+# second unbounded player-history database.
+for _old_stamp in sorted(_availability_snapshots)[:-180]:
+    del _availability_snapshots[_old_stamp]
+
 
 # ============================================================
 # OFFICIAL FPL DRAFT RANK
@@ -4164,6 +4187,7 @@ def _my_team_history_for_manager(manager):
             "captain": captain,
             "starters": [
                 {
+                    "id": p.get("element_id"),
                     "name": p.get("web_name", "Unknown"),
                     "team": p.get("team", "—"),
                     "position": p.get("position", "—"),
@@ -4175,6 +4199,7 @@ def _my_team_history_for_manager(manager):
             ],
             "bench": [
                 {
+                    "id": p.get("element_id"),
                     "name": p.get("web_name", "Unknown"),
                     "team": p.get("team", "—"),
                     "position": p.get("position", "—"),
@@ -6624,7 +6649,42 @@ def _fixture_run_score(player_id, count=3):
     # Keep recommendation impact modest; this should break ties, not dominate talent.
     return sum(vals) / max(len(vals), 1)
 
-def _player_weekly_projection(player_id, position_baselines, league_player_mean, target_gw=None):
+def _availability_factor(player_id, target_gw=None):
+    """Conservative availability estimate, NOT a medical return-date forecast.
+
+    Official FPL probabilities apply to the next GW only. For later weeks,
+    gradually regress uncertain/injured/suspended players toward availability
+    rather than incorrectly holding today's 0% throughout the season.
+    """
+    row = _fpl_availability.get(int(player_id), {})
+    status = row.get("status", "a")
+    if target_gw is None:
+        target_gw = dashboard_target_gw
+    gap = max(0, int(target_gw or 0) - int(dashboard_target_gw or 0))
+    raw_chance = row.get("chance_this") if gap == 0 and dashboard_game_state == "live" else row.get("chance_next")
+    try:
+        chance = None if raw_chance is None else max(0.0, min(1.0, float(raw_chance) / 100.0))
+    except (TypeError, ValueError):
+        chance = None
+    if status == "a":
+        base = 1.0 if chance is None else chance
+    elif status == "d":
+        base = 0.65 if chance is None else chance
+    elif status in ("i", "s", "u"):
+        base = 0.05 if chance is None else chance
+    elif status == "n":
+        base = 0.0 if chance is None else chance
+    else:
+        base = 0.85 if chance is None else chance
+    if gap == 0 or status == "a":
+        return max(0.0, min(1.0, base))
+    # Not a claim about injury recovery or suspension length: explicit
+    # uncertainty in future GWs until we receive updated official data.
+    recovery = {"d": 0.25, "i": 0.17, "s": 0.29, "u": 0.12, "n": 0.05}.get(status, 0.2)
+    return max(0.0, min(1.0, base + (1.0 - base) * (1.0 - (1.0 - recovery) ** gap)))
+
+
+def _player_weekly_projection(player_id, position_baselines, league_player_mean, target_gw=None, apply_availability=True):
     history_points = player_form.get(player_id, {}) or {}
     season_scores = [float(history_points.get(gw, 0) or 0) for gw in finished_gws]
     recent_gws = finished_gws[-5:]
@@ -6692,6 +6752,10 @@ def _player_weekly_projection(player_id, position_baselines, league_player_mean,
     )
     if target_gw is not None:
         projection *= _player_fixture_multiplier(player_id, target_gw)
+    # Apply once at the common projection layer to avoid inconsistencies
+    # between the five-GW planner, trade value and season simulations.
+    if apply_availability:
+        projection *= _availability_factor(player_id, target_gw)
 
     return max(0.0, projection)
 
@@ -6776,7 +6840,10 @@ for _row in player_search_data:
     _club_strength=float(_pl_club_strength_score.get(int(_club_id),0.5) if _club_id else 0.5)
     _blended=float(_blended_draft_rank(_pid) or UNDRAFTED_PLAYER_RANK)
     _draft_quality=1.0-min(1.0,max(0.0,(_blended-1)/(UNDRAFTED_PLAYER_RANK-1)))
+    _availability=_fpl_availability.get(_pid, {})
     _row.update({
+        'availability':_availability,
+        'availability_next':round(_availability_factor(_pid, dashboard_target_gw), 3),
         'hot_cold_score':_heat['score'],'hot_cold_label':_heat['label'],
         'fixture_adjusted_recent':_heat['recent_adjusted'],'fixture_adjusted_season':_heat['season_adjusted'],
         'projected_season_points':round(_season_proj,1),'projected_remaining_points':round(_remaining_proj,1),
@@ -6805,10 +6872,98 @@ if _player_value_raw:
     _lo=min(_player_value_raw.values()); _hi=max(_player_value_raw.values()); _span=max(1e-9,_hi-_lo)
     for _row in player_search_data:
         _raw=_player_value_raw.get(int(_row.get('id',0) or 0),_lo)
-        _row['player_value']=round(25.0+75.0*((_raw-_lo)/_span),1)
+        _availability_discount = 0.80 + 0.20 * _availability_factor(int(_row.get('id',0) or 0), dashboard_target_gw)
+        _row['player_value']=round((25.0+75.0*((_raw-_lo)/_span)) * _availability_discount,1)
 
 # Rebuild now that projection/value/heat/history fixture context has been added.
 player_search_json=json.dumps(player_search_data,ensure_ascii=False)
+
+# Capture departed/removed identities before enriching medical analytics.
+# An absent bootstrap record is not in itself proof of a completed overseas transfer.
+_departed_by_id = {}
+for _gw_key, _snapshot in sorted(
+    (history.get('gameweeks', {}) or {}).items(), key=lambda item: int(item[0])
+):
+    for _squad in (_snapshot.get('teams', {}) or {}).values():
+        for _pick in (_squad.get('starters', []) or []) + (_squad.get('bench', []) or []):
+            try:
+                _old_id = int(_pick.get('element_id'))
+            except (ValueError, TypeError):
+                continue
+            if _old_id in elements:
+                continue
+            _departed_by_id[_old_id] = {
+                'id': _old_id,
+                'name': _pick.get('web_name') or f'Player {_old_id}',
+                'team': _pick.get('team') or 'Former PL club unknown',
+                'position': _pick.get('position') or '—',
+                'fantasy_team': _squad.get('manager') or 'Former owner unknown',
+                'last_seen_gw': int(_gw_key),
+            }
+_departed_player_rows = sorted(
+    _departed_by_id.values(),
+    key=lambda row: (row['team'], row['name'])
+)
+
+# Every flagged FPL player, including undrafted/unowned assets.
+injury_list_rows = []
+for _row in player_search_data:
+    _availability = _row.get('availability', {}) or {}
+    _status = _availability.get('status', 'a')
+    _chance = _availability.get('chance_next')
+    if _status == 'a' and not _availability.get('news') and _chance in (None, 100):
+        continue
+    _pid = int(_row.get('id') or 0)
+    _healthy_next = _player_weekly_projection(
+        _pid, _global_position_baselines, _global_league_player_mean,
+        target_gw=dashboard_target_gw, apply_availability=False
+    )
+    _actual_next = _healthy_next * _availability_factor(_pid, dashboard_target_gw)
+    injury_list_rows.append({
+        'points_at_risk': round(max(0.0, _healthy_next - _actual_next), 2),
+        'healthy_next_points': round(_healthy_next, 2),
+        'id':_row.get('id'), 'name':_row.get('name'),
+        'team':_row.get('team'), 'position':_row.get('position'),
+        'fantasy_team':_row.get('fantasy_team') or 'Free Agent',
+        'status':_status, 'news':_availability.get('news',''),
+        'news_updated':_availability.get('news_updated'),
+        'chance_next':_chance,
+        'availability_next':_row.get('availability_next',1),
+        'projected_remaining_points':_row.get('projected_remaining_points',0),
+        'next_fixtures':_player_next_fixture_run(_row.get('id'),3),
+    })
+# Newly flagged since the previous successful dashboard build; retain the
+# previous set across rebuilds and do not report all cases as new on first run.
+_prior_health = history.get('analytics_health_previous')
+_current_health = {str(r['id']): {'status':r['status'], 'news':r['news']}
+                   for r in injury_list_rows}
+new_health_events = []
+if isinstance(_prior_health, dict):
+    for _row in injury_list_rows:
+        _before = _prior_health.get(str(_row['id']))
+        if _before is None or _before.get('status') != _row['status'] or _before.get('news') != _row['news']:
+            new_health_events.append({**_row, 'change_type': 'New flag' if _before is None else 'Updated report'})
+history['analytics_health_previous'] = _current_health
+# Historical ID re-use is possible: only list deleted identities, not current
+# IDs with a different name, which require manual confirmation.
+_prior_removed = set(map(str, history.get('analytics_departures_previous', [])))
+new_departure_events = [r for r in _departed_player_rows if str(r['id']) not in _prior_removed] if 'analytics_departures_previous' in history else []
+history['analytics_departures_previous'] = [r['id'] for r in _departed_player_rows]
+health_analytics_data = {
+    'flagged': injury_list_rows,
+    'new': new_health_events,
+    'removed': _departed_player_rows,
+    'new_removed': new_departure_events,
+    'pl_clubs': sorted(set(teams_lookup.values())),
+    'fantasy_teams': list(managers),
+    'target_gw': dashboard_target_gw,
+    'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds')
+}
+injury_list_json = json.dumps(injury_list_rows, ensure_ascii=False)
+# Health change tracking must persist across scheduled dashboard runs.
+with open(HISTORY_FILE, 'w', encoding='utf-8') as _health_out:
+    json.dump(history, _health_out, indent=2, ensure_ascii=False)
+
 
 # Enrich player-facing datasets now that real PL fixture helpers are available.
 _player_model_by_id={int(r.get('id',0) or 0):r for r in player_search_data}
@@ -10320,6 +10475,9 @@ def _build_five_gw_planner():
                 'position':positions_lookup.get(meta.get('element_type'), ''),
                 'club':_pl_team_meta_by_id.get(int(meta.get('team') or 0), {}).get('short_name','—'),
                 'projection':project(pid,gw),
+                'availability':round(_availability_factor(pid,gw),2),
+                'status':_fpl_availability.get(pid,{}).get('status','a'),
+                'news':_fpl_availability.get(pid,{}).get('news',''),
                 'fixtures':[{'opponent':f.get('opponent','—'), 'home':bool(f.get('is_home')),
                              'difficulty':_fixture_difficulty_from_multiplier(f.get('multiplier',1))}
                             for f in components]}
@@ -10352,7 +10510,8 @@ def _build_five_gw_planner():
                           'starters':starters,'bench':bench,'by_position':dict(by_pos),
                           'blank_count':sum(1 for p in pool if not p['fixtures']),
                           'double_count':sum(1 for p in pool if len(p['fixtures'])>1),
-                          'bench_cover':round(sum(p['projection'] for p in bench[:4]),2)})
+                          'bench_cover':round(sum(p['projection'] for p in bench[:4]),2),
+                          'flagged_count':sum(1 for p in pool if p.get('status')!='a' or p.get('availability',1)<0.75)})
 
         # Weaknesses are derived from the planned five actual XIs, not from a
         # duplicate generic season-points metric. Only offer currently free players.
@@ -11411,6 +11570,7 @@ def analytics_page_html():
     ]
     return f'''<div class="analytics-subtabs" role="tablist" aria-label="Analytics sections">
         <button class="analytics-subtab active" type="button" onclick="showAnalyticsSubtab('insights', this)">McDraft Insights <span>{len(insight_rows[:13])}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('medical', this); healthAnalyticsRender()">Availability &amp; Departures</button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('player', this)">Player Analytics <span>{len(player_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('club', this)">Club Analytics <span>{len(club_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-strength', this)">Squad Strength <span>{len(squad_strength_charts)}</span></button>
@@ -11426,6 +11586,24 @@ def analytics_page_html():
         <label class="analytics-average-toggle"><input id="analytics-average-toggle" type="checkbox" onchange="toggleAnalyticsLeagueAverage(this.checked)"> Compare with league average</label>
     </div>
     <div class="analytics-subpage active" id="analytics-sub-insights"><div class="card analytics-hero"><h2>McDraft Insights</h2><p class="card-description">Generated from the latest captured league, squad, fixture and transfer data.</p><div class="analytics-insight-grid">{insights}</div></div></div>
+    <div class="analytics-subpage" id="analytics-sub-medical"><div class="card">
+      <h2>Availability &amp; departures · club vs fantasy team</h2>
+      <p class="card-description">Side-by-side Premier League club and McDraft fantasy-team analytics, sourced from official FPL status flags. Click any bar to inspect its players. Removals mean absent from the current FPL player pool; they do not prove a transfer out of the Premier League.</p>
+      <div class="health-metric-switch" role="group" aria-label="Availability metric">
+        <button type="button" class="health-metric-btn active" data-health-view="flags" aria-pressed="true" onclick="healthSetView('flags')">Current flags</button>
+        <button type="button" class="health-metric-btn" data-health-view="risk" aria-pressed="false" onclick="healthSetView('risk')">GW points at risk</button>
+        <button type="button" class="health-metric-btn" data-health-view="new" aria-pressed="false" onclick="healthSetView('new')">New / updated reports</button>
+        <button type="button" class="health-metric-btn" data-health-view="removed" aria-pressed="false" onclick="healthSetView('removed')">Departures / removals</button>
+      </div>
+      <div class="player-filter-grid health-filters">
+        <select id="health-club-filter" class="player-filter" onchange="healthFiltersChanged()" aria-label="Filter Premier League club"><option value="">All Premier League clubs</option>__HEALTH_CLUB_OPTIONS__</select>
+        <select id="health-owner" class="player-filter" onchange="healthFiltersChanged()" aria-label="Filter McDraft fantasy team"><option value="">All fantasy teams</option><option value="Free Agent">Free agents</option>__HEALTH_OWNER_OPTIONS__</select>
+        <select id="health-status-filter" class="player-filter" onchange="healthFiltersChanged()" aria-label="Filter injury or suspension status"><option value="">All official statuses</option><option value="i">Injured</option><option value="s">Suspended</option><option value="d">Doubtful</option><option value="u">Unavailable</option><option value="n">Not eligible</option><option value="a">Available with news</option></select>
+        <input id="health-query" class="player-search-box" type="search" placeholder="Search player, PL club or fantasy team…" aria-label="Search availability data" oninput="healthFiltersChanged()">
+      </div>
+      <label class="health-free-agent-toggle"><input type="checkbox" id="health-free-agent-chart" onchange="healthFiltersChanged()"> Include free agents in fantasy-team chart</label>
+      <div id="analytics-health-root" aria-live="polite"></div>
+    </div></div>
     <div class="analytics-subpage" id="analytics-sub-player"><div class="analytics-chart-grid">{''.join(player_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-club"><div class="analytics-chart-grid">{''.join(club_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-squad-strength"><div class="analytics-chart-grid">{''.join(squad_strength_charts)}</div></div>
@@ -13678,6 +13856,14 @@ tbody tr:hover {
 .transfer-subpanel { display:none; } .transfer-subpanel.active { display:block; }
 
 
+/* FPL injury watch: responsive cards in Players and My Team */
+.injury-list-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:12px;margin-top:12px}
+.injury-medical-card{padding:15px;border:1px solid var(--border,#53606b);border-radius:13px;background:var(--card-bg,rgba(120,130,145,.065));min-width:0}
+.injury-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.injury-head strong{display:block;font-size:1.05rem}.injury-head small{display:block;opacity:.7;margin-top:4px}.injury-medical-card p{margin:12px 0;font-size:.92rem;line-height:1.5}
+.injury-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:.83rem}
+.planner-availability-warning{color:#f1ae59;font-weight:750;font-size:.73rem}
+
 /* My Team: Five-GW Squad Planner */
 .planner-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0 22px}
 .planner-stat{background:var(--surface-2,#152033);border:1px solid var(--border-light);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:5px}
@@ -13843,6 +14029,7 @@ function changeMyTeam() {
     }
 
     renderMyTeamSquad();
+    renderMyTeamRadar();
     renderFiveGWPlanner();
     renderMyTeamStatsCharts();
     renderMyTeamPositionNeeds();
@@ -13892,6 +14079,7 @@ function buildDashboardSearchIndex(){
     (MANAGER_ORDER||[]).forEach(m=>results.push({type:'manager',label:m,value:m,meta:'Manager'}));
     Object.values(CLUB_EXPLORER_DATA||{}).forEach(c=>results.push({type:'club',label:c.name,value:String(c.id),meta:'Premier League club'}));
     (playerSearchData||[]).forEach(p=>results.push({type:'player',label:p.name,value:String(p.id),meta:(p.position||'')+' · '+(p.team||'')}));
+    results.push({type:'page',label:'Injuries & Suspensions',value:'players',meta:'Players · Injury list'});
 
     let idx=0;
     document.querySelectorAll('#page-season-summary .season-summary-tab').forEach(btn=>{
@@ -14104,12 +14292,44 @@ function showOverviewSubtab(name, button) {
     }
 }
 
+const INJURY_LIST = __INJURY_LIST__;
+const FPL_AVAILABILITY_LABELS = {i:'Injured', s:'Suspended', d:'Doubtful', u:'Unavailable', n:'Not eligible', a:'Available / news'};
+function availabilityBadge(row){
+  const status = row.status || row.availability?.status || 'a';
+  const chance = row.chance_next !== undefined ? row.chance_next : row.availability?.chance_next;
+  const badge = '<span class="badge" style="background:'+(status==='a'?'#1d5c48':status==='d'?'#845c18':'#813c3c')+';color:white">'+escapePlayerHTML(FPL_AVAILABILITY_LABELS[status]||'Flagged')+'</span>';
+  return badge+(chance!==null && chance!==undefined ? ' <span class="badge">FPL next GW: '+Number(chance)+'%</span>' : ' <span class="badge">No official probability</span>');
+}
+function renderInjuryList(){
+  const wrap=document.getElementById('injury-list-results');if(!wrap)return;
+  const search=(document.getElementById('injury-search')?.value||'').trim().toLowerCase();
+  const status=document.getElementById('injury-status-filter')?.value||'';
+  const owner=document.getElementById('injury-ownership-filter')?.value||'';
+  let rows=INJURY_LIST.filter(p=>(!search||(p.name+' '+p.team+' '+p.fantasy_team).toLowerCase().includes(search)) && (!status||p.status===status) && (!owner||(owner==='Owned'?p.fantasy_team!=='Free Agent':p.fantasy_team==='Free Agent')));
+  const priority={s:0,i:1,u:2,n:3,d:4,a:5};
+  rows.sort((a,b)=>(priority[a.status]??6)-(priority[b.status]??6)||Number(a.availability_next)-Number(b.availability_next)||String(a.name).localeCompare(String(b.name)));
+  document.getElementById('injury-count').textContent=rows.length+' flagged players';
+  wrap.innerHTML=rows.length?'<div class="injury-list-grid">'+rows.map(p=>'<div class="injury-medical-card"><div class="injury-head"><div><strong>'+escapePlayerHTML(p.name)+'</strong><small>'+escapePlayerHTML(p.position+' · '+p.team+' · '+p.fantasy_team)+'</small></div>'+availabilityBadge(p)+'</div><p>'+escapePlayerHTML(p.news||'No further details provided by FPL.')+'</p>'+fixtureRunHTML(p.next_fixtures,true)+'<div class="injury-actions"><span>'+Number(p.projected_remaining_points||0).toFixed(1)+' remaining projected pts (availability-adjusted)</span><button type="button" class="results-button" onclick="openScoutFreeAgent('+Number(p.id)+')">Player details →</button></div></div>').join('')+'</div>':'<div class="notice">No players match those filters.</div>';
+}
+function renderMyTeamMedical(){
+ const wrap=document.getElementById('myteam-medical-results');if(!wrap)return;
+ const manager=currentMyTeamManager();const rows=INJURY_LIST.filter(p=>p.fantasy_team===manager);
+ if(!rows.length){wrap.innerHTML='<div class="notice">No official FPL injury or suspension flags for this squad at the last refresh.</div>';return;}
+ wrap.innerHTML='<div class="injury-list-grid">'+rows.map(p=>'<div class="injury-medical-card"><div class="injury-head"><div><strong>'+escapePlayerHTML(p.name)+'</strong><small>'+escapePlayerHTML(p.position+' · '+p.team)+'</small></div>'+availabilityBadge(p)+'</div><p>'+escapePlayerHTML(p.news||'No further details provided by FPL.')+'</p>'+fixtureRunHTML(p.next_fixtures,true)+'<div class="injury-actions"><span>Estimated availability next GW: '+Math.round(Number(p.availability_next||0)*100)+'%</span><button type="button" class="results-button" onclick="openPlannerFromMedical()">Check planner →</button></div></div>').join('')+'</div>';
+}
+
+function openPlannerFromMedical(){
+    const btn=Array.from(document.querySelectorAll('.myteam-tab')).find(el=>(el.textContent||'').trim()==='Five-GW Planner');
+    showMyTeamSubtab('planner',btn||null);
+}
+
 function showPlayerSubtab(name, button) {
     document.querySelectorAll('.player-subpage').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.player-page-tab').forEach(el => el.classList.remove('active'));
     const target=document.getElementById('player-sub-'+name); if(target) target.classList.add('active');
     if(button) button.classList.add('active');
     if(name==='directory' && typeof filterPlayers==='function') requestAnimationFrame(filterPlayers);
+    if(name==='injuries') requestAnimationFrame(renderInjuryList);
 }
 
 function showMyTeamSubtab(name, button) {
@@ -14118,6 +14338,7 @@ function showMyTeamSubtab(name, button) {
     const target=document.getElementById('myteam-sub-'+name); if(target) target.classList.add('active');
     if(button) button.classList.add('active');
     if(name==='planner' && typeof renderFiveGWPlanner==='function') requestAnimationFrame(renderFiveGWPlanner);
+    if(name==='medical') requestAnimationFrame(renderMyTeamMedical);
     if(name==='scout' && typeof renderPlayerScout==='function') requestAnimationFrame(renderPlayerScout);
     if(name==='stats' && typeof renderMyTeamStatsCharts==='function') requestAnimationFrame(renderMyTeamStatsCharts);
     if(name==='targets') requestAnimationFrame(()=>{
@@ -14647,9 +14868,9 @@ function renderFiveGWPlanner(){
   const posTotals=Object.entries(week.by_position||{}).map(([p,v])=>'<span>'+p+': '+Number(v).toFixed(1)+'</span>').join('');
   function plannerPlayerRow(p){
     const fixtures=(p.fixtures||[]).map(f=>'<span class="planner-fx diff-'+f.difficulty+'">'+escapePlayerHTML(f.opponent)+(f.home?' (H)':' (A)')+'</span>').join('')||'<span class="planner-fx planner-blank">Blank GW</span>';
-    return '<div class="planner-player"><div><b>'+escapePlayerHTML(p.name)+'</b><small>'+escapePlayerHTML(p.position)+' · '+escapePlayerHTML(p.club)+'</small></div><div class="planner-player-fixtures">'+fixtures+'</div><strong>'+Number(p.projection).toFixed(1)+'</strong></div>';
+    return '<div class="planner-player"><div><b>'+escapePlayerHTML(p.name)+'</b><small>'+escapePlayerHTML(p.position)+' · '+escapePlayerHTML(p.club)+'</small></div><div class="planner-player-fixtures">'+fixtures+'</div><strong>'+Number(p.projection).toFixed(1)+'</strong>'+(p.status!=='a'||p.availability<0.75?'<small class="planner-availability-warning" title="'+escapePlayerHTML(p.news||'Official FPL availability flag')+'">'+Math.round(Number(p.availability||0)*100)+'% available</small>':'')+'</div>';
   }
-  weekWrap.innerHTML='<div class="planner-week-heading"><div><h3>GW'+week.gw+' · '+escapePlayerHTML(week.opponent)+'</h3><p class="card-description">Best '+fm+' · '+Number(week.xi).toFixed(1)+' XI points · '+Number(week.managed).toFixed(1)+' manager-adjusted estimate</p></div><div class="planner-week-flags">'+(week.blank_count?'<span class="badge">'+week.blank_count+' blanks</span>':'')+(week.double_count?'<span class="badge">'+week.double_count+' doubles</span>':'')+'</div></div>'+
+  weekWrap.innerHTML='<div class="planner-week-heading"><div><h3>GW'+week.gw+' · '+escapePlayerHTML(week.opponent)+'</h3><p class="card-description">Best '+fm+' · '+Number(week.xi).toFixed(1)+' XI points · '+Number(week.managed).toFixed(1)+' manager-adjusted estimate</p></div><div class="planner-week-flags">'+(week.blank_count?'<span class="badge">'+week.blank_count+' blanks</span>':'')+(week.double_count?'<span class="badge">'+week.double_count+' doubles</span>':'')+(week.flagged_count?'<span class="badge">'+week.flagged_count+' availability flags</span>':'')+'</div></div>'+
     '<div class="planner-pos-pills">'+posTotals+'</div>'+
     '<div class="planner-squad-columns"><div><h3>Projected XI</h3>'+(week.starters||[]).map(plannerPlayerRow).join('')+'</div><div><h3>Bench · '+Number(week.bench_cover).toFixed(1)+' projected pts</h3>'+(week.bench||[]).map(plannerPlayerRow).join('')+'</div></div>';
   upgrades.innerHTML=(plan.suggestions||[]).length?'<div class="trade-target-list">'+plan.suggestions.map(s=>'<div class="trade-target-row"><div><div class="trade-target-name">'+escapePlayerHTML(s.name)+' <span class="badge">'+s.position+'</span></div><div class="trade-target-meta">Potential swap for '+escapePlayerHTML(s.drop_name)+' · positional need '+s.need+'/100</div><div class="trade-target-reason">Projected improvement across five GWs with the best legal XI recalculated each week.</div>'+fixtureRunHTML(s.fixtures,true)+'</div><div class="trade-target-scores"><div class="trade-target-score"><span>Five-GW XI gain</span><b>+'+Number(s.gain).toFixed(1)+'</b></div></div><button type="button" class="results-button" onclick="openScoutFreeAgent('+s.id+')">View player →</button></div>').join('')+'</div>':'<div class="notice">No available same-position free agents project as a meaningful five-GW XI upgrade.</div>';
@@ -14688,11 +14909,11 @@ function renderMyTeamSquad() {
         } else if (p.is_vice_captain) {
             tag = ' <span class="cap-badge vc">VC</span>';
         }
-        return '<div class="squad-row"><span>' + escapePlayerHTML(p.name) + tag + '</span><b>' + p.points + '</b></div>';
+        return '<div class="squad-row"><button type="button" class="squad-player-link" onclick="showSquadPlayerRadar(' + Number(p.id||0) + ')">' + escapePlayerHTML(p.name) + tag + ' ↗</button><b>' + p.points + '</b></div>';
     }).join("") || '<div class="muted">No starting XI captured.</div>';
 
     const benchRows = entry.bench.map(function(p) {
-        return '<div class="squad-row bench-row"><span>' + escapePlayerHTML(p.name) + '</span><b>' + p.points + '</b></div>';
+        return '<div class="squad-row bench-row"><button type="button" class="squad-player-link" onclick="showSquadPlayerRadar(' + Number(p.id||0) + ')">' + escapePlayerHTML(p.name) + ' ↗</button><b>' + p.points + '</b></div>';
     }).join("") || '<div class="muted">No bench captured.</div>';
 
     const statusText = entry.finished ? "" : " · In progress";
@@ -14705,6 +14926,7 @@ function renderMyTeamSquad() {
         '<div><div class="squad-heading">Starting XI</div>' + starterRows + '</div>' +
         '<div><div class="squad-heading">Bench</div>' + benchRows + '</div>' +
         '</div>' +
+        '<div class="squad-player-radar-wrap" id="squad-player-radar-wrap"></div>' +
         '</div>';
 
     if (gwDisplay) gwDisplay.textContent = "GW" + entry.gw;
@@ -15038,6 +15260,182 @@ function changeResults(direction) {
 }
 
 
+
+/* Health analytics + responsive, dependency-free radar charts. */
+const HEALTH_ANALYTICS = __HEALTH_ANALYTICS__;
+const HEALTH_STATUSES = [
+  { key:'i', label:'Injured', css:'injury' },
+  { key:'s', label:'Suspended', css:'suspension' },
+  { key:'d', label:'Doubtful', css:'doubt' },
+  { key:'u', label:'Unavailable / ineligible', css:'unavailable' },
+  { key:'a', label:'Available with news', css:'news' }
+];
+const HEALTH_VIEWS = {
+  flags:   {title:'Flagged players', desc:'Current official FPL availability flags, stacked by status.', unit:'players'},
+  risk:    {title:'Estimated next-GW points at risk', desc:'Modelled points difference between full availability and current FPL availability estimates. Not a forecast of confirmed absences.', unit:'pts'},
+  new:     {title:'New and updated reports', desc:'New flags and changed FPL reports since the previous dashboard build. The first run creates a baseline.', unit:'reports'},
+  removed: {title:'Removed from FPL player pool', desc:'Historical players no longer in the current FPL bootstrap. Grouped by LAST recorded PL club and LAST recorded fantasy owner; these are not confirmed transfers.', unit:'players'}
+};
+let healthSelectedView='flags';
+let healthDetailSelection=null;
+let healthRenderedGroups={pl:[],fantasy:[]};
+function healthStatusBucket(s){return s==='n'?'u':(['i','s','d','u'].includes(s)?s:'a');}
+function healthSetView(name){
+  healthSelectedView=HEALTH_VIEWS[name]?name:'flags';
+  healthDetailSelection=null;
+  document.querySelectorAll('.health-metric-btn').forEach(btn=>{
+    const active=btn.dataset.healthView===healthSelectedView;
+    btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',active?'true':'false');
+  });
+  const status=document.getElementById('health-status-filter');
+  if(status)status.disabled=healthSelectedView==='removed';
+  healthAnalyticsRender();
+}
+function healthFiltersChanged(){healthDetailSelection=null;healthAnalyticsRender();}
+function healthFilteredRows(rows, opts){
+  return (rows||[]).filter(p=>{
+    const own=p.fantasy_team||'Former owner unknown';
+    return (!opts.club||p.team===opts.club) && (!opts.owner||own===opts.owner)
+      && (!opts.status||opts.removed||p.status===opts.status)
+      && (!opts.query||[p.name,p.team,own,p.news||''].join(' ').toLowerCase().includes(opts.query));
+  });
+}
+function healthSummarise(rows,dimension,view,allNames){
+  const field=dimension==='pl'?'team':'fantasy_team';
+  const groups=new Map((allNames||[]).map(name=>[name,{name,rows:[],count:0,risk:0,cats:{i:0,s:0,d:0,u:0,a:0},newRemoved:0}]));
+  (rows||[]).forEach(p=>{
+    const name=p[field]||(dimension==='pl'?'Former PL club unknown':'Former owner unknown');
+    if(!groups.has(name))groups.set(name,{name,rows:[],count:0,risk:0,cats:{i:0,s:0,d:0,u:0,a:0},newRemoved:0});
+    const g=groups.get(name);g.rows.push(p);g.count++;
+    g.risk+=Math.max(0,Number(p.points_at_risk||0));
+    g.cats[healthStatusBucket(p.status)]++;
+    if(p.newly_removed)g.newRemoved++;
+  });
+  return Array.from(groups.values()).sort((a,b)=>{
+    const av=view==='risk'?a.risk:a.count,bv=view==='risk'?b.risk:b.count;
+    return bv-av||a.name.localeCompare(b.name);
+  });
+}
+function healthMetricTotal(g,view){return view==='risk'?g.risk:g.count;}
+function healthChartHTML(groups,dimension,view){
+  const fantasy=dimension==='fantasy';
+  const heading=fantasy?'McDraft fantasy teams':'Premier League clubs';
+  const max=Math.max(1,...groups.map(g=>healthMetricTotal(g,view)));
+  const total=groups.reduce((sum,g)=>sum+healthMetricTotal(g,view),0);
+  const header='<div class="health-chart-heading"><div><h3>'+heading+'</h3><span>'+(fantasy?'Roster ownership':'Player\u2019s PL club')+'</span></div><strong>'+(view==='risk'?total.toFixed(1):total)+' '+(HEALTH_VIEWS[view].unit)+'</strong></div>';
+  const bars=groups.map((g,index)=>{
+    const metric=healthMetricTotal(g,view),pct=100*metric/max;
+    let fill='';
+    if(view==='flags'||view==='new'){
+      const denom=Math.max(1,max);
+      fill=HEALTH_STATUSES.map(st=>g.cats[st.key]?'<span class="health-stack-segment health-'+st.css+'" style="width:'+(100*g.cats[st.key]/denom).toFixed(2)+'%" title="'+escapePlayerHTML(st.label+': '+g.cats[st.key])+'"></span>':'').join('');
+    }else if(view==='removed'){
+      const newWidth=100*g.newRemoved/max;
+      fill='<span class="health-stack-segment health-removed-old" style="width:'+(pct-newWidth).toFixed(2)+'%"></span><span class="health-stack-segment health-removed-new" style="width:'+newWidth.toFixed(2)+'%"></span>';
+    }else fill='<span class="health-stack-segment health-risk-fill" style="width:'+pct.toFixed(2)+'%"></span>';
+    const n=view==='risk'?metric.toFixed(1):String(metric);
+    return '<button type="button" class="health-chart-row" onclick="healthSelectGroup(\''+dimension+'\','+index+')" title="View '+escapePlayerHTML(g.name)+' players" aria-label="View '+escapePlayerHTML(g.name)+': '+n+' '+HEALTH_VIEWS[view].unit+'"><span class="health-chart-name">'+escapePlayerHTML(g.name)+'</span><span class="health-stack-track">'+fill+'</span><strong>'+n+'</strong></button>';
+  }).join('');
+  const legend=(view==='flags'||view==='new')?'<div class="health-legend">'+HEALTH_STATUSES.map(s=>'<span><i class="health-'+s.css+'"></i>'+s.label+'</span>').join('')+'</div>' :view==='removed'?'<div class="health-legend"><span><i class="health-removed-old"></i>Previously removed</span><span><i class="health-removed-new"></i>Newly removed</span></div>':'';
+  const note=fantasy?'<p class="health-chart-note">Free agents are excluded here unless enabled above or explicitly filtered; they are always included in the PL-club totals.</p>':'';
+  return '<section class="health-chart-card">'+header+legend+'<div class="health-chart-scroll">'+(bars||'<div class="notice">No teams match these filters.</div>')+'</div>'+note+'</section>';
+}
+function healthSelectGroup(dimension,index){
+  const g=(healthRenderedGroups[dimension]||[])[index];if(!g)return;
+  healthDetailSelection={dimension,name:g.name};
+  healthAnalyticsRender();
+  document.getElementById('health-drilldown')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function healthDetailHTML(){
+  if(!healthDetailSelection)return '';
+  const {dimension,name}=healthDetailSelection;
+  const g=(healthRenderedGroups[dimension]||[]).find(group=>group.name===name);
+  if(!g)return '';
+  const departed=healthSelectedView==='removed';
+  const records=g.rows.slice().sort((a,b)=>Number(b.points_at_risk||0)-Number(a.points_at_risk||0)||a.name.localeCompare(b.name));
+  const items=records.map(p=>{
+    const own=departed?'Last recorded McDraft owner: '+(p.fantasy_team||'Unknown'):(p.fantasy_team||'Free Agent');
+    const extra=departed?'Last recorded in GW'+p.last_seen_gw+'; departure unconfirmed.':healthSelectedView==='risk'?'Est. '+Number(p.points_at_risk||0).toFixed(1)+' next-GW pts at risk':p.news||p.change_type||'Official FPL status';
+    return '<div class="health-drill-row"><div><b>'+escapePlayerHTML(p.name)+'</b><small>'+escapePlayerHTML([p.position||'',p.team||'',own].filter(Boolean).join(' · '))+'</small><p>'+escapePlayerHTML(extra)+'</p></div><div>'+(departed?'<span class="health-removal-pill">Removed</span>':availabilityBadge(p))+'</div>'+(departed?'':'<button type="button" class="results-button" onclick="openScoutFreeAgent('+Number(p.id)+')">Player details →</button>')+'</div>';
+  }).join('');
+  return '<section class="health-drill-card" id="health-drilldown"><div class="health-drill-head"><div><h3>'+escapePlayerHTML(name)+'</h3><p>'+g.count+' '+HEALTH_VIEWS[healthSelectedView].unit+' · '+(dimension==='pl'?'Premier League club':'McDraft fantasy team')+'</p></div><button type="button" class="results-button" onclick="healthDetailSelection=null;healthAnalyticsRender()">Close details ×</button></div>'+(items||'<p class="notice">No matching players for this team and filters.</p>')+'</section>';
+}
+function healthAnalyticsRender(){
+  const root=document.getElementById('analytics-health-root');if(!root)return;
+  const opts={club:document.getElementById('health-club-filter')?.value||'',owner:document.getElementById('health-owner')?.value||'',status:document.getElementById('health-status-filter')?.value||'',query:(document.getElementById('health-query')?.value||'').trim().toLowerCase()};
+  const view=healthSelectedView;
+  const removed=view==='removed';opts.removed=removed;
+  const flags=healthFilteredRows(HEALTH_ANALYTICS.flagged,opts),news=healthFilteredRows(HEALTH_ANALYTICS.new,opts);
+  const oldRemoved=(HEALTH_ANALYTICS.removed||[]).map(p=>({...p,newly_removed:(HEALTH_ANALYTICS.new_removed||[]).some(n=>Number(n.id)===Number(p.id))}));
+  const gone=healthFilteredRows(oldRemoved,opts);
+  const rows=view==='new'?news:removed?gone:flags;
+  const counts={inj:flags.filter(x=>x.status==='i').length,susp:flags.filter(x=>x.status==='s').length,doubt:flags.filter(x=>['d','u','n'].includes(x.status)).length,risk:flags.reduce((s,x)=>s+Number(x.points_at_risk||0),0),new:news.length,removed:gone.length};
+  const kpis=[['Injured',counts.inj],['Suspended',counts.susp],['Doubtful / unavailable',counts.doubt],['Est. GW pts at risk',counts.risk.toFixed(1)],['New / updated',counts.new],['Historical removals',counts.removed]];
+  const cards='<div class="health-kpis">'+kpis.map(([label,value])=>'<div class="health-kpi"><b>'+value+'</b><span>'+label+'</span></div>').join('')+'</div>';
+  const clubNames=opts.club?[opts.club]:HEALTH_ANALYTICS.pl_clubs||[];
+  // For removed identities, a historical club/manager can be absent from the current bootstrap.
+  const ownerNames=opts.owner?[opts.owner]:(HEALTH_ANALYTICS.fantasy_teams||[]).slice();
+  const includeFreeAgents=document.getElementById('health-free-agent-chart')?.checked||opts.owner==='Free Agent';
+  if(includeFreeAgents&&!ownerNames.includes('Free Agent'))ownerNames.push('Free Agent');
+  const pl=healthSummarise(rows,'pl',view,clubNames);
+  const fantasyRows=includeFreeAgents?rows:rows.filter(p=>(p.fantasy_team||'Free Agent')!=='Free Agent');
+  const fantasy=healthSummarise(fantasyRows,'fantasy',view,ownerNames);
+  healthRenderedGroups={pl,fantasy};
+  const sourceLabel=removed?'Last captured owner / club':'Current Draft ownership / PL club';
+  const meta='<p class="health-data-note">'+rows.length+' matching records · '+sourceLabel+' · FPL data refreshed '+escapePlayerHTML(HEALTH_ANALYTICS.generated_at||'')+'.</p>';
+  root.innerHTML=cards+'<div class="health-section-note"><h3>'+HEALTH_VIEWS[view].title+'</h3><p>'+HEALTH_VIEWS[view].desc+'</p></div><div class="health-chart-pair">'+healthChartHTML(pl,'pl',view)+healthChartHTML(fantasy,'fantasy',view)+'</div>'+meta+healthDetailHTML();
+}
+// Compare players to their own position so that GK and attackers share a fair 0–100 visual scale.
+const RADAR_AXES=[['Output','points_per_game'],['Recent form','form'],['Goals','goals'],['Assists','assists'],['Defending','defensive'],['Bonus','bonus']];
+function radarRaw(player,key){
+ const minutes=Math.max(1,Number(player.minutes||0));
+ if(key==='defensive')return 90*(Number(player.defensive_contributions||0)+Number(player.clean_sheets||0)*2+Number(player.saves||0)*0.15)/minutes;
+ if(key==='goals'||key==='assists'||key==='bonus')return 90*Number(player[key]||0)/minutes;
+ return Number(player[key]||0);
+}
+const RADAR_POOLS={};
+function radarScores(player){
+ const pos=player.position||'MID';
+ if(!RADAR_POOLS[pos])RADAR_POOLS[pos]=playerSearchData.filter(p=>p.position===pos&&Number(p.minutes||0)>=90);
+ return RADAR_AXES.map(([label,key])=>{
+   const val=radarRaw(player,key);const sorted=RADAR_POOLS[pos].map(p=>radarRaw(p,key)).sort((a,b)=>a-b);
+   if(!sorted.length)return 0;
+   const rank=sorted.filter(v=>v<val).length+0.5*sorted.filter(v=>v===val).length;
+   return Math.max(0,Math.min(100,Math.round(100*rank/sorted.length)));
+ });
+}
+function radarSVG(scores,caption){
+ const cx=170,cy=155,r=99,n=RADAR_AXES.length;
+ const point=(i,factor)=>{const a=(i*2*Math.PI/n)-Math.PI/2;return [(cx+Math.cos(a)*r*factor).toFixed(1),(cy+Math.sin(a)*r*factor).toFixed(1)].join(',');};
+ let svg='<svg class="performance-radar" viewBox="0 0 340 315" role="img" aria-label="'+escapePlayerHTML(caption||'Performance radar')+'">';
+ [0.25,.5,.75,1].forEach(t=>svg+='<polygon points="'+RADAR_AXES.map((_,i)=>point(i,t)).join(' ')+'" class="radar-ring"/>');
+ RADAR_AXES.forEach(([label],i)=>{const xy=point(i,1).split(',');let a=(i*2*Math.PI/n)-Math.PI/2;const lx=cx+Math.cos(a)*134,ly=cy+Math.sin(a)*119;svg+='<line x1="'+cx+'" y1="'+cy+'" x2="'+xy[0]+'" y2="'+xy[1]+'" class="radar-axis"/><text x="'+lx.toFixed(1)+'" y="'+(ly+4).toFixed(1)+'" text-anchor="middle" class="radar-label">'+escapePlayerHTML(label)+'</text>';});
+ svg+='<polygon class="radar-area" points="'+scores.map((v,i)=>point(i,Math.max(0,Math.min(100,Number(v)||0))/100)).join(' ')+'"/>';
+ scores.forEach((v,i)=>{const pt=point(i,Math.max(0,Math.min(100,Number(v)||0))/100).split(',');svg+='<circle class="radar-dot" cx="'+pt[0]+'" cy="'+pt[1]+'" r="3"><title>'+escapePlayerHTML(RADAR_AXES[i][0])+': '+Math.round(v)+'/100</title></circle>';});
+ return svg+'</svg>';
+}
+function playerRadarHTML(player){
+ if(!player)return '<div class="notice">Player data unavailable.</div>';
+ if(Number(player.minutes||0)<90)return '<div class="notice">At least 90 PL minutes needed for reliable positional radar percentiles.</div>';
+ const scores=radarScores(player);
+ return '<div class="radar-layout">'+radarSVG(scores,player.name+' positional performance radar')+'<div class="radar-stats">'+RADAR_AXES.map(([name],i)=>'<span>'+name+'<b>'+scores[i]+'/100</b></span>').join('')+'</div></div><p class="card-description">Position-relative percentiles among active players with 90+ minutes. Goals, assists, defending and bonus are per 90; output and recent form use FPL PPG and form. These are descriptive comparisons, not skill ratings.</p>';
+}
+function showSquadPlayerRadar(playerId){
+ const root=document.getElementById('squad-player-radar-wrap');if(!root)return;
+ const player=playerSearchData.find(p=>Number(p.id)===Number(playerId));
+ root.innerHTML='<h3>'+escapePlayerHTML(player?.name||'Player')+' · Performance profile</h3>'+playerRadarHTML(player);
+ root.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function renderMyTeamRadar(){
+ const root=document.getElementById('myteam-radar');if(!root)return;
+ const manager=currentMyTeamManager();const roster=playerSearchData.filter(p=>p.fantasy_team===manager);
+ if(!roster.length){root.innerHTML='<div class="notice">No current roster found.</div>';return;}
+ const eligible=roster.filter(p=>Number(p.minutes||0)>=90);
+ if(!eligible.length){root.innerHTML='<div class="notice">No squad players have 90+ PL minutes yet.</div>';return;}
+ const matrix=eligible.map(radarScores);const scores=RADAR_AXES.map((_,i)=>Math.round(matrix.reduce((n,row)=>n+row[i],0)/matrix.length));
+ root.innerHTML='<div class="radar-layout">'+radarSVG(scores,manager+' squad performance radar')+'<div class="radar-stats">'+RADAR_AXES.map(([name],i)=>'<span>'+name+'<b>'+scores[i]+'/100</b></span>').join('')+'</div></div><p class="card-description">Mean position-relative percentile across '+eligible.length+' of '+roster.length+' current squad players with 90+ PL minutes. Switch managers above to compare profiles.</p>';
+}
+
 /* ============================================================
    PLAYER SEARCH
    ============================================================ */
@@ -15278,7 +15676,7 @@ function renderPlayerDirectoryCard(player) {
 
     return '<div class="player-directory-card">' +
         '<div class="player-directory-main">' +
-            '<div class="player-directory-name">' + escapePlayerHTML(player.name) + '</div>' +
+            '<div class="player-directory-name">' + escapePlayerHTML(player.name) + '</div>' + (player.availability && (player.availability.status!=='a'||player.availability.news) ? availabilityBadge(player):'') +
             '<div class="player-directory-meta">' +
                 escapePlayerHTML(player.position) + ' · ' +
                 escapePlayerHTML(player.team) + ' · ' +
@@ -15293,6 +15691,7 @@ function renderPlayerDirectoryCard(player) {
         '</div>' +
         '<button class="player-details-button" onclick="togglePlayerDetails(' + player.id + ')">Details</button>' +
         '<div class="player-details" id="player-details-' + player.id + '" style="display:none;">' +
+            '<div class="player-radar-panel"><h3>Player performance radar</h3>' + playerRadarHTML(player) + '</div>' +
             fixtureRunHTML(player.next_fixtures, false) +
             '<div class="player-stat-chips">' +
                 '<span class="player-stat-chip"><b>' + player.total_points + '</b> Season points</span>' +
@@ -16007,6 +16406,27 @@ window.addEventListener("resize", function() {
 """
 
 
+radar_health_css = r"""
+
+/* v40: both dimensions visible at once; all team bars drill to players. */
+.health-metric-switch{display:flex;gap:7px;flex-wrap:wrap;margin:17px 0 13px}
+.health-metric-btn{font:inherit;font-size:.82rem;font-weight:800;color:var(--muted);border:1px solid var(--border);background:var(--bg-secondary);border-radius:9px;padding:10px 12px;cursor:pointer}
+.health-metric-btn.active{background:var(--accent-dark);border-color:var(--accent);color:#fff}
+.health-filters{margin:10px 0}.health-free-agent-toggle{display:flex;align-items:center;gap:8px;font-size:.79rem;color:var(--muted);margin:10px 0 3px;cursor:pointer}
+.health-free-agent-toggle input{accent-color:var(--accent)}
+.health-data-note,.health-chart-note{font-size:.73rem;color:var(--muted);margin:10px 0 0;line-height:1.4}
+.health-section-note{margin:19px 0 12px}.health-section-note h3{font-size:1.05rem;margin:0 0 5px}.health-section-note p{font-size:.83rem;color:var(--muted);line-height:1.4;margin:0}
+.health-chart-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;align-items:start}
+.health-chart-card{min-width:0;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:15px}
+.health-chart-heading{display:flex;align-items:start;justify-content:space-between;gap:8px;margin-bottom:10px}.health-chart-heading h3{margin:0 0 4px;font-size:.96rem}.health-chart-heading span{display:block;color:var(--muted);font-size:.7rem}.health-chart-heading strong{color:var(--accent);white-space:nowrap;font-size:.82rem}
+.health-legend{display:flex;flex-wrap:wrap;gap:7px 11px;margin-bottom:11px}.health-legend span{color:var(--muted);font-size:.65rem;display:flex;align-items:center;gap:4px}.health-legend i{width:8px;height:8px;border-radius:2px;display:inline-block;flex-shrink:0}
+.health-chart-scroll{max-height:755px;overflow-y:auto;scrollbar-width:thin;padding-right:3px}.health-chart-row{display:grid;grid-template-columns:minmax(83px,141px) minmax(0,1fr) 41px;gap:8px;align-items:center;width:100%;font:inherit;padding:7px 4px;background:transparent;border:0;border-bottom:1px solid var(--border);text-align:left;color:var(--text);cursor:pointer;border-radius:4px}.health-chart-row:hover,.health-chart-row:focus-visible{background:rgba(128,128,128,.12);outline-offset:-2px}.health-chart-row strong{text-align:right;font-size:.77rem;font-variant-numeric:tabular-nums}.health-chart-name{font-size:.72rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.health-stack-track{display:flex;align-items:stretch;gap:0;height:12px;background:rgba(128,128,128,.15);border-radius:3px;overflow:hidden;min-width:0}.health-stack-segment{display:block;min-width:0;height:100%}.health-injury{background:#ef6f86}.health-suspension{background:#f1ad47}.health-doubt{background:#e8d36a}.health-unavailable{background:#8d8acb}.health-news{background:#4ba9b3}.health-risk-fill{background:linear-gradient(90deg,#efb94d,#ec6b80)}.health-removed-old{background:#8294a9}.health-removed-new{background:#54ccae}
+.health-drill-card{margin-top:20px;border:1px solid var(--accent);border-radius:13px;padding:15px;background:var(--bg-secondary)}.health-drill-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.health-drill-head h3{margin:0;font-size:1rem}.health-drill-head p{font-size:.74rem;color:var(--muted);margin:4px 0}.health-drill-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}.health-drill-row:last-child{border-bottom:0}.health-drill-row>div:first-child{flex:1 1 190px;min-width:0}.health-drill-row b{font-size:.84rem}.health-drill-row small{display:block;font-size:.7rem;color:var(--muted);margin-top:4px}.health-drill-row p{margin:5px 0 0;font-size:.74rem;line-height:1.4}.health-removal-pill{font-size:.7rem;border:1px solid var(--border);border-radius:8px;padding:5px 7px}
+@media(max-width:950px){.health-chart-pair{grid-template-columns:1fr}.health-chart-scroll{max-height:610px}.health-chart-row{grid-template-columns:minmax(95px,165px) minmax(0,1fr) 47px}}@media(max-width:480px){.health-chart-card{padding:11px}.health-chart-row{grid-template-columns:minmax(81px,116px) minmax(0,1fr) 39px;gap:6px}.health-chart-name{font-size:.7rem}}
+.health-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:20px 0}.health-kpi{display:flex;flex-direction:column;gap:5px;border:1px solid var(--border,#405069);border-radius:13px;padding:16px;background:rgba(128,128,128,.06)}.health-kpi b{font-size:1.7rem}.health-kpi span{font-size:.78rem;opacity:.75}.health-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}.health-event{border:1px solid var(--border,#405069);border-radius:13px;padding:15px;min-width:0}.health-event strong,.health-event small{display:block}.health-event small{opacity:.75;margin-top:4px}.health-event p{line-height:1.5}.radar-layout{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px}.performance-radar{width:min(100%,360px);height:auto;overflow:visible}.radar-ring{fill:none;stroke:currentColor;stroke-opacity:.14;stroke-width:1}.radar-axis{stroke:currentColor;stroke-opacity:.17;stroke-width:1}.radar-label{fill:currentColor;font-size:11px;font-weight:600}.radar-area{fill:#39b8c8;fill-opacity:.29;stroke:#39b8c8;stroke-width:2}.radar-dot{fill:#39b8c8;stroke:var(--card-bg,#132236);stroke-width:1}.radar-stats{display:grid;grid-template-columns:repeat(2,minmax(108px,1fr));gap:9px;max-width:310px;flex:1}.radar-stats span{padding:9px;border:1px solid rgba(128,128,128,.2);border-radius:9px;font-size:.8rem}.radar-stats b{display:block;font-size:1.15rem;margin-top:3px}.squad-player-link{border:0;background:transparent;color:inherit;cursor:pointer;text-align:left;font:inherit;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}.squad-player-radar-wrap{margin:15px 0}.player-radar-panel{margin:14px 0;border-top:1px solid rgba(128,128,128,.2);padding-top:13px}.player-radar-panel h3{margin-bottom:8px}@media(max-width:600px){.radar-layout{flex-direction:column}.radar-stats{max-width:100%;width:100%}}
+"""
+
 # ============================================================
 # HTML TEMPLATE
 # ============================================================
@@ -16269,11 +16689,13 @@ __CSS__
             <div class="analytics-subtabs myteam-tabs" role="tablist" aria-label="My Team sections">
                 <button type="button" class="analytics-subtab myteam-tab active" onclick="showMyTeamSubtab('squad',this)">Squad</button>
                 <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('planner',this)">Five-GW Planner</button>
+                <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('medical',this)">Medical Room</button>
                 <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('targets',this)">Targets</button>
                 <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('scout',this)">Player Scout</button>
                 <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('stats',this)">Stats</button>
             </div>
 
+            <div class="card"><h2>Squad Performance Radar</h2><p class="card-description">Live squad profile, benchmarked within each player's Premier League position.</p><div id="myteam-radar"></div></div>
             <div class="myteam-subpage active" id="myteam-sub-squad">
                 <div class="card">
                     <h2>Squad By Gameweek</h2>
@@ -16294,6 +16716,9 @@ __CSS__
                     <div id="myteam-planner-weeks"></div>
                 </div>
                 <div class="card"><h2>Five-GW Free-Agent Upgrades</h2><p class="card-description">Best like-for-like free-agent swaps by improvement to your projected starting XI over all five weeks. They do not account for waiver priority or ownership changes after this refresh.</p><div id="myteam-planner-upgrades"></div></div>
+            </div>
+            <div class="myteam-subpage" id="myteam-sub-medical">
+                <div class="card"><h2>Squad Medical Room</h2><p class="card-description">Official FPL flags for your current squad, next-GW playing estimates and upcoming fixture risk. The planner already adjusts point projections for these risks.</p><div id="myteam-medical-results"></div></div>
             </div>
             <div class="myteam-subpage" id="myteam-sub-targets">
                 <div class="dashboard-grid">
@@ -16561,6 +16986,7 @@ __CSS__
             <div class="analytics-subtabs player-page-tabs" role="tablist" aria-label="Player sections">
                 <button type="button" class="analytics-subtab player-page-tab active" onclick="showPlayerSubtab('leaders',this)">Leaders &amp; Form</button>
                 <button type="button" class="analytics-subtab player-page-tab" onclick="showPlayerSubtab('directory',this)">Player Directory</button>
+                <button type="button" class="analytics-subtab player-page-tab" onclick="showPlayerSubtab('injuries',this)">Injuries &amp; Suspensions</button>
             </div>
 
             <div class="player-subpage active" id="player-sub-leaders">
@@ -16584,6 +17010,17 @@ __CSS__
                     </div>
                     <div id="player-search-results" class="player-search-results player-directory-results" style="display:block;"></div>
                 </div>
+            </div>
+            <div class="player-subpage" id="player-sub-injuries">
+              <div class="card"><h2>Injuries &amp; Suspensions</h2><p class="card-description">Latest official FPL status and reported playing probability. News may be unconfirmed; future-week recovery is modelled, not guaranteed.</p>
+                <div class="player-filter-grid">
+                  <input id="injury-search" type="search" class="player-search-box" placeholder="Search player or club…" oninput="renderInjuryList()" />
+                  <select id="injury-status-filter" class="player-filter" onchange="renderInjuryList()"><option value="">All flagged players</option><option value="i">Injured</option><option value="s">Suspended</option><option value="d">Doubtful</option><option value="u">Unavailable</option><option value="n">Not eligible</option><option value="a">Available with news</option></select>
+                  <select id="injury-ownership-filter" class="player-filter" onchange="renderInjuryList()"><option value="">All ownership</option><option value="Free Agent">Free agents</option><option value="Owned">McDraft owned</option></select>
+                </div>
+                <div id="injury-count" class="player-directory-count"></div>
+                <div id="injury-list-results"></div>
+              </div>
             </div>
 
         </section>
@@ -16833,6 +17270,8 @@ replacements = {
 
     "__ANALYTICS_PAGE__":
         analytics_page_html(),
+    "__HEALTH_OWNER_OPTIONS__": "".join(f'<option value="{escape_html(m)}">{escape_html(m)}</option>' for m in managers),
+    "__HEALTH_CLUB_OPTIONS__": "".join(f'<option value="{escape_html(t)}">{escape_html(t)}</option>' for t in sorted(set(teams_lookup.values()))),
 
     "__STANDINGS_TABLE__":
         standings_table(),
@@ -16972,10 +17411,10 @@ replacements = {
         fun_stats_html,
 
     "__CSS__":
-        css,
+        css + radar_health_css,
 
     "__JAVASCRIPT__":
-        javascript.replace(
+        javascript.replace("__HEALTH_ANALYTICS__", safe_js_json(json.dumps(health_analytics_data, ensure_ascii=False))).replace(
             "__TOTW_GAMEWEEKS__",
             safe_js_json(json.dumps(finished_gws))
         ).replace(
@@ -16996,6 +17435,8 @@ replacements = {
         ).replace(
             "__PLAYER_SEARCH_DATA__",
             safe_js_json(player_search_json)
+        ).replace(
+            "__INJURY_LIST__", safe_js_json(injury_list_json)
         ).replace(
             "__CLUB_EXPLORER_DATA__", safe_js_json(club_explorer_json)
         ).replace(
