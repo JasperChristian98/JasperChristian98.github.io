@@ -1,3 +1,4 @@
+# Enhanced McDraft dashboard v44 — current-owner player analytics
 # Generated from: Scraper.ipynb
 # Converted at: 2026-09-01T09:07:10.758Z
 # Next step (optional): refactor into modules & generate tests with RunCell
@@ -10648,6 +10649,19 @@ def _current_rosters_from_status():
 
 
 _trade_rosters = _current_rosters_from_status()
+# Owner colours in Player Analytics use the latest Draft ownership and remain
+# draft-ID keyed, even where the identity CSV points to another classic FPL ID.
+_analytics_owner_by_id = {
+    int(pid): manager
+    for manager, pids in _trade_rosters.items()
+    for pid in pids
+}
+for _pid, _owner in current_owner_by_player.items():
+    _owner_name = _dashboard_owner_name(_owner)
+    if _owner_name in managers:
+        _analytics_owner_by_id[int(_pid)] = _owner_name
+    else:
+        _analytics_owner_by_id.pop(int(_pid), None)
 _all_current_player_ids = [pid for ids in _trade_rosters.values() for pid in ids]
 _trade_proj_vals = []
 for pid in _all_current_player_ids:
@@ -11222,22 +11236,48 @@ def _bar_chart_html(title, values, description="", value_suffix="", reverse=Fals
 
 def _category_bar_chart_html(title, rows, description="", value_suffix="", x_label="Player", y_label="Value", limit=20, reverse=False):
     clean=[]
-    for label,value in rows:
+    for row in rows:
         try:
-            v=float(value or 0)
-        except (TypeError,ValueError):
+            label,raw_value=row[:2]
+            value=float(raw_value or 0)
+        except (TypeError,ValueError,IndexError):
             continue
-        clean.append((str(label),v))
-    clean.sort(key=lambda x:x[1], reverse=not reverse)
-    clean=clean[:limit]
-    maximum=max([abs(v) for _,v in clean]+[1.0])
+        pid=row[2] if len(row)>2 else None
+        clean.append((str(label),value,pid))
+    is_player_chart=any(pid is not None for _,_,pid in clean)
+    clean.sort(key=lambda r:r[1], reverse=not reverse)
+    if not is_player_chart:
+        clean=clean[:limit]
+    maximum=max([abs(v) for _,v,_ in clean[:limit]]+[1.0])
     bars=""
-    for label,v in clean:
-        width=max(2.0,abs(v)/maximum*100.0)
-        bars += f'''<div class="analytics-bar-row"><div class="analytics-bar-label" title="{escape_html(label)}">{escape_html(label)}</div><div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:{width:.1f}%"></div></div><div class="analytics-bar-value">{v:.1f}{value_suffix}</div></div>'''
-    body = bars or '<div class="notice">Not enough data yet.</div>'
-    return f'''<div class="card analytics-chart-card"><h2>{escape_html(title)}</h2>{f'<p class="card-description">{escape_html(description)}</p>' if description else ''}<div class="analytics-axis-title analytics-axis-y">{escape_html(y_label)}</div><div class="analytics-bar-chart">{body}</div><div class="analytics-axis-title analytics-axis-x">{escape_html(x_label)}</div></div>'''
-
+    for idx,(label,value,pid) in enumerate(clean):
+        width=max(2.0,abs(value)/maximum*100.0)
+        attr=""; colour_style=""
+        if is_player_chart and pid is not None:
+            try: owner=_analytics_owner_by_id.get(int(pid),'Free agents')
+            except (TypeError,ValueError): owner='Free agents'
+            colour=manager_color(owner) if owner in managers else '#64748b'
+            attr=(f' data-player-id="{escape_html(str(pid))}" data-player-owner="{escape_html(owner)}"'
+                  f' data-player-value="{value}" class="analytics-bar-row analytics-player-bar"')
+            colour_style=f'background:{colour};'
+            if idx >= limit: attr+=' hidden'
+        else:
+            attr=' class="analytics-bar-row"'
+        swatch = f'<span class="analytics-manager-swatch" style="{colour_style}"></span>' if colour_style else ''
+        bars += (f'<div{attr}><div class="analytics-bar-label" title="{escape_html(label)}">'
+                 f'{swatch}{escape_html(label)}</div>'
+                 f'<div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:{width:.1f}%;{colour_style}"></div></div>'
+                 f'<div class="analytics-bar-value">{value:.1f}{value_suffix}</div></div>')
+    empty=f'<div class="notice analytics-player-chart-empty" hidden>No players in this chart for the selected team.</div>' if is_player_chart else ''
+    body=bars or '<div class="notice">Not enough data yet.</div>'
+    is_player_attr=f' data-player-limit="{limit}"' if is_player_chart else ''
+    chart_class=' analytics-player-bar-card' if is_player_chart else ''
+    paragraph=f'<p class="card-description">{escape_html(description)}</p>' if description else ''
+    return (f'<div class="card analytics-chart-card{chart_class}"{is_player_attr}>'
+            f'<h2>{escape_html(title)}</h2>{paragraph}'
+            f'<div class="analytics-axis-title analytics-axis-y">{escape_html(y_label)}</div>'
+            f'<div class="analytics-bar-chart">{body}{empty}</div>'
+            f'<div class="analytics-axis-title analytics-axis-x">{escape_html(x_label)}</div></div>')
 
 
 def _dual_category_bar_chart_html(title, rows, first_label="Drafted-player points", second_label="All-player points", description="", x_label="Premier League club", y_label="Fantasy points", limit=20):
@@ -11365,6 +11405,102 @@ def _scatter_chart_html(title, xvals, yvals, description="", x_label="X", y_labe
     axis_titles=(f'<text class="analytics-svg-axis-title" x="{PL+pw/2:.1f}" y="{H-3}" text-anchor="middle">{escape_html(x_label)}</text>'
                  f'<text class="analytics-svg-axis-title" transform="translate(14 {PT+ph/2:.1f}) rotate(-90)" text-anchor="middle">{escape_html(y_label)}</text>')
     return f'''<div class="card analytics-chart-card"><h2>{escape_html(title)}</h2>{f'<p class="card-description">{escape_html(description)}</p>' if description else ''}<div class="trend-chart-svg-wrap"><svg viewBox="0 0 {W} {H}">{grid}{labels}{dots}{axis_titles}</svg></div></div>'''
+
+
+
+def _player_scatter_chart_html(title, rows, description="", x_label="X", y_label="Y",
+                               reverse_x=False, invert_y=False, fixed_x_max=None, fixed_x_min=None):
+    """Interactive owner-coloured player scatter. rows = (draft_id, name, x, y).
+
+    All ownership comes from the current Draft element-status snapshot. Player
+    identity and scores remain draft-ID keyed (respecting the CSV ID mapping).
+    """
+    clean=[]
+    for pid, name, raw_x, raw_y in rows:
+        try:
+            x=float(raw_x); y=float(raw_y); pid=int(pid)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(x) or not math.isfinite(y):
+            continue
+        clean.append((pid,str(name),x,y))
+    if not clean:
+        return f'<div class="card analytics-chart-card analytics-player-scatter"><h2>{escape_html(title)}</h2><div class="notice">Not enough player data yet.</div></div>'
+    xs=[r[2] for r in clean]; ys=[r[3] for r in clean]
+    xmin=float(fixed_x_min) if fixed_x_min is not None else min(xs)
+    xmax=float(fixed_x_max) if fixed_x_max is not None else max(xs)
+    ymin,ymax=min(ys),max(ys)
+    if xmin==xmax: xmax=xmin+1
+    if ymin==ymax: ymax=ymin+1
+    W,H,PL,PR,PT,PB=760,310,68,22,20,55
+    pw,ph=W-PL-PR,H-PT-PB
+    def scale_x(x):
+        fraction=(x-xmin)/(xmax-xmin)
+        return PL + ((1.0-fraction) if reverse_x else fraction)*pw
+    def scale_y(y):
+        fraction=(y-ymin)/(ymax-ymin)
+        return PT + (fraction if invert_y else 1.0-fraction)*ph
+    grid=""; labels=""
+    for i in range(5):
+        x=PL+pw*i/4
+        x_val=(xmax-(xmax-xmin)*i/4) if reverse_x else (xmin+(xmax-xmin)*i/4)
+        y=PT+ph*i/4
+        y_val=(ymin+(ymax-ymin)*i/4) if invert_y else (ymax-(ymax-ymin)*i/4)
+        grid += (f'<line class="trend-chart-gridline" x1="{x:.1f}" x2="{x:.1f}" y1="{PT}" y2="{H-PB}"/>'
+                 f'<line class="trend-chart-gridline" x1="{PL}" x2="{W-PR}" y1="{y:.1f}" y2="{y:.1f}"/>')
+        labels += (f'<text class="trend-chart-axis-label" x="{x:.1f}" y="{H-31}" text-anchor="middle">{x_val:.0f}</text>'
+                   f'<text class="trend-chart-axis-label" x="5" y="{y+4:.1f}">{y_val:.0f}</text>')
+    dots=""
+    # Deterministic placement and ID-keyed identity keep same-name players separate.
+    for pid,name,x,y in clean:
+        owner=_analytics_owner_by_id.get(pid,'Free agents')
+        colour=manager_color(owner) if owner in managers else '#64748b'
+        cx,cy=scale_x(x),scale_y(y)
+        title_text=escape_html(f'{name} · {owner} · {x_label}: {x:.1f} · {y_label}: {y:.1f}')
+        dots += (f'<g class="analytics-player-dot" data-player-id="{pid}" data-player-owner="{escape_html(owner)}" tabindex="0" role="img" aria-label="{title_text}">'
+                 f'<circle class="analytics-player-circle" cx="{cx:.1f}" cy="{cy:.1f}" r="5.3" fill="{colour}" stroke="#0b1220" stroke-width="1"><title>{title_text}</title></circle>'
+                 f'<text class="trend-chart-axis-label analytics-player-dot-label" x="{cx+8:.1f}" y="{cy+3:.1f}">{escape_html(name[:19])}</text></g>')
+    axis_titles=(f'<text class="analytics-svg-axis-title" x="{PL+pw/2:.1f}" y="{H-3}" text-anchor="middle">{escape_html(x_label)}</text>'
+                 f'<text class="analytics-svg-axis-title" transform="translate(14 {PT+ph/2:.1f}) rotate(-90)" text-anchor="middle">{escape_html(y_label)}</text>')
+    note='<p class="card-description">Coloured by current fantasy owner. Grey = free agent. Hover a dot for the player and owner; filter above to isolate a squad.</p>'
+    if reverse_x:
+        note='<p class="card-description">Draft ranking runs from the largest rank number on the left to #1 on the right. Dots use current fantasy-team colours; hover for details.</p>'
+    paragraph = f'<p class="card-description">{escape_html(description)}</p>' if description else note
+    return (f'<div class="card analytics-chart-card analytics-player-scatter"><h2>{escape_html(title)}</h2>'
+            f'{paragraph}'
+            f'<div class="trend-chart-svg-wrap"><svg viewBox="0 0 {W} {H}" role="group" aria-label="{escape_html(title)}">'
+            f'{grid}{labels}{dots}{axis_titles}</svg></div><div class="analytics-player-chart-empty" hidden>No players in this chart for the selected team.</div></div>')
+
+
+
+def _player_position_totals_chart_html(rows):
+    """Current-owner-filterable breakdown; source rows are Draft-ID keyed."""
+    pos_names={'GKP':'Goalkeepers','DEF':'Defenders','MID':'Midfielders','FWD':'Forwards'}
+    positions=('GKP','DEF','MID','FWD')
+    totals={pos:0.0 for pos in positions}
+    metadata=[]
+    for p in rows:
+        pos=str(p.get('position',''))
+        if pos not in totals: continue
+        try: pid=int(p['id']); pts=float(p.get('season_points',0) or 0)
+        except (KeyError,TypeError,ValueError): continue
+        owner=_analytics_owner_by_id.get(pid,'Free agents')
+        totals[pos]+=pts
+        metadata.append((pos,owner,pts,pid))
+    largest=max([abs(v) for v in totals.values()]+[1.0])
+    bars=''.join(
+        (f'<div class="analytics-bar-row" data-player-position="{pos}"><div class="analytics-bar-label">{pos_names[pos]}</div>'
+         f'<div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:{max(2,totals[pos]/largest*100):.1f}%"></div></div>'
+         f'<div class="analytics-bar-value">{totals[pos]:.0f}</div></div>') for pos in positions
+    )
+    records=''.join(
+        f'<span hidden class="analytics-position-player" data-player-position="{pos}" data-player-owner="{escape_html(owner)}" data-player-points="{pts}" data-player-id="{pid}"></span>'
+        for pos,owner,pts,pid in metadata
+    )
+    return (f'<div class="card analytics-chart-card analytics-player-position-card"><h2>Points by position</h2>'
+            '<p class="card-description">Season points contributed by players owned by the selected managers, plus free agents when included. League totals appear with All selected.</p>'
+            f'<div class="analytics-bar-chart">{bars}</div>{records}'
+            '<div class="analytics-player-chart-empty" hidden>No eligible players for this team.</div></div>')
 
 
 def _analytics_observations():
@@ -11853,18 +11989,18 @@ def analytics_page_html():
         # Ratio is useful for spotting extreme late-round/undrafted breakouts.
         row['draft_value_ratio'] = float(row.get('blended_draft_rank', UNDRAFTED_PLAYER_RANK)) / max(float(perf_rank), 1.0)
 
-    season_pts=[(p['name'],p.get('season_points',0)) for p in player_rows]
-    form5=[(p['name'],p.get('avg_5') or 0) for p in player_rows if p.get('avg_5') is not None]
-    form10=[(p['name'],p.get('avg_10') or 0) for p in player_rows if p.get('avg_10') is not None]
-    trend=[(p['name'],p.get('trend') or 0) for p in player_rows if p.get('trend') is not None]
-    transfer_freq=[(p['name'],p.get('transfers',0)) for p in player_rows]
-    owner_count=[(p['name'],p.get('owners',0)) for p in player_rows]
-    appearances=[(p['name'],p.get('appearances',0)) for p in player_rows]
-    projections=[(p['name'],p.get('projection',0)) for p in player_rows]
+    season_pts=[(p['name'],p.get('season_points',0),p['id']) for p in player_rows]
+    form5=[(p['name'],p.get('avg_5') or 0,p['id']) for p in player_rows if p.get('avg_5') is not None]
+    form10=[(p['name'],p.get('avg_10') or 0,p['id']) for p in player_rows if p.get('avg_10') is not None]
+    trend=[(p['name'],p.get('trend') or 0,p['id']) for p in player_rows if p.get('trend') is not None]
+    transfer_freq=[(p['name'],p.get('transfers',0),p['id']) for p in player_rows]
+    owner_count=[(p['name'],p.get('owners',0),p['id']) for p in player_rows]
+    appearances=[(p['name'],p.get('appearances',0),p['id']) for p in player_rows]
+    projections=[(p['name'],p.get('projection',0),p['id']) for p in player_rows]
     _all_player_model_rows=[r for r in player_search_data if int(r.get('minutes',0) or 0)>0 or float(r.get('total_points',0) or 0)>0]
-    hot_players=[(r.get('name','Unknown'),float(r.get('hot_cold_score',0) or 0)) for r in _all_player_model_rows]
-    season_projection_players=[(r.get('name','Unknown'),float(r.get('projected_season_points',0) or 0)) for r in _all_player_model_rows]
-    value_players=[(r.get('name','Unknown'),float(r.get('player_value',0) or 0)) for r in _all_player_model_rows]
+    hot_players=[(r.get('name','Unknown'),float(r.get('hot_cold_score',0) or 0),r['id']) for r in _all_player_model_rows]
+    season_projection_players=[(r.get('name','Unknown'),float(r.get('projected_season_points',0) or 0),r['id']) for r in _all_player_model_rows]
+    value_players=[(r.get('name','Unknown'),float(r.get('player_value',0) or 0),r['id']) for r in _all_player_model_rows]
     club_strength_x={r.get('name','Unknown'):float(r.get('club_strength',0) or 0) for r in _all_player_model_rows}
     season_projection_y={r.get('name','Unknown'):float(r.get('projected_season_points',0) or 0) for r in _all_player_model_rows}
     fixture_run_x={r.get('name','Unknown'):float(r.get('fixture_run_score',1) or 1) for r in _all_player_model_rows}
@@ -11872,7 +12008,7 @@ def analytics_page_html():
     fa_points=[]
     for p in player_rows:
         if current_owner_by_player.get(int(p['id'])) in (None,"",0,"0"):
-            fa_points.append((p['name'],p.get('season_points',0)))
+            fa_points.append((p['name'],p.get('season_points',0),p['id']))
     pos_points=defaultdict(float); club_points=defaultdict(float)
     club_drafted_points=defaultdict(float); club_undrafted_points=defaultdict(float)
     club_drafted_count=defaultdict(int); club_player_count=defaultdict(int)
@@ -11919,19 +12055,19 @@ def analytics_page_html():
     club_points_per_player={club:(club_points.get(club,0)/club_player_count.get(club,1) if club_player_count.get(club,0) else 0) for club in club_all_names}
 
     # Draft-value and real-football production datasets.
-    draft_overperformers=[(p['name'],p['draft_rank_delta']) for p in player_rows if p.get('drafted')]
-    draft_underperformers=[(p['name'],p['draft_rank_delta']) for p in player_rows if p.get('drafted')]
-    undrafted_gems=[(p['name'],p.get('season_points',0)) for p in player_rows if not p.get('drafted')]
-    goals=[(p['name'],p.get('goals',0)) for p in player_rows if p.get('goals',0)>0]
-    assists_data=[(p['name'],p.get('assists',0)) for p in player_rows if p.get('assists',0)>0]
-    goal_involvements=[(p['name'],p.get('goal_involvements',0)) for p in player_rows if p.get('goal_involvements',0)>0]
-    clean_sheets=[(p['name'],p.get('clean_sheets',0)) for p in player_rows if p.get('clean_sheets',0)>0]
-    bonus_points=[(p['name'],p.get('bonus',0)) for p in player_rows if p.get('bonus',0)>0]
-    saves_data=[(p['name'],p.get('saves',0)) for p in player_rows if p.get('saves',0)>0]
-    defensive_contrib=[(p['name'],p.get('defensive_contributions',0)) for p in player_rows if p.get('defensive_contributions',0)>0]
-    points_per90=[(p['name'],p.get('points_per_90',0)) for p in player_rows if p.get('minutes',0)>=180]
-    goals_per90=[(p['name'],p.get('goals_per_90',0)) for p in player_rows if p.get('minutes',0)>=180 and p.get('goals',0)>0]
-    assists_per90=[(p['name'],p.get('assists_per_90',0)) for p in player_rows if p.get('minutes',0)>=180 and p.get('assists',0)>0]
+    draft_overperformers=[(p['name'],p['draft_rank_delta'],p['id']) for p in player_rows if p.get('drafted')]
+    draft_underperformers=[(p['name'],p['draft_rank_delta'],p['id']) for p in player_rows if p.get('drafted')]
+    undrafted_gems=[(p['name'],p.get('season_points',0),p['id']) for p in player_rows if not p.get('drafted')]
+    goals=[(p['name'],p.get('goals',0),p['id']) for p in player_rows if p.get('goals',0)>0]
+    assists_data=[(p['name'],p.get('assists',0),p['id']) for p in player_rows if p.get('assists',0)>0]
+    goal_involvements=[(p['name'],p.get('goal_involvements',0),p['id']) for p in player_rows if p.get('goal_involvements',0)>0]
+    clean_sheets=[(p['name'],p.get('clean_sheets',0),p['id']) for p in player_rows if p.get('clean_sheets',0)>0]
+    bonus_points=[(p['name'],p.get('bonus',0),p['id']) for p in player_rows if p.get('bonus',0)>0]
+    saves_data=[(p['name'],p.get('saves',0),p['id']) for p in player_rows if p.get('saves',0)>0]
+    defensive_contrib=[(p['name'],p.get('defensive_contributions',0),p['id']) for p in player_rows if p.get('defensive_contributions',0)>0]
+    points_per90=[(p['name'],p.get('points_per_90',0),p['id']) for p in player_rows if p.get('minutes',0)>=180]
+    goals_per90=[(p['name'],p.get('goals_per_90',0),p['id']) for p in player_rows if p.get('minutes',0)>=180 and p.get('goals',0)>0]
+    assists_per90=[(p['name'],p.get('assists_per_90',0),p['id']) for p in player_rows if p.get('minutes',0)>=180 and p.get('assists',0)>0]
     draft_x={p['name']:p['blended_draft_rank'] for p in player_rows if p.get('drafted')}
     mcdraft_x={p['name']:p['draft_rank'] for p in player_rows if p.get('drafted')}
     official_draft_x={p['name']:p['official_draft_rank'] for p in player_rows if p.get('official_draft_rank') is not None}
@@ -11999,22 +12135,22 @@ def analytics_page_html():
         _category_bar_chart_html('Fixture-adjusted hot players',hot_players,'Recent scoring after neutralising fixture difficulty. Positive = running above season baseline; negative = cold.',x_label='Player',y_label='Hot/cold index',limit=20),
         _category_bar_chart_html('Projected season points',season_projection_players,'Actual points plus fixture-aware projection for every remaining Premier League gameweek.',x_label='Player',y_label='Projected season points',limit=20),
         _category_bar_chart_html('Player value model',value_players,'Composite value blending season projection, next-three fixtures, blended draft pedigree and Premier League club strength.',x_label='Player',y_label='Value /100',limit=20),
-        _scatter_chart_html('Premier League club strength vs projected season points',club_strength_x,season_projection_y,x_label='Club strength /100',y_label='Projected season points'),
-        _scatter_chart_html('Next-three fixture outlook vs player value',fixture_run_x,value_y,x_label='Next-three fixture multiplier',y_label='Player value /100'),
+        _player_scatter_chart_html('Premier League club strength vs projected season points',[(r['id'],r.get('name','Unknown'),r.get('club_strength',0),r.get('projected_season_points',0)) for r in _all_player_model_rows],x_label='Club strength /100',y_label='Projected season points'),
+        _player_scatter_chart_html('Next-three fixture outlook vs player value',[(r['id'],r.get('name','Unknown'),r.get('fixture_run_score',1),r.get('player_value',0)) for r in _all_player_model_rows],x_label='Next-three fixture multiplier',y_label='Player value /100'),
         _category_bar_chart_html('Most transferred players',transfer_freq,x_label='Player',y_label='Ownership hand-offs'),
         _category_bar_chart_html('Most widely owned players',owner_count,x_label='Player',y_label='Different managers'),
         _category_bar_chart_html('Most appearances',appearances,x_label='Player',y_label='Captured GWs'),
         _category_bar_chart_html('Best available free agents',fa_points,'Unowned players ranked by season scoring.',x_label='Player',y_label='Fantasy points'),
-        _category_bar_chart_html('Points by position',list(pos_points.items()),x_label='Position',y_label='Total points',limit=10),
+        _player_position_totals_chart_html(player_rows),
         _category_bar_chart_html('Biggest draft steals',draft_overperformers,'Positive values mean the player is outperforming a 60% McDraft / 40% official FPL Draft pedigree rank.',x_label='Player',y_label='Places above blended rank',limit=20),
         _category_bar_chart_html('Biggest draft busts',draft_underperformers,'Most negative deltas against the blended McDraft + official FPL Draft pedigree rank.',reverse=True,x_label='Player',y_label='Blended rank delta',limit=20),
         _category_bar_chart_html('Undrafted gems',undrafted_gems,'Players outside the original 150-player draft ranked by fantasy points.',x_label='Player',y_label='Fantasy points',limit=20),
-        _scatter_chart_html('Blended draft pedigree vs current performance rank',draft_x,perf_y,x_label='60% McDraft + 40% FPL Draft rank',y_label='Current points rank'),
-        _scatter_chart_html('McDraft pick vs current performance rank',mcdraft_x,perf_y,x_label='Actual McDraft pick',y_label='Current points rank'),
-        _scatter_chart_html('Official FPL Draft rank vs current performance rank',official_draft_x,perf_y_official,x_label='Official FPL Draft rank',y_label='Current points rank'),
-        _scatter_chart_html('Blended draft pedigree vs fantasy points',draft_x,points_y,x_label='Blended draft rank',y_label='Fantasy points'),
-        _scatter_chart_html('Draft pick vs goal involvements',draft_x,gi_y,x_label='Blended draft rank',y_label='Goals + assists'),
-        _scatter_chart_html('Draft pick vs minutes played',draft_x,minutes_y,x_label='Blended draft rank',y_label='Minutes'),
+        _player_scatter_chart_html('Blended draft pedigree vs current performance rank',[(p['id'],p['name'],p['blended_draft_rank'],p['performance_rank']) for p in player_rows if p.get('drafted')],x_label='60% McDraft + 40% FPL Draft rank',y_label='Current points rank',reverse_x=True,fixed_x_max=151,fixed_x_min=1),
+        _player_scatter_chart_html('McDraft pick vs current performance rank',[(p['id'],p['name'],p['draft_rank'],p['performance_rank']) for p in player_rows if p.get('drafted')],x_label='Actual McDraft pick',y_label='Current points rank',reverse_x=True,fixed_x_max=DRAFTED_PLAYER_COUNT,fixed_x_min=1),
+        _player_scatter_chart_html('Official FPL Draft rank vs current performance rank',[(p['id'],p['name'],p['official_draft_rank'],p['performance_rank']) for p in player_rows if p.get('official_draft_rank') is not None and 1 <= p['official_draft_rank'] < UNDRAFTED_PLAYER_RANK],x_label='Official FPL Draft rank',y_label='Current points rank',reverse_x=True,fixed_x_max=DRAFTED_PLAYER_COUNT,fixed_x_min=1),
+        _player_scatter_chart_html('Blended draft pedigree vs fantasy points',[(p['id'],p['name'],p['blended_draft_rank'],p.get('season_points',0)) for p in player_rows if p.get('drafted')],x_label='Blended draft rank',y_label='Fantasy points',reverse_x=True,fixed_x_max=151,fixed_x_min=1),
+        _player_scatter_chart_html('Draft pick vs goal involvements',[(p['id'],p['name'],p['blended_draft_rank'],p.get('goal_involvements',0)) for p in player_rows if p.get('drafted')],x_label='Blended draft rank',y_label='Goals + assists',reverse_x=True,fixed_x_max=151,fixed_x_min=1),
+        _player_scatter_chart_html('Draft pick vs minutes played',[(p['id'],p['name'],p['blended_draft_rank'],p.get('minutes',0)) for p in player_rows if p.get('drafted')],x_label='Blended draft rank',y_label='Minutes',reverse_x=True,fixed_x_max=151,fixed_x_min=1),
         _category_bar_chart_html('Goals',goals,x_label='Player',y_label='Goals',limit=20),
         _category_bar_chart_html('Assists',assists_data,x_label='Player',y_label='Assists',limit=20),
         _category_bar_chart_html('Goal involvements',goal_involvements,x_label='Player',y_label='Goals + assists',limit=20),
@@ -12025,7 +12161,7 @@ def analytics_page_html():
         _category_bar_chart_html('Fantasy points per 90',points_per90,'Minimum 180 minutes to suppress tiny-sample nonsense.',x_label='Player',y_label='Points per 90',limit=20),
         _category_bar_chart_html('Goals per 90',goals_per90,'Minimum 180 minutes.',x_label='Player',y_label='Goals per 90',limit=20),
         _category_bar_chart_html('Assists per 90',assists_per90,'Minimum 180 minutes.',x_label='Player',y_label='Assists per 90',limit=20),
-        _scatter_chart_html('Expected vs actual goal involvements',xgi_x,actual_gi_y,x_label='Expected goal involvements',y_label='Actual goals + assists'),
+        _player_scatter_chart_html('Expected vs actual goal involvements',[(p['id'],p['name'],p.get('expected_goal_involvements',0),p.get('goal_involvements',0)) for p in player_rows if p.get('minutes',0)>=180],x_label='Expected goal involvements',y_label='Actual goals + assists'),
     ]
     club_charts=[
         _dual_category_bar_chart_html('Premier League club points: McDraft banked vs total FPL output',club_bank_vs_all,'McDraft banked points','Total FPL points','Compares points actually banked in McDraft starting XIs with the total FPL points produced by every player at that Premier League club.',x_label='Premier League club',y_label='Fantasy points',limit=20),
@@ -12139,12 +12275,15 @@ def analytics_page_html():
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('league-stats', this)">League Stats</button>
     </div>
     <div class="card analytics-manager-filter-card">
-        <div class="analytics-manager-filter-head"><div><h2>Manager filter</h2><p class="card-description">Filter manager-based Analytics charts. Player and Premier League club charts stay unchanged.</p></div><span id="analytics-manager-count" class="muted"></span></div>
+        <div class="analytics-manager-filter-head"><div><h2>Manager filter</h2><p class="card-description">Select multiple managers to filter every manager-based chart, including players currently owned in Player Analytics. Use Top 5, All or None for quick selections. Free agents affect Player Analytics only; Premier League club charts remain league-wide.</p></div><span id="analytics-manager-count" class="muted"></span></div>
         <div id="analytics-manager-chips" class="chart-chip-row analytics-manager-chip-row"></div>
         <label class="analytics-average-toggle"><input id="analytics-average-toggle" type="checkbox" onchange="toggleAnalyticsLeagueAverage(this.checked)"> Compare with league average</label>
     </div>
     <div class="analytics-subpage active" id="analytics-sub-insights"><div class="card analytics-hero"><h2>McDraft Insights</h2><p class="card-description">Generated from the latest captured league, squad, fixture and transfer data.</p><div class="analytics-insight-grid">{insights}</div></div></div>
-    <div class="analytics-subpage" id="analytics-sub-player"><div class="analytics-chart-grid">{''.join(player_charts)}</div></div>
+    <div class="analytics-subpage" id="analytics-sub-player">
+        <div class="analytics-player-summary"><p class="card-description">Use the shared Manager filter above to choose one or more current fantasy owners. Player dots and bars retain each team’s colour; free agents are grey. League-wide positional-scarcity comparisons remain unchanged.</p><span id="analytics-player-count" class="muted" aria-live="polite"></span></div>
+        <div class="analytics-chart-grid">{''.join(player_charts)}</div>
+    </div>
     <div class="analytics-subpage" id="analytics-sub-club"><div class="analytics-chart-grid">{''.join(club_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-squad-strength"><div class="analytics-chart-grid">{''.join(squad_strength_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-squad-build"><div class="analytics-chart-grid">{''.join(squad_construction_charts)}</div></div>
@@ -14464,6 +14603,19 @@ tbody tr:hover {
 .analytics-manager-filter-head h2 { margin-bottom:4px; }
 .analytics-manager-chip-row { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
 .analytics-manager-hidden { display:none !important; }
+.analytics-manager-filter-card[hidden] { display:none !important; }
+.analytics-player-summary { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin:0 0 15px; }
+.analytics-player-summary p { margin:0; max-width:760px; }
+#analytics-manager-chips .chart-chip.active { border-color:var(--chip-color,var(--accent)); box-shadow:inset 0 0 0 1px var(--chip-color,var(--accent)); }
+.analytics-player-bar[hidden],.analytics-player-chart-empty[hidden],.analytics-player-dot[hidden] { display:none !important; }
+.analytics-player-dot { cursor:crosshair; outline:none; }
+.analytics-player-dot circle { opacity:.78; transition:opacity .13s,r .13s; }
+.analytics-player-dot:hover circle,.analytics-player-dot:focus circle { opacity:1; stroke:white; stroke-width:2.4; r:8; }
+.analytics-player-dot-label { display:none; pointer-events:none; paint-order:stroke; stroke:#0b1220; stroke-width:3px; stroke-linejoin:round; fill:#f8fafc; font-weight:850; }
+.analytics-player-dot:hover .analytics-player-dot-label,.analytics-player-dot:focus .analytics-player-dot-label { display:block; }
+.analytics-player-scatter.owner-filtered .analytics-player-dot-label { display:block; font-size:9px; }
+.analytics-player-scatter.owner-filtered .analytics-player-circle { opacity:1; r:7; }
+
 .analytics-bar-chart { display:flex; flex-direction:column; gap:9px; margin-top:14px; }
 .analytics-bar-row { display:grid; grid-template-columns:minmax(100px,160px) minmax(80px,1fr) 58px; gap:10px; align-items:center; }
 .analytics-bar-label { font-size:12px; font-weight:750; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -14744,7 +14896,84 @@ function resizeCharts() {
 }
 
 
-const analyticsManagerState = { visible: new Set() };
+// Player Analytics uses the exact same Manager-filter state and chip controls
+// as the rest of Analytics. A separate Free agents chip only affects players.
+const analyticsManagerState = { visible: new Set(), includeFreeAgents: true };
+
+function applyPlayerAnalyticsFilter(){
+    const page=document.getElementById('analytics-sub-player');
+    if(!page) return;
+    const selected=analyticsManagerState.visible;
+    const includeFreeAgents=analyticsManagerState.includeFreeAgents;
+    const allOwners=selected.size===MANAGER_ORDER.length && includeFreeAgents;
+    const onlyOneOwner=(selected.size===1 && !includeFreeAgents) ||
+                       (selected.size===0 && includeFreeAgents);
+    function selectedOwner(owner){
+        return selected.has(owner) || (owner==='Free agents' && includeFreeAgents);
+    }
+    page.querySelectorAll('.analytics-player-scatter').forEach(function(card){
+        let shown=0;
+        // Labels for every dot are useful for one team, but messy for Top 5.
+        card.classList.toggle('owner-filtered',onlyOneOwner);
+        card.querySelectorAll('.analytics-player-dot').forEach(function(dot){
+            const visible=selectedOwner(dot.getAttribute('data-player-owner'));
+            dot.hidden=!visible;
+            dot.setAttribute('aria-hidden',String(!visible));
+            if(visible) shown++;
+        });
+        const empty=card.querySelector('.analytics-player-chart-empty');
+        if(empty) empty.hidden=shown!==0;
+    });
+    page.querySelectorAll('.analytics-player-bar-card').forEach(function(card){
+        const cap=Math.max(1,Number(card.getAttribute('data-player-limit')||20));
+        const matching=Array.from(card.querySelectorAll('.analytics-player-bar')).filter(function(row){
+            return selectedOwner(row.getAttribute('data-player-owner'));
+        });
+        const visible=matching.slice(0,cap);
+        const scale=Math.max(1,...visible.map(function(row){return Math.abs(Number(row.getAttribute('data-player-value'))||0);}));
+        card.querySelectorAll('.analytics-player-bar').forEach(function(row){row.hidden=!visible.includes(row);});
+        visible.forEach(function(row){
+            const fill=row.querySelector('.analytics-bar-fill');
+            if(fill) fill.style.width=Math.max(2,Math.abs(Number(row.getAttribute('data-player-value'))||0)/scale*100).toFixed(1)+'%';
+        });
+        const empty=card.querySelector('.analytics-player-chart-empty');
+        if(empty) empty.hidden=matching.length!==0;
+    });
+    // Recalculate positional totals using precisely the same owner selection.
+    page.querySelectorAll('.analytics-player-position-card').forEach(function(card){
+        const totals={'GKP':0,'DEF':0,'MID':0,'FWD':0};
+        let shown=0;
+        card.querySelectorAll('.analytics-position-player').forEach(function(record){
+            if(!selectedOwner(record.getAttribute('data-player-owner'))) return;
+            const pos=record.getAttribute('data-player-position');
+            if(Object.hasOwn(totals,pos)) totals[pos]+=Number(record.getAttribute('data-player-points'))||0;
+            shown++;
+        });
+        const maximum=Math.max(1,...Object.values(totals));
+        card.querySelectorAll('[data-player-position].analytics-bar-row').forEach(function(row){
+            const pos=row.getAttribute('data-player-position');
+            const total=totals[pos]||0;
+            const fill=row.querySelector('.analytics-bar-fill');
+            if(fill){
+                fill.style.width=(total>0 ? Math.max(2,total/maximum*100) : 0).toFixed(1)+'%';
+                const singleOwner=selected.size===1 && !includeFreeAgents ? Array.from(selected)[0] : null;
+                fill.style.background=singleOwner ? (MANAGER_COLORS[singleOwner]||'') :
+                    (selected.size===0 && includeFreeAgents ? '#64748b' : '');
+            }
+            const value=row.querySelector('.analytics-bar-value');
+            if(value) value.textContent=total.toFixed(0);
+        });
+        const empty=card.querySelector('.analytics-player-chart-empty');
+        if(empty) empty.hidden=shown!==0;
+    });
+    const count=document.getElementById('analytics-player-count');
+    if(count){
+        const roster=Array.from(page.querySelectorAll('.analytics-player-bar, .analytics-player-dot'));
+        const owned=new Set(roster.filter(function(el){return selectedOwner(el.getAttribute('data-player-owner'));})
+            .map(function(el){return el.getAttribute('data-player-id');}));
+        count.textContent=owned.size+' players in charts'+(allOwners?' (all owners)':'');
+    }
+}
 
 async function shareMcDraftCard(button){
     const text=(button && button.dataset && button.dataset.shareText) ? button.dataset.shareText : '';
@@ -14758,6 +14987,7 @@ async function shareMcDraftCard(button){
 
 function initAnalyticsManagerFilter() {
     analyticsManagerState.visible = new Set(MANAGER_ORDER);
+    analyticsManagerState.includeFreeAgents = true;
     renderAnalyticsManagerChips();
     applyAnalyticsManagerFilter();
 }
@@ -14765,10 +14995,13 @@ function initAnalyticsManagerFilter() {
 function setAnalyticsManagerPreset(preset) {
     if (preset === "top5") {
         analyticsManagerState.visible = new Set(MANAGER_ORDER.slice(0, Math.min(5, MANAGER_ORDER.length)));
+        analyticsManagerState.includeFreeAgents = false;
     } else if (preset === "all") {
         analyticsManagerState.visible = new Set(MANAGER_ORDER);
+        analyticsManagerState.includeFreeAgents = true;
     } else if (preset === "none") {
         analyticsManagerState.visible = new Set();
+        analyticsManagerState.includeFreeAgents = false;
     }
     renderAnalyticsManagerChips();
     applyAnalyticsManagerFilter();
@@ -14777,6 +15010,12 @@ function setAnalyticsManagerPreset(preset) {
 function toggleAnalyticsManager(manager) {
     if (analyticsManagerState.visible.has(manager)) analyticsManagerState.visible.delete(manager);
     else analyticsManagerState.visible.add(manager);
+    renderAnalyticsManagerChips();
+    applyAnalyticsManagerFilter();
+}
+
+function toggleAnalyticsFreeAgents() {
+    analyticsManagerState.includeFreeAgents = !analyticsManagerState.includeFreeAgents;
     renderAnalyticsManagerChips();
     applyAnalyticsManagerFilter();
 }
@@ -14799,11 +15038,22 @@ function renderAnalyticsManagerChips() {
         button.className = "chart-chip" + (analyticsManagerState.visible.has(manager) ? " active" : "");
         button.style.setProperty("--chip-color", MANAGER_COLORS[manager]);
         button.textContent = manager;
+        button.setAttribute('aria-pressed',String(analyticsManagerState.visible.has(manager)));
         button.addEventListener("click", function(){ toggleAnalyticsManager(manager); });
         container.appendChild(button);
     });
+    const freeAgents = document.createElement('button');
+    freeAgents.type = 'button';
+    freeAgents.className = 'chart-chip' + (analyticsManagerState.includeFreeAgents ? ' active' : '');
+    freeAgents.style.setProperty('--chip-color','#64748b');
+    freeAgents.textContent = 'Free agents';
+    freeAgents.title = 'Include free agents in Player Analytics (does not affect other charts)';
+    freeAgents.setAttribute('aria-pressed',String(analyticsManagerState.includeFreeAgents));
+    freeAgents.addEventListener('click',toggleAnalyticsFreeAgents);
+    container.appendChild(freeAgents);
     const count = document.getElementById("analytics-manager-count");
-    if (count) count.textContent = analyticsManagerState.visible.size + " of " + MANAGER_ORDER.length + " managers selected";
+    if (count) count.textContent = analyticsManagerState.visible.size + " of " + MANAGER_ORDER.length +
+        " managers selected" + (analyticsManagerState.includeFreeAgents ? ' · free agents included in Player Analytics' : '');
 }
 
 function applyAnalyticsManagerFilter() {
@@ -14811,6 +15061,7 @@ function applyAnalyticsManagerFilter() {
         const manager = el.getAttribute("data-analytics-manager");
         el.classList.toggle("analytics-manager-hidden", !analyticsManagerState.visible.has(manager));
     });
+    applyPlayerAnalyticsFilter();
 }
 
 function toggleAnalyticsLeagueAverage(enabled) {
@@ -14940,6 +15191,8 @@ function showAnalyticsSubtab(name, button) {
     var target = document.getElementById('analytics-sub-' + name);
     if (target) target.classList.add('active');
     if (button) button.classList.add('active');
+    // The shared Manager filter stays visible on every Analytics subtab.
+    if(name==='player') applyPlayerAnalyticsFilter();
 }
 
 function showPage(
