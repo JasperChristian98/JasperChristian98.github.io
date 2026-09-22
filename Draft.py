@@ -10156,8 +10156,7 @@ def fixtures_page_html():
         <div class="analytics-insight"><span>Kindest upcoming run</span><strong>{escape_html(easiest[1])}</strong><small>{easiest[0]:.2f}/5 average difficulty</small></div>
     </div>'''
     return f'''{summary}
-        <div class="card"><h2>Upcoming fixtures</h2><p class="card-description">Difficulty is GW-specific on a 1–5 scale: opponent McDraft strength is blended with the real Premier League fixtures faced by both projected starting XIs. A kinder PL slate for your players lowers the difficulty; a kinder slate for your opponent raises it. Rivalries are flagged automatically.</p>{fixture_sections or '<div class="notice">No future fixtures available.</div>'}</div>
-        <div class="card"><h2>Upcoming run · next five</h2><p class="card-description">Lower is kinder. Higher is filthier.</p><div class="table-wrap fixture-run-table"><table><thead><tr><th>Manager</th>{head}<th>Run</th></tr></thead><tbody>{rows}</tbody></table></div></div>'''
+        <div class="card"><h2>Upcoming run · next five</h2><p class="card-description">The only fixture planner view: five upcoming McDraft gameweeks, with GW-specific difficulty already adjusted for the real Premier League schedules faced by both projected XIs. Lower is kinder. Higher is filthier.</p><div class="table-wrap fixture-run-table"><table><thead><tr><th>McDraft</th>{head}<th>Run</th></tr></thead><tbody>{rows}</tbody></table></div></div>'''
 
 
 # ---------------------------- Trade targets ----------------------------
@@ -11253,9 +11252,9 @@ def analytics_page_html():
         _scatter_chart_html('Scoring vs league points',points_for,league_points,x_label='Points scored',y_label='League points'),
         _scatter_chart_html('Scoring vs luck',points_for,luck_index,x_label='Points scored',y_label='Luck Index'),
     ]
-    return f'''<div class="card analytics-hero"><h2>McDraft Insights</h2><p class="card-description">Generated from the latest captured league, squad, fixture and transfer data.</p><div class="analytics-insight-grid">{insights}</div></div>
-    <div class="analytics-subtabs" role="tablist" aria-label="Analytics sections">
-        <button class="analytics-subtab active" type="button" onclick="showAnalyticsSubtab('player', this)">Player Analytics <span>{len(player_charts)}</span></button>
+    return f'''<div class="analytics-subtabs" role="tablist" aria-label="Analytics sections">
+        <button class="analytics-subtab active" type="button" onclick="showAnalyticsSubtab('insights', this)">McDraft Insights <span>{len(insight_rows[:13])}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('player', this)">Player Analytics <span>{len(player_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('club', this)">Club Analytics <span>{len(club_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-strength', this)">Squad Strength <span>{len(squad_strength_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-build', this)">Squad Construction <span>{len(squad_construction_charts)}</span></button>
@@ -11269,7 +11268,8 @@ def analytics_page_html():
         <div id="analytics-manager-chips" class="chart-chip-row analytics-manager-chip-row"></div>
         <label class="analytics-average-toggle"><input id="analytics-average-toggle" type="checkbox" onchange="toggleAnalyticsLeagueAverage(this.checked)"> Compare with league average</label>
     </div>
-    <div class="analytics-subpage active" id="analytics-sub-player"><div class="analytics-chart-grid">{''.join(player_charts)}</div></div>
+    <div class="analytics-subpage active" id="analytics-sub-insights"><div class="card analytics-hero"><h2>McDraft Insights</h2><p class="card-description">Generated from the latest captured league, squad, fixture and transfer data.</p><div class="analytics-insight-grid">{insights}</div></div></div>
+    <div class="analytics-subpage" id="analytics-sub-player"><div class="analytics-chart-grid">{''.join(player_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-club"><div class="analytics-chart-grid">{''.join(club_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-squad-strength"><div class="analytics-chart-grid">{''.join(squad_strength_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-squad-build"><div class="analytics-chart-grid">{''.join(squad_construction_charts)}</div></div>
@@ -11405,10 +11405,17 @@ def draft_centre_page_html():
         _official = f"#{int(row['official_rank'])}" if row.get('official_rank') is not None else '—'
         board_rows += f'''<tr><td><strong>#{row['pick']}</strong></td><td>{_official}</td><td>{row['blended_rank']:.0f}</td><td>R{row['round']}</td><td>{escape_html(row['name'])}</td><td>{escape_html(row['position'])}</td><td>{escape_html(row['club'])}</td><td>{escape_html(row['manager'])}</td><td>{row['points']:.0f}</td><td>{escape_html(status)}</td></tr>'''
 
-    return f'''<div class="card analytics-hero"><h2>Draft Night, Revisited</h2><p class="card-description">The original 150 picks versus what actually happened afterwards, now shown alongside the official FPL Draft rank. Historical McDraft picks stay untouched; blended pedigree is used only for modelling.</p><div class="analytics-insight-grid">{insight_html}</div></div>
-    <div class="analytics-chart-grid">{charts}</div>
-    <div class="card"><h2>Redraft Today — Top 40</h2><p class="card-description">If McDraft drafted again today using season FPL points as the board.</p><div class="table-wrap"><table><thead><tr><th>Redraft</th><th>Player</th><th>Pos</th><th>Club</th><th>Pts</th><th>Original</th><th>Value Δ</th></tr></thead><tbody>{redraft_rows}</tbody></table></div></div>
-    <div class="card"><h2>Original Draft Board</h2><p class="card-description">Every original selection, current output and where that asset lives now.</p><div class="table-wrap"><table><thead><tr><th>McDraft Pick</th><th>FPL Rank</th><th>Blend</th><th>Round</th><th>Player</th><th>Pos</th><th>Club</th><th>Drafted by</th><th>Pts</th><th>Status</th></tr></thead><tbody>{board_rows}</tbody></table></div></div>'''
+    return f'''<div class="analytics-subtabs draft-centre-tabs" role="tablist" aria-label="Draft Centre sections">
+        <button class="analytics-subtab draft-centre-tab active" type="button" onclick="showDraftCentreSubtab('overview',this)">Draft Overview</button>
+        <button class="analytics-subtab draft-centre-tab" type="button" onclick="showDraftCentreSubtab('redraft',this)">Redraft Today</button>
+        <button class="analytics-subtab draft-centre-tab" type="button" onclick="showDraftCentreSubtab('board',this)">Original Draft Board</button>
+    </div>
+    <div class="draft-centre-subpage active" id="draft-centre-sub-overview">
+        <div class="card analytics-hero"><h2>Draft Night, Revisited</h2><p class="card-description">The original 150 picks versus what actually happened afterwards, now shown alongside the official FPL Draft rank. Historical McDraft picks stay untouched; blended pedigree is used only for modelling.</p><div class="analytics-insight-grid">{insight_html}</div></div>
+        <div class="analytics-chart-grid">{charts}</div>
+    </div>
+    <div class="draft-centre-subpage" id="draft-centre-sub-redraft"><div class="card"><h2>Redraft Today — Top 40</h2><p class="card-description">If McDraft drafted again today using season FPL points as the board.</p><div class="table-wrap"><table><thead><tr><th>Redraft</th><th>Player</th><th>Pos</th><th>Club</th><th>Pts</th><th>Original</th><th>Value Δ</th></tr></thead><tbody>{redraft_rows}</tbody></table></div></div></div>
+    <div class="draft-centre-subpage" id="draft-centre-sub-board"><div class="card"><h2>Original Draft Board</h2><p class="card-description">Every original selection, current output and where that asset lives now.</p><div class="table-wrap"><table><thead><tr><th>McDraft Pick</th><th>FPL Rank</th><th>Blend</th><th>Round</th><th>Player</th><th>Pos</th><th>Club</th><th>Drafted by</th><th>Pts</th><th>Status</th></tr></thead><tbody>{board_rows}</tbody></table></div></div></div>'''
 
 # ============================================================
 # PAGE DATA
@@ -13532,6 +13539,8 @@ tbody tr:hover {
 .analytics-subtab { border:1px solid var(--border); background:#0f172a; color:var(--muted); border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:800; white-space:nowrap; }
 .analytics-subtab span { color:var(--accent); margin-left:5px; font-size:11px; }
 .analytics-subtab.active { color:white; border-color:var(--accent); background:#172033; box-shadow:inset 0 -2px 0 var(--accent); }
+.player-subpage,.myteam-subpage,.draft-centre-subpage { display:none; }
+.player-subpage.active,.myteam-subpage.active,.draft-centre-subpage.active { display:block; }
 .analytics-subpage { display:none; }
 .analytics-subpage.active { display:block; }
 .overview-subpage { display:none; }
@@ -13689,7 +13698,7 @@ function buildDashboardSearchIndex(){
     (playerSearchData||[]).forEach(p=>results.push({type:'player',label:p.name,value:String(p.id),meta:(p.position||'')+' · '+(p.team||'')}));
 
     let idx=0;
-    document.querySelectorAll('.analytics-subtab').forEach(btn=>{
+    document.querySelectorAll('#page-analytics .analytics-subtab').forEach(btn=>{
         const label=(btn.textContent||'').replace(/\s+\d+\s*$/,'').trim();
         const m=(btn.getAttribute('onclick')||'').match(/showAnalyticsSubtab\('([^']+)'/);
         if(label&&m) results.push({type:'analytics-subtab',label:label,value:m[1],meta:'Analytics section'});
@@ -13718,7 +13727,7 @@ function globalSearchSelect(type,value,label,pageName,subtab){
     if(type==='player'){showPage('players');const p=document.getElementById('player-search');if(p){p.value=label;filterPlayers();}return;}
     if(type==='analytics-subtab'){
         showPage('analytics');
-        const btn=Array.from(document.querySelectorAll('.analytics-subtab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+value+"'"));
+        const btn=Array.from(document.querySelectorAll('#page-analytics .analytics-subtab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+value+"'"));
         showAnalyticsSubtab(value,btn||null);
         return;
     }
@@ -13726,7 +13735,7 @@ function globalSearchSelect(type,value,label,pageName,subtab){
         showPage(pageName||'overview');
         if((pageName||'overview')==='overview' && typeof showOverviewSubtab==='function') showOverviewSubtab('intelligence',document.querySelectorAll('.overview-tab')[1]);
         if(pageName==='analytics'&&subtab){
-            const btn=Array.from(document.querySelectorAll('.analytics-subtab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+subtab+"'"));
+            const btn=Array.from(document.querySelectorAll('#page-analytics .analytics-subtab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+subtab+"'"));
             showAnalyticsSubtab(subtab,btn||null);
         }
         setTimeout(()=>{const el=document.getElementById(value); if(el){el.scrollIntoView({behavior:'smooth',block:'start'}); el.classList.add('search-hit'); setTimeout(()=>el.classList.remove('search-hit'),1600);}},60);
@@ -13887,9 +13896,38 @@ function showOverviewSubtab(name, button) {
     }
 }
 
+function showPlayerSubtab(name, button) {
+    document.querySelectorAll('.player-subpage').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.player-page-tab').forEach(el => el.classList.remove('active'));
+    const target=document.getElementById('player-sub-'+name); if(target) target.classList.add('active');
+    if(button) button.classList.add('active');
+    if(name==='directory' && typeof filterPlayers==='function') requestAnimationFrame(filterPlayers);
+}
+
+function showMyTeamSubtab(name, button) {
+    document.querySelectorAll('.myteam-subpage').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.myteam-tab').forEach(el => el.classList.remove('active'));
+    const target=document.getElementById('myteam-sub-'+name); if(target) target.classList.add('active');
+    if(button) button.classList.add('active');
+    if(name==='stats' && typeof renderMyTeamStatsCharts==='function') requestAnimationFrame(renderMyTeamStatsCharts);
+    if(name==='targets') requestAnimationFrame(()=>{
+        if(typeof renderMyTeamPositionNeeds==='function') renderMyTeamPositionNeeds();
+        if(typeof renderMyTeamFreeAgents==='function') renderMyTeamFreeAgents();
+        if(typeof renderMyTeamTradeTargets==='function') renderMyTeamTradeTargets();
+        if(typeof renderMyTeamSellHigh==='function') renderMyTeamSellHigh();
+    });
+}
+
+function showDraftCentreSubtab(name, button) {
+    document.querySelectorAll('.draft-centre-subpage').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.draft-centre-tab').forEach(el => el.classList.remove('active'));
+    const target=document.getElementById('draft-centre-sub-'+name); if(target) target.classList.add('active');
+    if(button) button.classList.add('active');
+}
+
 function showAnalyticsSubtab(name, button) {
     document.querySelectorAll('.analytics-subpage').forEach(function(page) { page.classList.remove('active'); });
-    document.querySelectorAll('.analytics-subtab').forEach(function(tab) { tab.classList.remove('active'); });
+    document.querySelectorAll('#page-analytics .analytics-subtab').forEach(function(tab) { tab.classList.remove('active'); });
     var target = document.getElementById('analytics-sub-' + name);
     if (target) target.classList.add('active');
     if (button) button.classList.add('active');
@@ -15756,7 +15794,7 @@ __CSS__
         <section class="page active" id="page-overview">
             <div class="page-heading"><h1>League Overview</h1><p>Standings and fixtures, or the full McDraft numbers behind them.</p></div>
             <div class="analytics-subtabs overview-tabs" role="tablist" aria-label="Overview sections">
-                <button type="button" class="analytics-subtab overview-tab active" onclick="showOverviewSubtab('standings',this)" aria-selected="true">Tables & Fixtures</button>
+                <button type="button" class="analytics-subtab overview-tab active" onclick="showOverviewSubtab('standings',this)" aria-selected="true">McDraft Tables & Fixtures</button>
                 <button type="button" class="analytics-subtab overview-tab" onclick="showOverviewSubtab('intelligence',this)" aria-selected="false">Predictions & Analytics</button>
             </div>
             <div class="overview-subpage active" id="overview-sub-standings">
@@ -15835,123 +15873,52 @@ __CSS__
              MY TEAM
              ================================================== -->
 
-        <section
-            class="page"
-            id="page-myteam"
-        >
-
-            <div class="page-heading">
-
-                <h1>
-                    My Team
-                </h1>
-
-                <p>
-                    Your squad, your gameweek-by-gameweek picks,
-                    and how your season is trending.
-                </p>
-
-            </div>
-
+        <section class="page" id="page-myteam">
+            <div class="page-heading"><h1>My Team</h1><p>Your squad, targets, decisions and season trends.</p></div>
 
             <div class="card">
                 <div class="my-team-selector-row">
-                    <div><h2>My Team</h2><p class="card-description">Choose your team to see your squad and personal league stats.</p></div>
+                    <div><h2>My Team</h2><p class="card-description">Choose your team, then move between squad, targets and stats without losing the selection.</p></div>
                     <label class="my-team-select-wrap" for="my-team-select"><span>Selected team</span><select id="my-team-select" onchange="changeMyTeam()">__MY_TEAM_OPTIONS__</select></label>
                 </div>
                 <div id="my-team-cards">__MY_TEAM_CARDS__</div>
             </div>
 
+            <div class="analytics-subtabs myteam-tabs" role="tablist" aria-label="My Team sections">
+                <button type="button" class="analytics-subtab myteam-tab active" onclick="showMyTeamSubtab('squad',this)">Squad</button>
+                <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('targets',this)">Targets</button>
+                <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('stats',this)">Stats</button>
+            </div>
 
-            <div class="card">
-
-                <h2>
-                    Squad By Gameweek
-                </h2>
-
-                <p class="card-description">
-                    Your starting XI and bench for every captured gameweek —
-                    flip back through the season to see who you picked.
-                </p>
-
-                <div id="myteam-squad-wrap"></div>
-
-                <div class="results-navigation">
-
-                    <button
-                        class="results-button"
-                        id="myteam-squad-prev"
-                        onclick="changeMyTeamSquadGw(-1)"
-                    >
-                        ← Previous
-                    </button>
-
-                    <div
-                        class="results-gw-display"
-                        id="myteam-squad-gw-display"
-                    >
-                        —
+            <div class="myteam-subpage active" id="myteam-sub-squad">
+                <div class="card">
+                    <h2>Squad By Gameweek</h2>
+                    <p class="card-description">Your starting XI and bench for every captured gameweek — flip back through the season to see who you picked.</p>
+                    <div id="myteam-squad-wrap"></div>
+                    <div class="results-navigation">
+                        <button class="results-button" id="myteam-squad-prev" onclick="changeMyTeamSquadGw(-1)">← Previous</button>
+                        <div class="results-gw-display" id="myteam-squad-gw-display">—</div>
+                        <button class="results-button" id="myteam-squad-next" onclick="changeMyTeamSquadGw(1)">Next →</button>
                     </div>
-
-                    <button
-                        class="results-button"
-                        id="myteam-squad-next"
-                        onclick="changeMyTeamSquadGw(1)"
-                    >
-                        Next →
-                    </button>
-
                 </div>
-
             </div>
 
-
-            <div class="dashboard-grid">
-
-                <div class="card full">
-                    <h2>Positional Need</h2>
-                    <p class="card-description">How urgently this squad needs help at each position, graded against the other McDraft teams. Red means a genuine weakness; green means you are already stacked. This directly influences trade-target ranking.</p>
-                    <div id="myteam-position-needs"></div>
+            <div class="myteam-subpage" id="myteam-sub-targets">
+                <div class="dashboard-grid">
+                    <div class="card full"><h2>Positional Need</h2><p class="card-description">How urgently this squad needs help at each position, graded against the other McDraft teams. This directly influences trade-target ranking.</p><div id="myteam-position-needs"></div></div>
+                    <div class="card"><h2>Free Agents Who Could Improve You</h2><p class="card-description">Like-for-like recommendations from the current free-agent pool, ranked using player value, form, fixture run and positional need.</p><div id="myteam-free-agents"></div></div>
+                    <div class="card full"><h2>Realistic Transfer Targets</h2><p class="card-description">Owned players who fit your weak slots and are plausible trade targets, with fixture and club-strength context included.</p><div id="myteam-trade-targets"></div></div>
+                    <div class="card full"><h2>Sell High / Move-On Candidates</h2><p class="card-description">Assets whose fixture-adjusted output is running hot, whose fixtures worsen, or whose position is already a strength.</p><div id="myteam-sell-high"></div></div>
                 </div>
-
-                <div class="card">
-                    <h2>Free Agents Who Could Improve You</h2>
-                    <p class="card-description">
-                        Like-for-like recommendations from the current free-agent pool,
-                        ranked by season points and recent form.
-                    </p>
-                    <div id="myteam-free-agents"></div>
-                </div>
-
-                <div class="card full">
-                    <h2>Realistic Transfer Targets</h2>
-                    <p class="card-description">Players owned elsewhere who fit your squad, improve a weak slot and are not completely deranged trade targets. Club concentration is penalised so you do not accidentally build Aston Villa in a fake moustache.</p>
-                    <div id="myteam-trade-targets"></div>
-                </div>
-
-                <div class="card full">
-                    <h2>Sell High / Move-On Candidates</h2>
-                    <p class="card-description">Assets whose recent fixture-adjusted output has run hot, whose upcoming fixtures are less friendly, or whose position is already a strength. These are conversation starters, not an instruction to flog your best player for a packet of crisps.</p>
-                    <div id="myteam-sell-high"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Head-to-Head Record</h2>
-                    <div id="myteam-h2h-record"></div>
-                </div>
-
-                <div class="card trend-chart-card">
-                    <h2>Score By Gameweek</h2>
-                    <div class="trend-chart-svg-wrap" id="myteam-chart-scores"></div>
-                </div>
-
-                <div class="card trend-chart-card">
-                    <h2>League Position By Gameweek</h2>
-                    <div class="trend-chart-svg-wrap" id="myteam-chart-rank"></div>
-                </div>
-
             </div>
 
+            <div class="myteam-subpage" id="myteam-sub-stats">
+                <div class="dashboard-grid">
+                    <div class="card"><h2>Head-to-Head Record</h2><div id="myteam-h2h-record"></div></div>
+                    <div class="card trend-chart-card"><h2>Score By Gameweek</h2><div class="trend-chart-svg-wrap" id="myteam-chart-scores"></div></div>
+                    <div class="card trend-chart-card"><h2>League Position By Gameweek</h2><div class="trend-chart-svg-wrap" id="myteam-chart-rank"></div></div>
+                </div>
+            </div>
         </section>
 
 
@@ -16156,7 +16123,7 @@ __CSS__
              FIXTURES
              ================================================== -->
         <section class="page" id="page-fixtures">
-            <div class="page-heading"><h1>Fixtures</h1><p>Upcoming schedule, rivalry flags and the runs that look suspiciously pleasant or absolutely horrible.</p></div>
+            <div class="page-heading"><h1>Fixtures</h1><p>Hardest and kindest upcoming runs, then the next five McDraft fixtures in one compact matrix.</p></div>
             __FIXTURES_PAGE__
         </section>
 
@@ -16171,111 +16138,36 @@ __CSS__
         >
 
             <div class="page-heading">
-
-                <h1>
-                    Players
-                </h1>
-
-                <p>
-                    Season leaders, form and player ownership history.
-                </p>
-
+                <h1>Players</h1>
+                <p>Season leaders, form, fixture-aware player intelligence and the full player pool.</p>
             </div>
 
-
-            <div class="card">
-
-                <h2>
-                    Top Players
-                </h2>
-
-                <div class="top-player-grid">
-
-                    __TOP_PLAYER_CARDS__
-
-                </div>
-
+            <div class="analytics-subtabs player-page-tabs" role="tablist" aria-label="Player sections">
+                <button type="button" class="analytics-subtab player-page-tab active" onclick="showPlayerSubtab('leaders',this)">Leaders &amp; Form</button>
+                <button type="button" class="analytics-subtab player-page-tab" onclick="showPlayerSubtab('directory',this)">Player Directory</button>
             </div>
 
-
-            <div class="card">
-
-                <h2>
-                    Top Players By Season Points
-                </h2>
-
-                __TOP_PLAYERS_TABLE__
-
+            <div class="player-subpage active" id="player-sub-leaders">
+                <div class="card"><h2>Top Players</h2><div class="top-player-grid">__TOP_PLAYER_CARDS__</div></div>
+                <div class="card"><h2>Top Players By Season Points</h2>__TOP_PLAYERS_TABLE__</div>
+                <div class="card"><h2>Player Form</h2>__FORM_TABLE__</div>
             </div>
 
-
-            <div class="card">
-
-                <h2>
-                    Player Form
-                </h2>
-
-                __FORM_TABLE__
-
-            </div>
-
-
-            <div class="card">
-
-                <div class="player-directory-heading">
-                    <div>
-                        <h2>Player Directory</h2>
-                        <p class="card-description">
-                            Search the full player pool and filter by position,
-                            Premier League club or your draft fantasy team.
-                        </p>
+            <div class="player-subpage" id="player-sub-directory">
+                <div class="card">
+                    <div class="player-directory-heading">
+                        <div><h2>Player Directory</h2><p class="card-description">Search the full player pool and filter by position, Premier League club or your draft fantasy team.</p></div>
+                        <div class="player-directory-count" id="player-directory-count"></div>
                     </div>
-                    <div class="player-directory-count" id="player-directory-count"></div>
+                    <div class="player-filter-grid">
+                        <input type="text" id="player-search" class="player-search-box" placeholder="Search player..." oninput="filterPlayers()" />
+                        <select id="player-position-filter" class="player-filter" onchange="filterPlayers()"><option value="">All positions</option><option value="GKP">Goalkeepers</option><option value="DEF">Defenders</option><option value="MID">Midfielders</option><option value="FWD">Forwards</option></select>
+                        <select id="player-club-filter" class="player-filter" onchange="filterPlayers()"><option value="">All clubs</option>__PLAYER_CLUB_OPTIONS__</select>
+                        <select id="player-fantasy-filter" class="player-filter" onchange="filterPlayers()"><option value="">All fantasy teams</option><option value="Free Agent">Free Agents</option>__PLAYER_FANTASY_OPTIONS__</select>
+                        <select id="player-sort" class="player-filter" onchange="filterPlayers()"><option value="points">Season points</option><option value="form">5 GW form</option><option value="goals">Goals</option><option value="assists">Assists</option><option value="name">Name</option></select>
+                    </div>
+                    <div id="player-search-results" class="player-search-results player-directory-results" style="display:block;"></div>
                 </div>
-
-                <div class="player-filter-grid">
-                    <input
-                        type="text"
-                        id="player-search"
-                        class="player-search-box"
-                        placeholder="Search player..."
-                        oninput="filterPlayers()"
-                    />
-
-                    <select id="player-position-filter" class="player-filter" onchange="filterPlayers()">
-                        <option value="">All positions</option>
-                        <option value="GKP">Goalkeepers</option>
-                        <option value="DEF">Defenders</option>
-                        <option value="MID">Midfielders</option>
-                        <option value="FWD">Forwards</option>
-                    </select>
-
-                    <select id="player-club-filter" class="player-filter" onchange="filterPlayers()">
-                        <option value="">All clubs</option>
-                        __PLAYER_CLUB_OPTIONS__
-                    </select>
-
-                    <select id="player-fantasy-filter" class="player-filter" onchange="filterPlayers()">
-                        <option value="">All fantasy teams</option>
-                        <option value="Free Agent">Free Agents</option>
-                        __PLAYER_FANTASY_OPTIONS__
-                    </select>
-
-                    <select id="player-sort" class="player-filter" onchange="filterPlayers()">
-                        <option value="points">Season points</option>
-                        <option value="form">5 GW form</option>
-                        <option value="goals">Goals</option>
-                        <option value="assists">Assists</option>
-                        <option value="name">Name</option>
-                    </select>
-                </div>
-
-                <div
-                    id="player-search-results"
-                    class="player-search-results player-directory-results"
-                    style="display:block;"
-                ></div>
-
             </div>
 
         </section>
