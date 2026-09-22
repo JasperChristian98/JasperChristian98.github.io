@@ -2583,6 +2583,32 @@ current_standings = sorted(
     )
 )
 
+# ============================================================
+# CONSISTENT DRAFT-TEAM COLOURS
+# ============================================================
+# Stable across chart sorting and league-position changes. Shared with JS.
+_MANAGER_PALETTE = [
+    "#38bdf8", "#f472b6", "#4ade80", "#facc15", "#a78bfa",
+    "#fb923c", "#2dd4bf", "#f87171", "#818cf8", "#e879f9",
+    "#84cc16", "#22d3ee", "#fbbf24", "#c084fc", "#34d399", "#fca5a5",
+]
+_MANAGER_COLOR_OVERRIDES = {"NoRSNoRB No Chance": "#facc15"}
+_manager_colour_order = sorted(set(managers), key=lambda name: str(name).casefold())
+_reserved_colours = set(_MANAGER_COLOR_OVERRIDES.values())
+_manager_palette_available = [c for c in _MANAGER_PALETTE if c not in _reserved_colours]
+MANAGER_COLOR_MAP = {}
+_palette_index = 0
+for _manager in _manager_colour_order:
+    if _manager in _MANAGER_COLOR_OVERRIDES:
+        MANAGER_COLOR_MAP[_manager] = _MANAGER_COLOR_OVERRIDES[_manager]
+    else:
+        MANAGER_COLOR_MAP[_manager] = _manager_palette_available[_palette_index % len(_manager_palette_available)]
+        _palette_index += 1
+
+def manager_color(manager):
+    return MANAGER_COLOR_MAP.get(manager, "#38bdf8")
+
+
 # Cumulative fantasy points scored by manager across captured match weeks.
 # This is deliberately separate from H2H league points: it shows raw scoring
 # output accumulating through the season, regardless of whether those points
@@ -5000,6 +5026,11 @@ chart_cumulative_json = json.dumps(
 
 manager_order_json = json.dumps(
     current_standings,
+    ensure_ascii=False
+)
+
+manager_colors_json = json.dumps(
+    MANAGER_COLOR_MAP,
     ensure_ascii=False
 )
 
@@ -10840,6 +10871,24 @@ def _availability_impact_charts():
         f'<div class="stat-description">{escape_html(note)}</div></div>'
         for label, value, note in kpis
     )
+    availability_status_mix = {
+        'Injured': sum(team_injured.values()),
+        'Suspended': sum(team_suspended.values()),
+        'Doubtful': sum(team_doubtful.values()),
+        'Other unavailable': max(0, sum(team_absent.values()) - sum(team_injured.values()) - sum(team_suspended.values())),
+    }
+    total_charts = [
+        _pie_chart_html('Share of next-GW points at risk', team_risk,
+            'League-wide availability drag split across current McDraft squads.', manager_colours=True),
+        _pie_chart_html('Share of unavailable owned players', team_absent,
+            'Current unavailable assets split across the ten McDraft squads.', manager_colours=True),
+        _pie_chart_html('Unavailable original draft picks by original manager', original_manager_losses,
+            'Who originally drafted the unavailable assets, whether or not they still own them.', manager_colours=True),
+        _pie_chart_html('Current availability issue mix', availability_status_mix,
+            'League-wide current flags across owned players.',
+            category_colours={'Injured':'#f87171','Suspended':'#fb923c','Doubtful':'#facc15','Other unavailable':'#a78bfa'}),
+    ]
+
     fantasy_charts = [
         _bar_chart_html('Estimated next-GW points at risk by fantasy team', team_risk,
             'Healthy-squad projected points minus availability-adjusted projections. Current McDraft owners only.',
@@ -10899,6 +10948,8 @@ def _availability_impact_charts():
         f'<div class="stats-grid">{summary}</div>'
         f'<p class="health-data-note">Latest official FPL flags · GW{dashboard_target_gw} · '
         f'{escape_html(health_analytics_data["generated_at"])}</p></div>'
+        '<h2 class="analytics-impact-group-title">League-wide totals</h2>'
+        f'<div class="analytics-chart-grid">{"".join(total_charts)}</div>'
         '<h2 class="analytics-impact-group-title">McDraft fantasy-team impact</h2>'
         f'<div class="analytics-chart-grid">{"".join(fantasy_charts)}</div>'
         '<h2 class="analytics-impact-group-title">Premier League club impact</h2>'
@@ -10919,7 +10970,8 @@ def _bar_chart_html(title, values, description="", value_suffix="", reverse=Fals
     for m,v in items:
         width = max(2.0, abs(v)/maximum*100.0)
         delta = v - league_avg
-        bars += f'''<div class="analytics-bar-row" data-analytics-manager="{escape_html(m)}"><div class="analytics-bar-label">{escape_html(m)}</div><div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:{width:.1f}%"></div><div class="analytics-average-marker" style="left:{avg_pct:.1f}%" title="League average: {league_avg:.1f}{value_suffix}"></div></div><div class="analytics-bar-value">{v:.1f}{value_suffix}<span class="analytics-average-delta"> ({delta:+.1f} vs avg)</span></div></div>'''
+        colour = manager_color(m)
+        bars += f'''<div class="analytics-bar-row" data-analytics-manager="{escape_html(m)}"><div class="analytics-bar-label"><span class="analytics-manager-swatch" style="background:{colour}"></span>{escape_html(m)}</div><div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:{width:.1f}%;background:{colour}"></div><div class="analytics-average-marker" style="left:{avg_pct:.1f}%" title="League average: {league_avg:.1f}{value_suffix}"></div></div><div class="analytics-bar-value">{v:.1f}{value_suffix}<span class="analytics-average-delta"> ({delta:+.1f} vs avg)</span></div></div>'''
     return f'''<div class="card analytics-chart-card analytics-average-capable" data-league-average="{league_avg:.3f}"><h2>{escape_html(title)}</h2>{f'<p class="card-description">{escape_html(description)}</p>' if description else ''}<div class="analytics-axis-title analytics-axis-y">{escape_html(y_label)}</div><div class="analytics-bar-chart">{bars}</div><div class="analytics-average-key">League average: {league_avg:.1f}{value_suffix}</div><div class="analytics-axis-title analytics-axis-x">{escape_html(x_label)}</div></div>'''
 
 
@@ -10961,6 +11013,33 @@ def _dual_category_bar_chart_html(title, rows, first_label="Drafted-player point
     body = body or '<div class="notice">Not enough data yet.</div>'
     desc = f'<p class="card-description">{escape_html(description)}</p>' if description else ''
     return f'''<div class="card analytics-chart-card"><h2>{escape_html(title)}</h2>{desc}<div class="analytics-axis-title analytics-axis-y">{escape_html(y_label)}</div><div class="analytics-dual-chart">{body}</div><div class="analytics-axis-title analytics-axis-x">{escape_html(x_label)}</div></div>'''
+
+def _pie_chart_html(title, values, description="", value_suffix="", manager_colours=False, category_colours=None):
+    """Responsive donut chart for a single part-to-whole snapshot."""
+    clean=[]
+    for label, raw in values.items():
+        try:
+            value=max(0.0, float(raw or 0))
+        except (TypeError, ValueError):
+            continue
+        if value > 0:
+            clean.append((str(label), value))
+    total=sum(value for _, value in clean)
+    if total <= 0:
+        return f'<div class="card analytics-chart-card"><h2>{escape_html(title)}</h2><div class="notice">Not enough data yet.</div></div>'
+    fallback=["#38bdf8","#f472b6","#4ade80","#facc15","#a78bfa","#fb923c","#2dd4bf","#f87171"]
+    segments=[]; legend=[]; cursor=0.0
+    for idx,(label,value) in enumerate(clean):
+        pct=(value/total)*100.0
+        colour=(manager_color(label) if manager_colours else ((category_colours or {}).get(label) or fallback[idx % len(fallback)]))
+        segments.append(f'{colour} {cursor:.3f}% {cursor+pct:.3f}%')
+        legend.append(f'<div class="analytics-pie-legend-row"><span class="analytics-manager-swatch" style="background:{colour}"></span><span class="analytics-pie-name">{escape_html(label)}</span><strong>{value:.1f}{value_suffix}</strong><small>{pct:.1f}%</small></div>')
+        cursor += pct
+    desc=f'<p class="card-description">{escape_html(description)}</p>' if description else ''
+    total_text=f'{total:.1f}{value_suffix}'
+    return (f'<div class="card analytics-chart-card analytics-pie-card"><h2>{escape_html(title)}</h2>{desc}'
+            f'<div class="analytics-pie-layout"><div class="analytics-pie" style="background:conic-gradient({", ".join(segments)})"><div class="analytics-pie-hole"><strong>{escape_html(total_text)}</strong><span>Total</span></div></div>'
+            f'<div class="analytics-pie-legend">{"".join(legend)}</div></div></div>')
 
 def _line_chart_html(title, series_map, description="", x_label="Gameweek", y_label="Points", invert_y=False):
     all_pts=[(gw,float(v or 0)) for pts in series_map.values() for gw,v in pts]
@@ -11767,6 +11846,8 @@ def analytics_page_html():
         _scatter_chart_html('Squad strength vs league position',squad_strength,{m:manager_current_rank.get(m,0) for m in managers},x_label='Squad strength',y_label='League position',invert_y=True),
     ]
     decision_charts=[
+        _pie_chart_html('Share of completed roster moves', moves,
+            'Each manager’s share of all completed roster moves captured by the dashboard.', manager_colours=True),
         _bar_chart_html('Selection efficiency',selection,value_suffix='%',x_label='Manager',y_label='Efficiency'),
         _bar_chart_html('Bench points wasted per GW',bench_avg,x_label='Manager',y_label='Bench points'),
         _bar_chart_html('Dream-team starters per GW',dream_avg,x_label='Manager',y_label='Dream-team starters'),
@@ -11782,6 +11863,8 @@ def analytics_page_html():
         _category_bar_chart_html('Biggest fixture swings',fixture_swing_rows,'Largest absolute gap between the pre-GW expected scoring margin and the actual H2H margin.',x_label='Fixture',y_label='Margin swing',limit=25),
     ]
     season_charts=[
+        _pie_chart_html('Share of total fantasy points', points_for,
+            'Each manager’s share of all fantasy points scored in completed head-to-head fixtures.', manager_colours=True),
         _bar_chart_html('Points scored',points_for,x_label='Manager',y_label='Points'),
         _bar_chart_html('Points conceded',points_against,x_label='Manager',y_label='Points'),
         _bar_chart_html('Average weekly score',avg_score,x_label='Manager',y_label='Points per GW'),
@@ -11800,12 +11883,12 @@ def analytics_page_html():
     ]
     return f'''<div class="analytics-subtabs" role="tablist" aria-label="Analytics sections">
         <button class="analytics-subtab active" type="button" onclick="showAnalyticsSubtab('insights', this)">McDraft Insights <span>{len(insight_rows[:13])}</span></button>
-        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('availability-impact', this)">Availability Impact</button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('player', this)">Player Analytics <span>{len(player_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('club', this)">Club Analytics <span>{len(club_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-strength', this)">Squad Strength <span>{len(squad_strength_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-build', this)">Squad Construction <span>{len(squad_construction_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('decisions', this)">Manager Decisions <span>{len(decision_charts)}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('availability-impact', this)">Availability Impact</button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('fixtures-h2h', this)">Fixtures & H2H <span>{len(fixture_analytics_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('season', this)">Overall Season <span>{len(season_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('league-stats', this)">League Stats</button>
@@ -11816,12 +11899,12 @@ def analytics_page_html():
         <label class="analytics-average-toggle"><input id="analytics-average-toggle" type="checkbox" onchange="toggleAnalyticsLeagueAverage(this.checked)"> Compare with league average</label>
     </div>
     <div class="analytics-subpage active" id="analytics-sub-insights"><div class="card analytics-hero"><h2>McDraft Insights</h2><p class="card-description">Generated from the latest captured league, squad, fixture and transfer data.</p><div class="analytics-insight-grid">{insights}</div></div></div>
-    <div class="analytics-subpage" id="analytics-sub-availability-impact">{_availability_impact_charts()}</div>
     <div class="analytics-subpage" id="analytics-sub-player"><div class="analytics-chart-grid">{''.join(player_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-club"><div class="analytics-chart-grid">{''.join(club_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-squad-strength"><div class="analytics-chart-grid">{''.join(squad_strength_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-squad-build"><div class="analytics-chart-grid">{''.join(squad_construction_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-decisions"><div class="analytics-chart-grid">{''.join(decision_charts)}</div></div>
+    <div class="analytics-subpage" id="analytics-sub-availability-impact">{_availability_impact_charts()}</div>
     <div class="analytics-subpage" id="analytics-sub-fixtures-h2h"><div class="analytics-chart-grid">{''.join(fixture_analytics_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-season"><div class="analytics-chart-grid">{''.join(season_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-league-stats">
@@ -14141,6 +14224,7 @@ tbody tr:hover {
 .analytics-bar-label { font-size:12px; font-weight:750; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .analytics-bar-track { height:9px; border-radius:999px; background:#0b1220; border:1px solid var(--border); overflow:hidden; }
 .analytics-bar-fill { height:100%; border-radius:999px; background:linear-gradient(90deg,var(--accent-dark),var(--accent)); }
+.analytics-manager-swatch{display:inline-block;width:9px;height:9px;border-radius:50%;flex:0 0 9px;margin-right:6px;vertical-align:1px}.analytics-pie-layout{display:grid;grid-template-columns:minmax(180px,240px) 1fr;gap:22px;align-items:center;margin-top:14px}.analytics-pie{width:min(220px,70vw);aspect-ratio:1;border-radius:50%;position:relative;margin:auto;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}.analytics-pie-hole{position:absolute;inset:28%;border-radius:50%;background:#111827;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 0 0 1px var(--border)}.analytics-pie-hole strong{font-size:22px;color:white}.analytics-pie-hole span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.analytics-pie-legend{display:grid;gap:7px}.analytics-pie-legend-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:7px;align-items:center;font-size:11px}.analytics-pie-legend-row strong{color:white}.analytics-pie-legend-row small{color:var(--muted);min-width:42px;text-align:right}.analytics-pie-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
 .analytics-bar-value { text-align:right; font-size:12px; font-weight:800; }
 .analytics-dual-chart { display:flex; flex-direction:column; gap:12px; margin-top:14px; }
 .analytics-dual-row { display:grid; grid-template-columns:minmax(100px,150px) 1fr; gap:12px; align-items:center; }
@@ -14179,7 +14263,7 @@ tbody tr:hover {
 .trade-target-score b { display:block; font-size:15px; color:var(--accent); }
 .trade-target-offer { text-align:right; font-size:11px; }
 .trade-target-offer b { display:block; color:var(--text); }
-@media (max-width:760px) { .analytics-chart-grid,.analytics-insight-grid,.fixture-planner-grid{grid-template-columns:1fr;} .analytics-bar-row{grid-template-columns:100px minmax(70px,1fr) 50px;} .analytics-dual-row{grid-template-columns:1fr;} .analytics-dual-series{grid-template-columns:100px 1fr 38px;} .trade-target-row{grid-template-columns:1fr;} .trade-target-offer{text-align:left;} }
+@media (max-width:760px) { .analytics-chart-grid,.analytics-insight-grid,.fixture-planner-grid{grid-template-columns:1fr;} .analytics-bar-row{grid-template-columns:100px minmax(70px,1fr) 50px;} .analytics-dual-row{grid-template-columns:1fr;} .analytics-dual-series{grid-template-columns:100px 1fr 38px;} .trade-target-row{grid-template-columns:1fr;} .trade-target-offer{text-align:left;} .analytics-pie-layout{grid-template-columns:1fr}.analytics-pie-legend{margin-top:4px} }
 
 .future-fixtures-container { margin-top: 12px; }
 .future-fixture-slide { display: none; }
@@ -14720,9 +14804,9 @@ const TREND_PALETTE = [
     "#fbbf24", "#c084fc", "#34d399", "#fca5a5"
 ];
 
-const MANAGER_COLORS = {};
+const MANAGER_COLORS = __MANAGER_COLORS__;
 MANAGER_ORDER.forEach(function(manager, index) {
-    MANAGER_COLORS[manager] = TREND_PALETTE[index % TREND_PALETTE.length];
+    if (!MANAGER_COLORS[manager]) MANAGER_COLORS[manager] = TREND_PALETTE[index % TREND_PALETTE.length];
 });
 
 const trendState = {};
@@ -17737,6 +17821,9 @@ replacements = {
         ).replace(
             "__MANAGER_ORDER__",
             safe_js_json(manager_order_json)
+        ).replace(
+            "__MANAGER_COLORS__",
+            safe_js_json(manager_colors_json)
         )
 
 }
