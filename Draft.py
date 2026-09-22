@@ -6817,6 +6817,50 @@ for _row in player_search_data:
     _row["next_fixtures"] = _player_next_fixture_run(_pid, 3)
 player_search_json = json.dumps(player_search_data, ensure_ascii=False)
 
+# Club Explorer: the full player pool, including players never selected in McDraft.
+# Store independent per-GW totals so old clubs remain comparable after ownership churn.
+club_explorer_data = {}
+for _club_id, _club_meta in _pl_team_meta_by_id.items():
+    _club_name = _club_meta.get('name', teams_lookup.get(_club_id, str(_club_id)))
+    _club_players = [r for r in player_search_data if int(elements.get(int(r.get('id',0)), {}).get('team') or 0) == int(_club_id)]
+    _gw_points = {}
+    for _pid, _scores in all_player_gw_points.items():
+        if int(elements.get(int(_pid), {}).get('team') or 0) != int(_club_id):
+            continue
+        for _gw, _pts in _scores.items():
+            _gw_points[int(_gw)] = _gw_points.get(int(_gw), 0) + float(_pts or 0)
+    _fixtures = []
+    for _fx in _all_pl_fixtures:
+        if not isinstance(_fx, dict) or _fx.get('event') is None:
+            continue
+        _home, _away = int(_fx.get('team_h') or 0), int(_fx.get('team_a') or 0)
+        if _club_id not in (_home, _away):
+            continue
+        _gw = int(_fx.get('event'))
+        _is_home = _home == _club_id
+        _opp = _away if _is_home else _home
+        _known_gw = min(max(0, _gw - 1), max([int(g) for g in finished_gws] or [0]))
+        _str = _pl_club_strength_snapshot(_known_gw)['scores']
+        _relative = _str.get(_opp,0.5) - _str.get(_club_id,0.5)
+        # Ratings are display-only: predictive player projections continue to use the shared model.
+        _difficulty = max(1.0, min(5.0, 3.0 + 2.4*_relative + (-0.35 if _is_home else 0.35)))
+        _fixtures.append({'gw': _gw, 'opponent': _pl_team_meta_by_id.get(_opp,{}).get('short_name',teams_lookup.get(_opp,'—')),
+                          'home': _is_home, 'difficulty': round(round(_difficulty*4)/4,2),
+                          'finished': bool(_fx.get('finished')),
+                          'score': (str(_fx.get('team_h_score',0))+'–'+str(_fx.get('team_a_score',0))) if _fx.get('finished') else None})
+    _tab = _pl_table_stats.get(_club_id,{})
+    club_explorer_data[str(_club_id)] = {
+        'id':int(_club_id),'name':_club_name,'short':_club_meta.get('short_name',_club_name),
+        'position':_pl_position.get(_club_id,0),'pl_points':_tab.get('pts',0),
+        'fpl_points':round(_pl_total_fpl_points.get(_club_id,0),1),
+        'fantasy_strength':round(_pl_club_strength_score.get(_club_id,0.5)*100,1),
+        'official_draft_rank':round(_pl_team_draft_rank.get(_club_id,UNDRAFTED_PLAYER_RANK),1),
+        'gw_points':[{'gw':_gw,'points':round(_gw_points.get(_gw,0),1)} for _gw in range(1,max([int(g) for g in finished_gws] or [0])+1)],
+        'fixtures':sorted(_fixtures,key=lambda f:f['gw']),
+        'player_ids':[int(r['id']) for r in _club_players]
+    }
+club_explorer_json = json.dumps(club_explorer_data, ensure_ascii=False)
+
 for _manager, _recs in free_agent_recommendations.items():
     for _rec in _recs:
         _pid = int(_rec.get("id", 0) or 0)
@@ -10241,6 +10285,119 @@ for _pos in _POSITION_ORDER:
 
 positional_need_json = json.dumps(positional_need_map, ensure_ascii=False)
 
+# ============================================================
+# FIVE-GW SQUAD PLANNER — actual fixture-specific player forecasts
+# ============================================================
+def _build_five_gw_planner():
+    # The McDraft schedule and the PL schedule use the same FPL event numbers.
+    # Exclude completed weeks, but include the active GW when appropriate.
+    first_gw = int(dashboard_target_gw or (max(finished_gws, default=0) + 1))
+    future_gws = sorted({int(gw) for gw in full_fixture_schedule if int(gw) >= first_gw})[:5]
+    if not future_gws:
+        future_gws = sorted({int(f.get('event')) for f in _all_pl_fixtures
+                             if f.get('event') is not None and int(f['event']) >= first_gw})[:5]
+    if not future_gws:
+        return {m:{'weeks':[],'suggestions':[],'total':0,'warning':'No future fixtures available.'} for m in managers}
+
+    roster_map = _current_roster_by_manager()
+    roster_map_fallback = globals().get('current_rosters_by_manager', {})
+    all_owned = {int(pid) for pids in roster_map.values() for pid in pids}
+    free_by_position = defaultdict(list)
+    for pid, meta in elements.items():
+        if int(pid) not in all_owned:
+            pos = positions_lookup.get(meta.get('element_type'), '')
+            if pos in ('GKP','DEF','MID','FWD'):
+                free_by_position[pos].append(int(pid))
+
+    def project(pid, gw):
+        return round(float(_player_weekly_projection(pid, _global_position_baselines,
+                      _global_league_player_mean, target_gw=gw) or 0), 3)
+
+    def player_row(pid, gw):
+        meta = elements.get(pid, {})
+        components = _player_fixture_components(pid, gw)
+        return {'id':int(pid), 'name':meta.get('web_name', f'Player {pid}'),
+                'position':positions_lookup.get(meta.get('element_type'), ''),
+                'club':_pl_team_meta_by_id.get(int(meta.get('team') or 0), {}).get('short_name','—'),
+                'projection':project(pid,gw),
+                'fixtures':[{'opponent':f.get('opponent','—'), 'home':bool(f.get('is_home')),
+                             'difficulty':_fixture_difficulty_from_multiplier(f.get('multiplier',1))}
+                            for f in components]}
+
+    result = {}
+    for manager in managers:
+        roster = [int(pid) for pid in (roster_map.get(manager) or roster_map_fallback.get(manager, []))]
+        weeks = []
+        for gw in future_gws:
+            pool = [player_row(pid, gw) for pid in roster]
+            best = _best_projected_xi(pool)
+            starters = sorted((best or {}).get('players', []),
+                              key=lambda x:({'GKP':0,'DEF':1,'MID':2,'FWD':3}.get(x['position'],4),-x['projection']))
+            starter_ids = {p['id'] for p in starters}
+            bench = sorted([p for p in pool if p['id'] not in starter_ids],
+                           key=lambda p:p['projection'], reverse=True)
+            xi = round(sum(p['projection'] for p in starters), 2)
+            # Match the season simulator's selection-efficiency convention;
+            # present XI totals separately to keep the two distinguishable.
+            selection = float(current_squad_strength.get(manager,{}).get('selection_efficiency',90) or 90)
+            managed = round(xi * min(1.0,max(.75,selection/100.0)) + .05 * sum(p['projection'] for p in bench[:4]), 2)
+            opponents = [f.get('team2') if f.get('team1') == manager else f.get('team1')
+                         for f in full_fixture_schedule.get(gw,[])
+                         if manager in (f.get('team1'),f.get('team2'))]
+            by_pos = defaultdict(float)
+            for p in starters: by_pos[p['position']] += p['projection']
+            weeks.append({'gw':gw,'opponent':' / '.join(str(x) for x in opponents if x) or 'TBC',
+                          'xi':xi,'managed':managed,
+                          'formation': f"{best['formation']['DEF']}-{best['formation']['MID']}-{best['formation']['FWD']}" if best else '—',
+                          'starters':starters,'bench':bench,'by_position':dict(by_pos),
+                          'blank_count':sum(1 for p in pool if not p['fixtures']),
+                          'double_count':sum(1 for p in pool if len(p['fixtures'])>1),
+                          'bench_cover':round(sum(p['projection'] for p in bench[:4]),2)})
+
+        # Weaknesses are derived from the planned five actual XIs, not from a
+        # duplicate generic season-points metric. Only offer currently free players.
+        needed = sorted(('GKP','DEF','MID','FWD'),
+                        key=lambda pos:float(positional_need_map.get(manager,{}).get(pos,{}).get('need_score',50)),
+                        reverse=True)
+        suggestions = []
+        base_total = sum(w['xi'] for w in weeks)
+        # Limit candidates per position before re-solving full five-week XIs.
+        for pos in needed:
+            candidates = sorted(free_by_position.get(pos,[]),
+                                key=lambda pid:sum(project(pid,gw) for gw in future_gws),
+                                reverse=True)[:7]
+            for pid in candidates:
+                best_gain = 0.0; best_out = None
+                same_pos = [own for own in roster if positions_lookup.get(elements.get(own,{}).get('element_type')) == pos]
+                for outgoing in same_pos:
+                    total = 0.0
+                    new_ids = [r for r in roster if r != outgoing] + [pid]
+                    for gw in future_gws:
+                        xi_best = _best_projected_xi([player_row(r,gw) for r in new_ids])
+                        total += float((xi_best or {}).get('total',0) or 0)
+                    gain = total-base_total
+                    if gain > best_gain:
+                        best_gain, best_out = gain, outgoing
+                if best_out is not None and best_gain > .1:
+                    suggestions.append({'id':pid,'name':elements.get(pid,{}).get('web_name',f'Player {pid}'),
+                                        'position':pos,'gain':round(best_gain,2),
+                                        'drop_id':best_out,
+                                        'drop_name':elements.get(best_out,{}).get('web_name',str(best_out)),
+                                        'need':round(float(positional_need_map.get(manager,{}).get(pos,{}).get('need_score',50)),0),
+                                        'fixtures':_player_next_fixture_run(pid,5,start_gw=future_gws[0])})
+        suggestions.sort(key=lambda row:(-row['gain'],-row['need']))
+        worst = min(weeks,key=lambda w:w['xi']) if weeks else None
+        best_week = max(weeks,key=lambda w:w['xi']) if weeks else None
+        result[manager] = {'weeks':weeks,'total':round(base_total,1),
+                           'worst_gw':worst['gw'] if worst else None,
+                           'best_gw':best_week['gw'] if best_week else None,
+                           'suggestions':suggestions[:6],
+                           'warning':None if roster else 'No current roster is available for this manager.'}
+    return result
+
+five_gw_planner_json = json.dumps(_build_five_gw_planner(), ensure_ascii=False)
+
+
 def build_trade_targets(manager, limit=12):
     own_ids = _trade_rosters.get(manager, [])
     if not own_ids:
@@ -12110,8 +12267,8 @@ tbody tr:hover {
 .my-team-selector-row .card-description { margin-bottom:0; }
 .my-team-select-wrap { display:flex; flex-direction:column; gap:6px; min-width:230px; }
 .my-team-select-wrap span { color:var(--muted); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; }
-#my-team-select { background:#172033; color:white; border:1px solid var(--border-light); border-radius:8px; padding:10px 12px; font-size:14px; min-width:230px; cursor:pointer; }
-#my-team-select:focus { outline:2px solid var(--accent); outline-offset:2px; }
+#my-team-select, #club-explorer-select { background:#172033; color:white; border:1px solid var(--border-light); border-radius:8px; padding:10px 12px; font-size:14px; min-width:230px; cursor:pointer; }
+#my-team-select:focus, #club-explorer-select:focus { outline:2px solid var(--accent); outline-offset:2px; }
 
 .squad-gw-heading {
     color: var(--muted);
@@ -13183,7 +13340,7 @@ tbody tr:hover {
     .global-search-wrap { order:3; width:100%; max-width:none; margin-left:0; }
     .header-top { flex-wrap:wrap; }
     .my-team-selector-row { flex-direction:column; align-items:stretch; }
-    .my-team-select-wrap, #my-team-select { width:100%; min-width:0; box-sizing:border-box; }
+    .my-team-select-wrap, #my-team-select, #club-explorer-select { width:100%; min-width:0; box-sizing:border-box; }
 
 
     .dashboard-grid {
@@ -13520,6 +13677,30 @@ tbody tr:hover {
 .transfer-subtab.active { color:white; border-color:var(--accent); background:#172033; box-shadow:inset 0 -2px 0 var(--accent); }
 .transfer-subpanel { display:none; } .transfer-subpanel.active { display:block; }
 
+
+/* My Team: Five-GW Squad Planner */
+.planner-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0 22px}
+.planner-stat{background:var(--surface-2,#152033);border:1px solid var(--border-light);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:5px}
+.planner-stat small{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase}
+.planner-stat strong{font-size:27px;color:var(--text,#fff)}
+.planner-stat span{font-size:12px;color:var(--muted)}
+.planner-chart{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:12px 0 26px}
+.planner-chart-week{display:flex;align-items:center;flex-direction:column;min-width:0;background:var(--surface-2,#152033);color:inherit;border:1px solid var(--border-light);border-radius:10px;padding:10px 5px;cursor:pointer;gap:5px}
+.planner-chart-week.active{border-color:var(--accent);background:rgba(52,211,153,.08)}
+.planner-chart-week:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.planner-chart-val{font-size:17px;font-weight:800}.planner-chart-week small{font-size:10px;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.planner-bar-area{height:130px;display:flex;align-items:end;width:65%;max-width:66px}
+.planner-chart-bar{background:var(--accent,#32bd9b);width:100%;border-radius:5px 5px 1px 1px;min-height:5px}
+.planner-week-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.planner-week-flags{display:flex;gap:5px;flex-wrap:wrap}
+.planner-pos-pills{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 17px}.planner-pos-pills span{font-size:11px;border:1px solid var(--border-light);padding:5px 9px;border-radius:20px}
+.planner-squad-columns{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px}.planner-squad-columns>div{min-width:0}
+.planner-player{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) 40px;align-items:center;gap:8px;border-bottom:1px solid var(--border-light);padding:8px 2px;font-size:12px}
+.planner-player>div:first-child{min-width:0}.planner-player small{display:block;color:var(--muted);font-size:10px}.planner-player strong{text-align:right}
+.planner-player-fixtures{display:flex;justify-content:flex-end;gap:3px;flex-wrap:wrap}
+.planner-fx{border-radius:5px;padding:3px 5px;font-weight:700;font-size:10px;background:#856324;color:#fff}
+.planner-fx.diff-1,.planner-fx.diff-2{background:#216f50}.planner-fx.diff-4,.planner-fx.diff-5{background:#93382f}.planner-fx.planner-blank{background:#475569}
+@media(max-width:760px){.planner-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.planner-stat{padding:9px}.planner-stat strong{font-size:21px}.planner-squad-columns{grid-template-columns:1fr}.planner-chart{gap:5px}.planner-chart-week{padding:9px 2px}.planner-chart-week small{font-size:9px}.planner-player{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px}}
+@media(max-width:410px){.planner-stat-grid{gap:6px}.planner-stat small{font-size:9px}.planner-stat strong{font-size:18px}}
 .myteam-position-need-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
 .position-need-card{border:1px solid var(--border);border-radius:12px;padding:13px;background:#0f172a;position:relative;overflow:hidden}
 .position-need-card:before{content:"";position:absolute;inset:0;opacity:.12;pointer-events:none;background:var(--need-colour,#64748b)}
@@ -13617,6 +13798,18 @@ tbody tr:hover {
 .season-story p { font-size:15px; line-height:1.75; }
 @media (max-width:620px) { .future-fixture-row { grid-template-columns:minmax(0,1fr) 78px minmax(0,1fr); gap:8px; } .future-fixture-team{font-size:13px;} .fixture-derby{font-size:8px;} }
 
+
+/* Dedicated Club Explorer and all-player squad-fit scouting */
+.club-explorer-panel{display:none}.club-explorer-panel.active{display:block}
+.season-summary-subpage{display:none}.season-summary-subpage.active{display:block}
+.club-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px;margin:14px 0}
+.club-stat-card{padding:12px;border:1px solid var(--border,#334155);border-radius:10px;display:flex;flex-direction:column;gap:5px}
+.club-stat-card span{font-size:.76rem;opacity:.75}.club-stat-card b{font-size:1.3rem}
+.club-gw-bars{display:flex;align-items:flex-end;gap:7px;overflow-x:auto;padding:16px 8px;border-bottom:1px solid var(--border,#334155);min-height:190px}
+.club-gw-bar-wrap{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;min-width:29px;font-size:.74rem}
+.club-gw-bar{width:24px;background:#3b82f6;border-radius:5px 5px 0 0}
+.scout-action{display:flex;align-items:center;justify-content:flex-end;min-width:145px}
+@media(max-width:620px){.scout-action{min-width:0;justify-content:flex-start}.club-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 """
 
 
@@ -13650,11 +13843,13 @@ function changeMyTeam() {
     }
 
     renderMyTeamSquad();
+    renderFiveGWPlanner();
     renderMyTeamStatsCharts();
     renderMyTeamPositionNeeds();
     renderMyTeamFreeAgents();
     renderMyTeamTradeTargets();
     renderMyTeamSellHigh();
+    if (typeof renderPlayerScout === 'function') renderPlayerScout();
     renderMyTeamH2H();
 }
 
@@ -13684,7 +13879,7 @@ function initialiseMyTeam() {
 /* ============================================================
    GLOBAL SEARCH
    ============================================================ */
-const GLOBAL_PAGES=[['Overview','overview'],['My Team','myteam'],['Gameweeks','gameweeks'],['Fixtures','fixtures'],['Players','players'],['Transfers','transfers'],['Analytics','analytics'],['Draft Centre','draft-centre'],['Season Summary','season-summary']];
+const GLOBAL_PAGES=[['Overview','overview'],['My Team','myteam'],['Gameweeks','gameweeks'],['Fixtures','fixtures'],['Players','players'],['Clubs','clubs'],['Transfers','transfers'],['Analytics','analytics'],['Draft Centre','draft-centre'],['Season Summary','season-summary']];
 
 function ensureSearchTargetId(el, idx){
     if(!el.id) el.id='global-search-target-'+idx;
@@ -13695,9 +13890,15 @@ function buildDashboardSearchIndex(){
     const results=[];
     GLOBAL_PAGES.forEach(r=>results.push({type:'page',label:r[0],value:r[1],meta:'Page'}));
     (MANAGER_ORDER||[]).forEach(m=>results.push({type:'manager',label:m,value:m,meta:'Manager'}));
+    Object.values(CLUB_EXPLORER_DATA||{}).forEach(c=>results.push({type:'club',label:c.name,value:String(c.id),meta:'Premier League club'}));
     (playerSearchData||[]).forEach(p=>results.push({type:'player',label:p.name,value:String(p.id),meta:(p.position||'')+' · '+(p.team||'')}));
 
     let idx=0;
+    document.querySelectorAll('#page-season-summary .season-summary-tab').forEach(btn=>{
+        const label=(btn.textContent||'').trim();
+        const m=(btn.getAttribute('onclick')||'').match(/showSeasonSummarySubtab\('([^']+)'/);
+        if(label&&m)results.push({type:'season-subtab',label:label,value:m[1],meta:'Season Summary section'});
+    });
     document.querySelectorAll('#page-analytics .analytics-subtab').forEach(btn=>{
         const label=(btn.textContent||'').replace(/\s+\d+\s*$/,'').trim();
         const m=(btn.getAttribute('onclick')||'').match(/showAnalyticsSubtab\('([^']+)'/);
@@ -13713,7 +13914,8 @@ function buildDashboardSearchIndex(){
         const pageName=(page.id||'').replace(/^page-/,'');
         const targetId=ensureSearchTargetId(card,idx++);
         const sub=card.closest('.analytics-subpage');
-        const analyticsSub=sub ? (sub.id||'').replace(/^analytics-sub-/,'') : '';
+        const seasonSub=card.closest('.season-summary-subpage');
+        const analyticsSub=sub ? (sub.id||'').replace(/^analytics-sub-/,'') : (seasonSub ? (seasonSub.id||'').replace(/^season-summary-sub-/,'') : '');
         results.push({type:'section',label:label,value:targetId,page:pageName,subtab:analyticsSub,meta:(pageName==='analytics'?'Analytics chart/section':'Section')});
     });
     return results;
@@ -13724,7 +13926,9 @@ function globalSearchSelect(type,value,label,pageName,subtab){
     if(box){box.classList.remove('active');box.innerHTML='';} if(input)input.value='';
     if(type==='page'){showPage(value);return;}
     if(type==='manager'){showPage('myteam');const select=document.getElementById('my-team-select');if(select){for(let i=0;i<select.options.length;i++){if(select.options[i].text===label){select.value=String(i);changeMyTeam();break;}}}return;}
-    if(type==='player'){showPage('players');const p=document.getElementById('player-search');if(p){p.value=label;filterPlayers();}return;}
+    if(type==='player'){showPage('players');showPlayerSubtab('directory',document.querySelectorAll('.player-page-tab')[1]);const p=document.getElementById('player-search');if(p){p.value=label;filterPlayers();}return;}
+    if(type==='club'){showPage('clubs');const sel=document.getElementById('club-explorer-select');if(sel){sel.value=String(value);renderClubExplorer();}showClubSubtab('overview',document.querySelector('.club-explorer-tab'));return;}
+    if(type==='season-subtab'){showPage('season-summary');const btn=Array.from(document.querySelectorAll('.season-summary-tab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+value+"'"));showSeasonSummarySubtab(value,btn||null);return;}
     if(type==='analytics-subtab'){
         showPage('analytics');
         const btn=Array.from(document.querySelectorAll('#page-analytics .analytics-subtab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+value+"'"));
@@ -13734,6 +13938,10 @@ function globalSearchSelect(type,value,label,pageName,subtab){
     if(type==='section'){
         showPage(pageName||'overview');
         if((pageName||'overview')==='overview' && typeof showOverviewSubtab==='function') showOverviewSubtab('intelligence',document.querySelectorAll('.overview-tab')[1]);
+        if(pageName==='season-summary'&&subtab){
+            const btn=Array.from(document.querySelectorAll('.season-summary-tab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+subtab+"'"));
+            showSeasonSummarySubtab(subtab,btn||null);
+        }
         if(pageName==='analytics'&&subtab){
             const btn=Array.from(document.querySelectorAll('#page-analytics .analytics-subtab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+subtab+"'"));
             showAnalyticsSubtab(subtab,btn||null);
@@ -13909,6 +14117,8 @@ function showMyTeamSubtab(name, button) {
     document.querySelectorAll('.myteam-tab').forEach(el => el.classList.remove('active'));
     const target=document.getElementById('myteam-sub-'+name); if(target) target.classList.add('active');
     if(button) button.classList.add('active');
+    if(name==='planner' && typeof renderFiveGWPlanner==='function') requestAnimationFrame(renderFiveGWPlanner);
+    if(name==='scout' && typeof renderPlayerScout==='function') requestAnimationFrame(renderPlayerScout);
     if(name==='stats' && typeof renderMyTeamStatsCharts==='function') requestAnimationFrame(renderMyTeamStatsCharts);
     if(name==='targets') requestAnimationFrame(()=>{
         if(typeof renderMyTeamPositionNeeds==='function') renderMyTeamPositionNeeds();
@@ -13916,6 +14126,27 @@ function showMyTeamSubtab(name, button) {
         if(typeof renderMyTeamTradeTargets==='function') renderMyTeamTradeTargets();
         if(typeof renderMyTeamSellHigh==='function') renderMyTeamSellHigh();
     });
+}
+
+
+function showSeasonSummarySubtab(name, button){
+    document.querySelectorAll('.season-summary-subpage').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.season-summary-tab').forEach(t=>{t.classList.remove('active');t.setAttribute('aria-selected','false');});
+    const panel=document.getElementById('season-summary-sub-'+name);
+    if(panel)panel.classList.add('active');
+    if(button){button.classList.add('active');button.setAttribute('aria-selected','true');}
+    if(name==='evolution' && (SEASON_TIMELINE_DATA||[]).length) requestAnimationFrame(()=>{
+        const slider=document.getElementById('season-gw-slider');
+        renderSeasonTimeline(slider?slider.value:SEASON_TIMELINE_DATA.length-1);
+    });
+}
+
+function showClubSubtab(name, button){
+    document.querySelectorAll('.club-explorer-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.club-explorer-tab').forEach(t=>t.classList.remove('active'));
+    const panel=document.getElementById('club-sub-'+name);
+    if(panel)panel.classList.add('active');
+    if(button)button.classList.add('active');
 }
 
 function showDraftCentreSubtab(name, button) {
@@ -14374,6 +14605,9 @@ function initAllTrendCharts() {
 
 const MY_TEAM_HISTORY = __MY_TEAM_HISTORY_DATA__;
 const MY_TEAM_POSITION_NEEDS = __MY_TEAM_POSITION_NEEDS__;
+const FIVE_GW_PLANNER = __FIVE_GW_PLANNER__;
+let plannerSelectedGW = null;
+let plannerSelectedManager = null;
 
 let myTeamSquadIndex = -1;
 let myTeamSquadManager = null;
@@ -14383,6 +14617,44 @@ function currentMyTeamManager() {
     if (!select) return null;
     return MANAGER_ORDER[Number(select.value)] || null;
 }
+
+
+// Five-GW Squad Planner: precomputed using the same Python player projection
+// and legal formation optimiser that feed season simulations.
+function renderFiveGWPlanner(){
+  const summary=document.getElementById('myteam-planner-summary');
+  const chart=document.getElementById('myteam-planner-chart');
+  const weekWrap=document.getElementById('myteam-planner-weeks');
+  const upgrades=document.getElementById('myteam-planner-upgrades');
+  if(!summary||!chart||!weekWrap||!upgrades)return;
+  const manager=currentMyTeamManager(),plan=FIVE_GW_PLANNER[manager];
+  if(!plan||!plan.weeks||!plan.weeks.length){
+    summary.innerHTML='<div class="notice">No upcoming gameweeks or current roster data available yet.</div>';
+    chart.innerHTML='';weekWrap.innerHTML='';upgrades.innerHTML='';return;
+  }
+  if(plannerSelectedManager!==manager||!plan.weeks.some(w=>w.gw===plannerSelectedGW)){
+    plannerSelectedGW=plan.weeks[0].gw;plannerSelectedManager=manager;
+  }
+  const weeks=plan.weeks, max=Math.max(1,...weeks.map(w=>Number(w.xi)||0));
+  summary.innerHTML='<div class="planner-stat-grid">'+
+    '<div class="planner-stat"><small>Five-GW projected XI</small><strong>'+Number(plan.total).toFixed(1)+'</strong><span>points combined</span></div>'+
+    '<div class="planner-stat"><small>Toughest squad week</small><strong>GW'+plan.worst_gw+'</strong><span>'+Number(weeks.find(w=>w.gw===plan.worst_gw)?.xi||0).toFixed(1)+' projected</span></div>'+
+    '<div class="planner-stat"><small>Strongest squad week</small><strong>GW'+plan.best_gw+'</strong><span>'+Number(weeks.find(w=>w.gw===plan.best_gw)?.xi||0).toFixed(1)+' projected</span></div>'+'</div>'+
+    (plan.warning?'<div class="notice">'+escapePlayerHTML(plan.warning)+'</div>':'');
+  chart.innerHTML=weeks.map(w=>'<button type="button" class="planner-chart-week '+(w.gw===plannerSelectedGW?'active':'')+'" onclick="selectPlannerWeek('+w.gw+')" aria-pressed="'+(w.gw===plannerSelectedGW)+'" aria-label="Show GW'+w.gw+' projected squad"><span class="planner-chart-val">'+Number(w.xi).toFixed(1)+'</span><span class="planner-bar-area"><span class="planner-chart-bar" style="height:'+Math.max(5,Math.round(Number(w.xi||0)/max*126))+'px"></span></span><b>GW'+w.gw+'</b><small>'+escapePlayerHTML(w.opponent)+'</small></button>').join('');
+  const week=weeks.find(w=>w.gw===plannerSelectedGW)||weeks[0];
+  const fm=week.formation||'—';
+  const posTotals=Object.entries(week.by_position||{}).map(([p,v])=>'<span>'+p+': '+Number(v).toFixed(1)+'</span>').join('');
+  function plannerPlayerRow(p){
+    const fixtures=(p.fixtures||[]).map(f=>'<span class="planner-fx diff-'+f.difficulty+'">'+escapePlayerHTML(f.opponent)+(f.home?' (H)':' (A)')+'</span>').join('')||'<span class="planner-fx planner-blank">Blank GW</span>';
+    return '<div class="planner-player"><div><b>'+escapePlayerHTML(p.name)+'</b><small>'+escapePlayerHTML(p.position)+' · '+escapePlayerHTML(p.club)+'</small></div><div class="planner-player-fixtures">'+fixtures+'</div><strong>'+Number(p.projection).toFixed(1)+'</strong></div>';
+  }
+  weekWrap.innerHTML='<div class="planner-week-heading"><div><h3>GW'+week.gw+' · '+escapePlayerHTML(week.opponent)+'</h3><p class="card-description">Best '+fm+' · '+Number(week.xi).toFixed(1)+' XI points · '+Number(week.managed).toFixed(1)+' manager-adjusted estimate</p></div><div class="planner-week-flags">'+(week.blank_count?'<span class="badge">'+week.blank_count+' blanks</span>':'')+(week.double_count?'<span class="badge">'+week.double_count+' doubles</span>':'')+'</div></div>'+
+    '<div class="planner-pos-pills">'+posTotals+'</div>'+
+    '<div class="planner-squad-columns"><div><h3>Projected XI</h3>'+(week.starters||[]).map(plannerPlayerRow).join('')+'</div><div><h3>Bench · '+Number(week.bench_cover).toFixed(1)+' projected pts</h3>'+(week.bench||[]).map(plannerPlayerRow).join('')+'</div></div>';
+  upgrades.innerHTML=(plan.suggestions||[]).length?'<div class="trade-target-list">'+plan.suggestions.map(s=>'<div class="trade-target-row"><div><div class="trade-target-name">'+escapePlayerHTML(s.name)+' <span class="badge">'+s.position+'</span></div><div class="trade-target-meta">Potential swap for '+escapePlayerHTML(s.drop_name)+' · positional need '+s.need+'/100</div><div class="trade-target-reason">Projected improvement across five GWs with the best legal XI recalculated each week.</div>'+fixtureRunHTML(s.fixtures,true)+'</div><div class="trade-target-scores"><div class="trade-target-score"><span>Five-GW XI gain</span><b>+'+Number(s.gain).toFixed(1)+'</b></div></div><button type="button" class="results-button" onclick="openScoutFreeAgent('+s.id+')">View player →</button></div>').join('')+'</div>':'<div class="notice">No available same-position free agents project as a meaningful five-GW XI upgrade.</div>';
+}
+function selectPlannerWeek(gw){plannerSelectedGW=Number(gw);renderFiveGWPlanner();}
 
 function renderMyTeamSquad() {
     const wrap = document.getElementById("myteam-squad-wrap");
@@ -14773,6 +15045,114 @@ function changeResults(direction) {
 const playerSearchData =
     __PLAYER_SEARCH_DATA__;
 const PL_FIXTURE_BROWSER = __PL_FIXTURE_BROWSER__;
+const CLUB_EXPLORER_DATA = __CLUB_EXPLORER_DATA__;
+
+function clubExplorerRows(club){
+    return (club.player_ids||[]).map(id=>playerSearchData.find(p=>Number(p.id)===Number(id))).filter(Boolean);
+}
+function clubPlayerCard(p){
+    const team=p.fantasy_team||'Free Agent';
+    return '<div class="trade-target-row"><div><div class="trade-target-name">'+escapePlayerHTML(p.name)+'</div><div class="trade-target-meta">'+escapePlayerHTML(p.position)+' · '+escapePlayerHTML(team)+'</div>'+fixtureRunHTML(p.next_fixtures,true)+'</div><div class="trade-target-scores"><div class="trade-target-score"><span>FPL pts</span><b>'+Number(p.total_points||0).toFixed(0)+'</b></div><div class="trade-target-score"><span>Projected season</span><b>'+Number(p.projected_season_points||0).toFixed(0)+'</b></div><div class="trade-target-score"><span>Value</span><b>'+Number(p.player_value||0).toFixed(0)+'</b></div></div></div>';
+}
+function clubFixturesHtml(fixtures,limit){
+    const arr=limit ? (fixtures||[]).filter(f=>!f.finished).slice(0,limit) : (fixtures||[]);
+    if(!arr.length)return '<div class="notice">No fixtures in this selection.</div>';
+    return '<div class="future-fixtures-list">'+arr.map(f=>{
+      const d=Number(f.difficulty||3), cls=Math.max(1,Math.min(5,Math.round(d)));
+      return '<div class="future-fixture-row"><div class="future-fixture-team">GW'+f.gw+' · '+escapePlayerHTML(f.opponent)+' ('+(f.home?'H':'A')+')</div><div class="future-fixture-vs">'+(f.score||'vs')+'</div><div class="future-fixture-team right"><span class="fixture-chip fixture-diff-'+cls+'">'+d.toFixed(2)+'/5</span></div></div>';
+    }).join('')+'</div>';
+}
+function renderClubExplorer(){
+    const sel=document.getElementById('club-explorer-select');if(!sel)return;
+    const club=CLUB_EXPLORER_DATA[sel.value];if(!club)return;
+    const rows=clubExplorerRows(club).sort((a,b)=>Number(b.total_points||0)-Number(a.total_points||0));
+    const free=rows.filter(p=>(p.fantasy_team||'Free Agent')==='Free Agent');
+    const stat=document.getElementById('club-explorer-summary');
+    if(stat)stat.innerHTML='<div class="club-stat-grid">'+[
+      ['PL position','#'+club.position],['League points',club.pl_points],['Total FPL points',Number(club.fpl_points||0).toFixed(0)],
+      ['Evolving club strength',club.fantasy_strength+'/100'],['Best-ten avg FPL rank','#'+Number(club.official_draft_rank||0).toFixed(0)],['Free agents',free.length]
+    ].map(([k,v])=>'<div class="club-stat-card"><span>'+k+'</span><b>'+v+'</b></div>').join('')+'</div>';
+    const overview=document.getElementById('club-overview-content');
+    if(overview)overview.innerHTML='<p>The club has <b>'+rows.length+'</b> registered FPL players and <b>'+free.length+'</b> McDraft free agents. Total club FPL points include all players, whether selected in McDraft or not.</p><div class="trade-target-list">'+rows.slice(0,3).map(clubPlayerCard).join('')+'</div>';
+    const fx=document.getElementById('club-overview-fixtures');if(fx)fx.innerHTML=clubFixturesHtml(club.fixtures,5);
+    const gw=club.gw_points||[],max=Math.max(1,...gw.map(r=>Number(r.points||0)));
+    const chart=document.getElementById('club-gw-chart');
+    if(chart)chart.innerHTML='<div class="club-gw-bars">'+gw.map(r=>'<div class="club-gw-bar-wrap" title="GW'+r.gw+': '+r.points+' FPL points"><b>'+Number(r.points).toFixed(0)+'</b><div class="club-gw-bar" style="height:'+Math.max(4,Math.round(Number(r.points||0)/max*140))+'px"></div><span>'+r.gw+'</span></div>').join('')+'</div>';
+    const table=document.getElementById('club-gw-table');if(table)table.innerHTML='<table><thead><tr><th>Club</th><th>GW</th><th>FPL points</th><th>Cumulative</th></tr></thead><tbody>'+gw.map((r,i)=>'<tr><td>'+escapePlayerHTML(club.short)+'</td><td>GW'+r.gw+'</td><td>'+Number(r.points).toFixed(0)+'</td><td>'+gw.slice(0,i+1).reduce((a,v)=>a+Number(v.points||0),0).toFixed(0)+'</td></tr>').join('')+'</tbody></table>';
+    const top=document.getElementById('club-top-players');if(top)top.innerHTML='<div class="trade-target-list">'+rows.slice(0,25).map(clubPlayerCard).join('')+'</div>';
+    const agents=document.getElementById('club-free-agents');if(agents)agents.innerHTML=free.length?'<div class="trade-target-list">'+free.map(clubPlayerCard).join('')+'</div>':'<div class="notice">No available free agents at this club.</div>';
+    const all=document.getElementById('club-all-fixtures');if(all)all.innerHTML=clubFixturesHtml(club.fixtures,0);
+}
+function initialiseClubExplorer(){
+  const sel=document.getElementById('club-explorer-select');if(!sel)return;
+  const clubs=Object.values(CLUB_EXPLORER_DATA||{}).sort((a,b)=>a.name.localeCompare(b.name));
+  sel.innerHTML=clubs.map(c=>'<option value="'+c.id+'">'+escapePlayerHTML(c.name)+'</option>').join('');
+  if(clubs.length){sel.value=String(clubs[0].id);renderClubExplorer();}
+}
+
+// Scout: score every FPL player against the selected McDraft squad, not a shortlist.
+function playerScoutSuitability(p,manager){
+    const need=MY_TEAM_POSITION_NEEDS[manager]||{};
+    const key=p.position==='GK'?'GKP':p.position;
+    const positional=Number((need[key]||{}).need_score||50);
+    const mine=(TRADE_SIMULATOR_DATA[manager]||[]).filter(r=>r.position===key);
+    const baseline=mine.length ? mine.map(r=>Number(r.projection||0)).sort((a,b)=>a-b)[0] : 0;
+    const projected=Number(p.next3_projected_points||0)/3;
+    const quality=Math.max(0,Math.min(100,Number(p.player_value||0)));
+    const run=Math.max(0,Math.min(100,50+(Number(p.fixture_run_score||1)-1)*150));
+    const upgrade=Math.max(0,Math.min(100,50+(projected-baseline)*11));
+    const owned=p.fantasy_team&&p.fantasy_team!=='Free Agent';
+    const clubCount=mine.filter(r=>r.club===p.team).length;
+    const concentration=clubCount>=3?9:clubCount===2?5:0;
+    const self=p.fantasy_team===manager;
+    // Squad need and comparative upside matter most; an unavailable own player is never suggested as an acquisition.
+    const fit=Math.max(0,Math.min(100,0.31*positional+0.27*quality+0.24*upgrade+0.18*run-concentration-(self?30:0)));
+    return {fit,need:positional,projected,baseline,owned,self};
+}
+function renderPlayerScout(){
+    const wrap=document.getElementById('myteam-scout-results');if(!wrap)return;
+    const manager=currentMyTeamManager();if(!manager)return;
+    const q=(document.getElementById('scout-player-search')?.value||'').toLowerCase().trim();
+    const pos=document.getElementById('scout-position')?.value||'';
+    const ownership=document.getElementById('scout-ownership')?.value||'';
+    const sort=document.getElementById('scout-sort')?.value||'fit';
+    let rows=playerSearchData.filter(p=>(!q||p.name.toLowerCase().includes(q)||p.team.toLowerCase().includes(q))&&(!pos||p.position===pos));
+    if(ownership==='free')rows=rows.filter(p=>(p.fantasy_team||'Free Agent')==='Free Agent');
+    if(ownership==='owned')rows=rows.filter(p=>(p.fantasy_team||'Free Agent')!=='Free Agent');
+    rows=rows.map(p=>({...p,scout:playerScoutSuitability(p,manager)}));
+    rows.sort((a,b)=> sort==='points'?Number(b.total_points||0)-Number(a.total_points||0):sort==='value'?Number(b.player_value||0)-Number(a.player_value||0):sort==='projection'?Number(b.next3_projected_points||0)-Number(a.next3_projected_points||0):b.scout.fit-a.scout.fit);
+    const count=document.getElementById('scout-count');if(count)count.textContent=rows.length+' matching players · top '+Math.min(60,rows.length)+' shown';
+    wrap.innerHTML=rows.slice(0,60).map(p=>{
+      const target=p.fantasy_team||'Free Agent';
+      const own=p.scout.self;
+      const action=own?'<span class="badge">Already in your squad</span>':target==='Free Agent'?'<button class="results-button" type="button" onclick="openScoutFreeAgent('+p.id+')">View free agent →</button>':'<button class="results-button" type="button" onclick="draftScoutTrade('+p.id+')">Draft trade offer →</button>';
+      return '<div class="trade-target-row"><div><div class="trade-target-name">'+escapePlayerHTML(p.name)+'</div><div class="trade-target-meta">'+escapePlayerHTML(p.position)+' · '+escapePlayerHTML(p.team)+' · '+escapePlayerHTML(target)+'</div><div class="trade-target-reason">Need '+p.scout.need.toFixed(0)+'/100 · projected '+p.scout.projected.toFixed(1)+'/GW next 3 · replacement '+p.scout.baseline.toFixed(1)+'/GW</div>'+fixtureRunHTML(p.next_fixtures,true)+'</div><div class="trade-target-scores"><div class="trade-target-score"><span>Team fit</span><b>'+p.scout.fit.toFixed(0)+'</b></div><div class="trade-target-score"><span>Player value</span><b>'+Number(p.player_value||0).toFixed(0)+'</b></div><div class="trade-target-score"><span>Season proj.</span><b>'+Number(p.projected_season_points||0).toFixed(0)+'</b></div></div><div class="scout-action">'+action+'</div></div>';
+    }).join('')||'<div class="notice">No players match the current filters.</div>';
+}
+function draftScoutTrade(playerId){
+    const p=playerSearchData.find(r=>Number(r.id)===Number(playerId)),mine=currentMyTeamManager();
+    if(!p||!mine||!p.fantasy_team||p.fantasy_team==='Free Agent'||p.fantasy_team===mine)return;
+    showPage('transfers');
+    const tradesBtn=document.querySelector('#page-transfers .transfer-subtab[onclick*="trades"]');
+    if(tradesBtn)showTransferSubtab('trades',tradesBtn);
+    const a=document.getElementById('trade-sim-manager-a'),b=document.getElementById('trade-sim-manager-b');
+    if(!a||!b)return;
+    a.value=mine;b.value=p.fantasy_team;
+    renderTradeSimulator();
+    const target=document.querySelector('.trade-sim-check[data-side="b"][data-id="'+Number(playerId)+'"]');
+    if(target){target.checked=true;tradeSimSelectionChanged('b',p.position==='GK'?'GKP':p.position);}
+    document.querySelector('.trade-simulator')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function openScoutFreeAgent(playerId){
+    const p=playerSearchData.find(r=>Number(r.id)===Number(playerId));if(!p)return;
+    showPage('players');
+    const btn=document.querySelector('#page-players .player-page-tab[onclick*="directory"]');
+    if(btn)showPlayerSubtab('directory',btn);
+    const search=document.getElementById('player-search');
+    if(search){search.value=p.name;filterPlayers();}
+    document.getElementById('player-search-results')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 const PL_FIXTURE_GAMEWEEKS = Object.keys(PL_FIXTURE_BROWSER || {}).map(Number).sort((a,b)=>a-b);
 let plFixtureIndex = Math.max(0, PL_FIXTURE_GAMEWEEKS.indexOf(Number(dashboardDisplayGameweek || dashboardTargetGameweek || 1)));
 if (plFixtureIndex < 0) plFixtureIndex = Math.max(0, PL_FIXTURE_GAMEWEEKS.length - 1);
@@ -15563,6 +15943,7 @@ function initialiseDashboard() {
         showPage("overview");
     });
 
+    safeInit("Club Explorer", initialiseClubExplorer);
     safeInit("My Team", function() {
         initialiseMyTeam();
     });
@@ -15742,6 +16123,7 @@ __CSS__
             >
                 Players
             </button>
+            <button class="nav-button" data-page="clubs" onclick="showPage('clubs')">Clubs</button>
 
 
             <button
@@ -15886,7 +16268,9 @@ __CSS__
 
             <div class="analytics-subtabs myteam-tabs" role="tablist" aria-label="My Team sections">
                 <button type="button" class="analytics-subtab myteam-tab active" onclick="showMyTeamSubtab('squad',this)">Squad</button>
+                <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('planner',this)">Five-GW Planner</button>
                 <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('targets',this)">Targets</button>
+                <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('scout',this)">Player Scout</button>
                 <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('stats',this)">Stats</button>
             </div>
 
@@ -15903,6 +16287,14 @@ __CSS__
                 </div>
             </div>
 
+            <div class="myteam-subpage" id="myteam-sub-planner">
+                <div class="card"><h2>Five-GW Squad Planner</h2><p class="card-description">Projected optimal starting XIs from your current squad using the real PL schedule, with each week's McDraft opponent, bench cover, blank/double warnings and suggested waiver upgrades. Projections are estimates, not guaranteed returns.</p>
+                    <div id="myteam-planner-summary"></div>
+                    <div id="myteam-planner-chart" class="planner-chart" aria-label="Projected starting eleven points for each of the next five gameweeks"></div>
+                    <div id="myteam-planner-weeks"></div>
+                </div>
+                <div class="card"><h2>Five-GW Free-Agent Upgrades</h2><p class="card-description">Best like-for-like free-agent swaps by improvement to your projected starting XI over all five weeks. They do not account for waiver priority or ownership changes after this refresh.</p><div id="myteam-planner-upgrades"></div></div>
+            </div>
             <div class="myteam-subpage" id="myteam-sub-targets">
                 <div class="dashboard-grid">
                     <div class="card full"><h2>Positional Need</h2><p class="card-description">How urgently this squad needs help at each position, graded against the other McDraft teams. This directly influences trade-target ranking.</p><div id="myteam-position-needs"></div></div>
@@ -15912,6 +16304,18 @@ __CSS__
                 </div>
             </div>
 
+            <div class="myteam-subpage" id="myteam-sub-scout">
+                <div class="card"><h2>Player Scout · Squad Suitability</h2>
+                    <p class="card-description">Search the entire FPL player pool. Scores account for your positional needs, projection, club exposure, future fixtures and whether you can realistically obtain the player. For owned players, draft an offer in Trade Lab with the target preselected.</p>
+                    <div class="player-filter-grid">
+                        <input type="search" id="scout-player-search" class="player-search-box" placeholder="Search any player…" oninput="renderPlayerScout()" />
+                        <select id="scout-position" class="player-filter" onchange="renderPlayerScout()"><option value="">All positions</option><option value="GKP">GK</option><option value="DEF">DEF</option><option value="MID">MID</option><option value="FWD">FWD</option></select>
+                        <select id="scout-ownership" class="player-filter" onchange="renderPlayerScout()"><option value="">Owned &amp; free agents</option><option value="owned">Owned players</option><option value="free">Free agents</option></select>
+                        <select id="scout-sort" class="player-filter" onchange="renderPlayerScout()"><option value="fit">Best squad fit</option><option value="value">Player value</option><option value="projection">Next 3 GW projection</option><option value="points">Season points</option></select>
+                    </div>
+                    <div id="scout-count" class="card-description"></div><div id="myteam-scout-results" class="trade-target-list"></div>
+                </div>
+            </div>
             <div class="myteam-subpage" id="myteam-sub-stats">
                 <div class="dashboard-grid">
                     <div class="card"><h2>Head-to-Head Record</h2><div id="myteam-h2h-record"></div></div>
@@ -16106,15 +16510,27 @@ __CSS__
                 <h1>Season Summary</h1>
                 <p>The story of McDraft, one completed gameweek at a time.</p>
             </div>
-            <div class="card">__SEASON_TIMELINE_EXPLORER__</div>
-            <div class="card"><h2>Manager of the Month</h2><p class="card-description">Calendar-month honours based on H2H league points, with points scored and wins as tiebreakers. The archive grows through the season.</p><div class="motm-grid">__MANAGERS_OF_MONTH__</div></div>
-            <div class="card"><h2>Milestones</h2><p class="card-description">Firsts, scoring landmarks, league-point landmarks and winning streaks. Newest first.</p><div class="milestone-list">__SEASON_MILESTONES__</div></div>
-            <div class="card"><h2>Record Chase</h2><p class="card-description">Who is currently closest to the live McDraft records for scoring, winning streaks and roster activity?</p><div class="record-chase-list">__RECORD_CHASE__</div></div>
-            <div class="card"><h2>Share Cards</h2><p class="card-description">Compact season talking points built for the group chat. On supported phones the Share button opens the native share sheet; otherwise it copies the text.</p><div class="share-card-grid">__SHARE_CARDS__</div></div>
-            <div class="card">
-                <h2>Season Diary</h2>
-                <p class="card-description">Newest first. Each chunky weekly column is built from results, table movement, rivalries, trades, player performances, luck and the following week's fixtures.</p>
-                <div class="season-summary-list">__SEASON_SUMMARY__</div>
+            <div class="analytics-subtabs season-summary-tabs" role="tablist" aria-label="Season Summary sections">
+                <button type="button" class="analytics-subtab season-summary-tab active" aria-selected="true" onclick="showSeasonSummarySubtab('evolution',this)">Season Evolution</button>
+                <button type="button" class="analytics-subtab season-summary-tab" aria-selected="false" onclick="showSeasonSummarySubtab('diary',this)">Diary</button>
+                <button type="button" class="analytics-subtab season-summary-tab" aria-selected="false" onclick="showSeasonSummarySubtab('milestones',this)">Milestones</button>
+                <button type="button" class="analytics-subtab season-summary-tab" aria-selected="false" onclick="showSeasonSummarySubtab('records',this)">Records</button>
+                <button type="button" class="analytics-subtab season-summary-tab" aria-selected="false" onclick="showSeasonSummarySubtab('share',this)">Share Cards</button>
+            </div>
+            <div class="season-summary-subpage active" id="season-summary-sub-evolution"><div class="card">__SEASON_TIMELINE_EXPLORER__</div></div>
+            <div class="season-summary-subpage" id="season-summary-sub-diary">
+                <div class="card"><h2>Manager of the Month</h2><p class="card-description">Calendar-month honours based on H2H league points, with points scored and wins as tiebreakers.</p><div class="motm-grid">__MANAGERS_OF_MONTH__</div></div>
+                <div class="card"><h2>Season Diary</h2><p class="card-description">The week-by-week story: results, table movement, rivalries, trades, player performances, luck and upcoming fixtures.</p><div class="season-summary-list">__SEASON_SUMMARY__</div></div>
+            </div>
+            <div class="season-summary-subpage" id="season-summary-sub-milestones">
+                <div class="card"><h2>Milestones</h2><p class="card-description">Firsts, scoring landmarks, league-point landmarks and winning streaks. Newest first.</p><div class="milestone-list">__SEASON_MILESTONES__</div></div>
+            </div>
+            <div class="season-summary-subpage" id="season-summary-sub-records">
+                <div class="card"><h2>League Records</h2><div class="records-grid">__LEAGUE_RECORDS__</div></div>
+                <div class="card"><h2>Record Chase</h2><p class="card-description">Who is closest to the live McDraft records for scoring, winning streaks and roster activity?</p><div class="record-chase-list">__RECORD_CHASE__</div></div>
+            </div>
+            <div class="season-summary-subpage" id="season-summary-sub-share">
+                <div class="card"><h2>Share Cards</h2><p class="card-description">Season talking points built for the group chat. Share on supported devices, or copy the text.</p><div class="share-card-grid">__SHARE_CARDS__</div></div>
             </div>
         </section>
 
@@ -16172,6 +16588,31 @@ __CSS__
 
         </section>
 
+
+        <!-- ==================================================
+             PREMIER LEAGUE CLUB EXPLORER
+             ================================================== -->
+        <section class="page" id="page-clubs">
+            <div class="page-heading"><h1>Premier League Clubs</h1><p>All 20 clubs: club FPL production, squad assets, free agents, and the actual fixture schedule.</p></div>
+            <div class="card">
+                <div class="my-team-selector-row"><div><h2>Club Explorer</h2><p class="card-description">Select any club. Scores include every PL player, not only players owned in McDraft.</p></div>
+                    <label class="my-team-select-wrap" for="club-explorer-select"><span>Premier League club</span><select id="club-explorer-select" onchange="renderClubExplorer()"></select></label>
+                </div>
+                <div id="club-explorer-summary" class="club-explorer-summary"></div>
+            </div>
+            <div class="analytics-subtabs club-explorer-tabs" role="tablist" aria-label="Club Explorer sections">
+                <button type="button" class="analytics-subtab club-explorer-tab active" onclick="showClubSubtab('overview',this)">Overview</button>
+                <button type="button" class="analytics-subtab club-explorer-tab" onclick="showClubSubtab('gameweeks',this)">Points by GW</button>
+                <button type="button" class="analytics-subtab club-explorer-tab" onclick="showClubSubtab('players',this)">Top Players</button>
+                <button type="button" class="analytics-subtab club-explorer-tab" onclick="showClubSubtab('agents',this)">Free Agents</button>
+                <button type="button" class="analytics-subtab club-explorer-tab" onclick="showClubSubtab('fixtures',this)">Fixtures</button>
+            </div>
+            <div class="club-explorer-panel active" id="club-sub-overview"><div class="dashboard-grid"><div class="card full"><h2>Club Output & Draft Pedigree</h2><div id="club-overview-content"></div></div><div class="card full"><h2>Five-Gameweek Outlook</h2><div id="club-overview-fixtures"></div></div></div></div>
+            <div class="club-explorer-panel" id="club-sub-gameweeks"><div class="card"><h2>FPL Points by Gameweek</h2><p class="card-description">All club players' official FPL points, regardless of McDraft ownership or team selection.</p><div id="club-gw-chart"></div><div id="club-gw-table" class="table-wrap"></div></div></div>
+            <div class="club-explorer-panel" id="club-sub-players"><div class="card"><h2>Top Club Assets</h2><div id="club-top-players"></div></div></div>
+            <div class="club-explorer-panel" id="club-sub-agents"><div class="card"><h2>Available Free Agents</h2><div id="club-free-agents"></div></div></div>
+            <div class="club-explorer-panel" id="club-sub-fixtures"><div class="card"><h2>Real Premier League Fixtures</h2><p class="card-description">Past results and future fixtures, with venue and changing difficulty.</p><div id="club-all-fixtures"></div></div></div>
+        </section>
 
         <!-- ==================================================
              TRANSFERS
@@ -16556,6 +16997,8 @@ replacements = {
             "__PLAYER_SEARCH_DATA__",
             safe_js_json(player_search_json)
         ).replace(
+            "__CLUB_EXPLORER_DATA__", safe_js_json(club_explorer_json)
+        ).replace(
             "__PL_FIXTURE_BROWSER__",
             safe_js_json(pl_fixture_browser_json)
         ).replace(
@@ -16579,6 +17022,9 @@ replacements = {
         ).replace(
             "__MY_TEAM_POSITION_NEEDS__",
             safe_js_json(positional_need_json)
+        ).replace(
+            "__FIVE_GW_PLANNER__",
+            safe_js_json(five_gw_planner_json)
         ).replace(
             "__TRADE_SIMULATOR_DATA__",
             safe_js_json(json.dumps(_trade_simulator_payload(), ensure_ascii=False))
