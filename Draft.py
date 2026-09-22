@@ -1,4 +1,4 @@
-# Enhanced McDraft dashboard v44 — current-owner player analytics
+# Enhanced McDraft dashboard v53 — interactive Monte Carlo season simulator
 # Generated from: Scraper.ipynb
 # Converted at: 2026-09-01T09:07:10.758Z
 # Next step (optional): refactor into modules & generate tests with RunCell
@@ -7741,6 +7741,212 @@ def _build_season_prediction(simulations=7500, seed=17288):
 season_prediction, predicted_finish_order = _build_season_prediction()
 mathematical_finish_range = _build_mathematical_finish_ranges()
 
+# ============================================================
+# SEASON SIMULATOR — shared fixture-aware Monte Carlo inputs
+# ============================================================
+# The simulation itself runs inside the generated static HTML, so changing
+# scenarios never calls the FPL API, rewrites history, or needs a server.
+def _season_simulator_payload():
+    manager_names = list(current_standings)
+    completed = {int(gw) for gw in finished_gws}
+    fixtures = []
+    for gw, rows in sorted(full_fixture_schedule.items()):
+        if int(gw) in completed:
+            continue
+        for fixture in rows:
+            a, b = fixture.get('team1'), fixture.get('team2')
+            if a in manager_names and b in manager_names and a != b:
+                fixtures.append({'gw': int(gw), 'home': a, 'away': b})
+    fixtures.sort(key=lambda r: (r['gw'], r['home'], r['away']))
+
+    # Current LP/PF are reconstructed from final results only: ongoing scores
+    # should not become permanent points when the current GW is simulated.
+    actual_lp = {m: 0 for m in manager_names}
+    actual_pf = {m: 0 for m in manager_names}
+    actual_wdl = {m: {'wins': 0, 'draws': 0, 'losses': 0} for m in manager_names}
+    seen = set()
+    for match in matches_sorted:
+        try:
+            gw = int(match.get('event', 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if gw not in completed:
+            continue
+        a, b = match.get('entry_1_name'), match.get('entry_2_name')
+        if a not in actual_lp or b not in actual_lp or a == b:
+            continue
+        # A duplicate refresh should not count a fixture twice.
+        key = (gw, tuple(sorted((a, b))))
+        if key in seen:
+            continue
+        seen.add(key)
+        s1 = round(float(match.get('entry_1_points', 0) or 0))
+        s2 = round(float(match.get('entry_2_points', 0) or 0))
+        actual_pf[a] += s1
+        actual_pf[b] += s2
+        if s1 > s2:
+            actual_lp[a] += 3
+            actual_wdl[a]['wins'] += 1
+            actual_wdl[b]['losses'] += 1
+        elif s2 > s1:
+            actual_lp[b] += 3
+            actual_wdl[b]['wins'] += 1
+            actual_wdl[a]['losses'] += 1
+        else:
+            actual_lp[a] += 1
+            actual_lp[b] += 1
+            actual_wdl[a]['draws'] += 1
+            actual_wdl[b]['draws'] += 1
+
+    profiles = {}
+    for manager in manager_names:
+        pred = season_prediction.get(manager, {})
+        raw_by_gw = pred.get('model_weekly_score_by_gw', {}) or {}
+        profiles[manager] = {
+            'weekly_mean': round(float(pred.get('model_weekly_score', 45.0) or 45.0), 3),
+            'by_gw': {str(int(gw)): round(float(value), 3) for gw, value in raw_by_gw.items()},
+            'sd': round(max(4.0, float(pred.get('model_volatility', 12.0) or 12.0)), 3),
+            'completed_samples': len(raw_score_by_gw.get(manager, [])),
+            'current_lp': actual_lp[manager],
+            'current_pf': actual_pf[manager],
+            'current_wdl': actual_wdl[manager],
+            'current_rank': (manager_names.index(manager) + 1),
+        }
+
+    # Current Draft IDs and fixture-aware player projections power bespoke
+    # trade/waiver/injury scenarios without mutating actual league rosters.
+    rosters = _current_roster_by_manager()
+    upcoming_gws = sorted({int(f['gw']) for f in fixtures})
+    player_pool = []
+    for pid, meta in sorted(elements.items()):
+        pid = int(pid)
+        pos = positions_lookup.get(meta.get('element_type'), '')
+        if pos not in ('GKP', 'DEF', 'MID', 'FWD'):
+            continue
+        player_pool.append({
+            'id': pid,
+            'name': meta.get('web_name') or f'Player {pid}',
+            'position': pos,
+            'club': teams_lookup.get(meta.get('team'), '—'),
+            'owner': next((m for m, ids in rosters.items() if pid in ids), 'Free Agent'),
+            'by_gw': {
+                str(gw): round(float(_player_weekly_projection(
+                    pid, _global_position_baselines, _global_league_player_mean,
+                    target_gw=gw
+                ) or 0), 3)
+                for gw in upcoming_gws
+            },
+        })
+
+    return {
+        'managers': manager_names,
+        'colors': {name: MANAGER_COLOR_MAP.get(name, '#38bdf8') for name in manager_names},
+        'last_completed_gw': max(completed) if completed else 0,
+        'fixtures': fixtures,
+        'profiles': profiles,
+        'all_fixture_gws': sorted(set(int(gw) for gw in full_fixture_schedule.keys())),
+        'in_progress_gw': int(dashboard_target_gw or 0) if dashboard_game_state == 'live' else None,
+        'confidence': _prediction_confidence_meta(len(completed)).get('label', 'Unknown'),
+        'seed': int(LEAGUE_ID) + 2026,
+        'rosters': {m: sorted(set(int(pid) for pid in ids)) for m, ids in rosters.items()},
+        'player_pool': player_pool,
+        'formations': LEGAL_FORMATIONS,
+    }
+
+
+season_simulator_json = json.dumps(_season_simulator_payload(), ensure_ascii=False, separators=(',', ':'))
+
+
+def season_simulator_html():
+    return '''<div class="simulator-shell">
+      <div class="card sim-hero">
+        <div><span class="relationship-eyebrow">MONTE CARLO · REMAINING MATCHES</span>
+          <h2>McDraft Season Simulator</h2>
+          <p class="card-description">Replay every remaining scheduled McDraft fixture thousands of times using the same weekly player-and-fixture-aware squad projections behind your existing season forecast. Change the assumptions, explore each manager's possible finishing positions, and compare the effects of different scenarios. All simulations run locally in this page.</p>
+        </div>
+        <div class="sim-status-puck" id="sim-run-status" aria-live="polite">Ready to simulate</div>
+      </div>
+      <div class="card sim-controls-card">
+        <div class="sim-controls-grid">
+          <label>Focus manager<select id="sim-manager" onchange="seasonSimConfigurationChanged()"></select></label>
+          <label>Scenario effect lasts<select id="sim-horizon" onchange="seasonSimConfigurationChanged()"><option value="3">Next 3 gameweeks</option><option value="5" selected>Next 5 gameweeks</option><option value="10">Next 10 gameweeks</option><option value="999">Rest of the season</option></select></label>
+          <label>Monte Carlo samples<select id="sim-samples" onchange="seasonSimConfigurationChanged()"><option value="1500">1,500 · quick</option><option value="3000" selected>3,000 · balanced</option><option value="7500">7,500 · detailed</option></select></label>
+          <button class="sim-run-button" type="button" onclick="runSeasonScenarios()">↻ Run scenarios</button>
+        </div>
+        <div class="sim-custom-controls">
+          <div><strong>Custom points adjustment</strong><p class="card-description">Apply a hypothetical change to your chosen manager's expected points in each affected gameweek. Useful for testing a proposed transfer or lineup change, without pretending any move has actually happened.</p></div>
+          <label><input type="range" id="sim-custom-delta" min="-12" max="12" step="0.5" value="3" oninput="seasonSimCustomChanged(this.value)" onchange="seasonSimConfigurationChanged()"><b id="sim-custom-delta-value">+3.0 pts/GW</b></label>
+        </div>
+        <div class="sim-scenario-switcher" id="sim-scenario-switcher" role="group" aria-label="Simulation scenarios"></div>
+        <div class="sim-model-note" id="sim-model-note"></div>
+      </div>
+      <div class="card sim-builder-card">
+        <div class="sim-section-head"><div><span class="relationship-eyebrow">WHAT-IF WORKSHOP · YOUR OWN TRANSFER UNIVERSE</span>
+          <h2>Build a custom season</h2><p class="card-description">Stack up to six hypothetical moves and run them as one extra Monte Carlo scenario. Trades affect both managers; injuries trigger the best available bench cover; waiver moves replace one squad player with a free agent. No actual rosters or results are changed.</p></div>
+          <span class="sim-builder-count" id="sim-builder-count">No moves added</span>
+        </div>
+        <div class="sim-builder-controls">
+          <label>What if…<select id="sim-action-type" onchange="simBuilderTypeChanged()">
+            <option value="trade">Two managers make a trade</option>
+            <option value="injury">A player is unavailable</option>
+            <option value="waiver">A team signs a free agent</option>
+            <option value="points">A team's scoring changes</option>
+          </select></label>
+          <label>Starting from<select id="sim-action-start" onchange="simBuilderOptionsChanged()"><option value="0">Next unplayed GW</option><option value="1">One GW later</option><option value="2">Two GWs later</option><option value="4">Four GWs later</option></select></label>
+        </div>
+        <div class="sim-builder-type-panel" id="sim-builder-trade">
+          <div class="sim-builder-controls sim-builder-trade-controls">
+            <label>First manager<select id="sim-trade-team-a" onchange="simBuilderOptionsChanged()"></select></label>
+            <label>Player they send<select id="sim-trade-player-a" onchange="simBuilderOptionsChanged()"></select></label>
+            <label>Second manager<select id="sim-trade-team-b" onchange="simBuilderOptionsChanged()"></select></label>
+            <label>Player they send<select id="sim-trade-player-b"></select></label>
+          </div><p class="sim-helper-note">Same-position swaps preserve legal squad composition; both managers' projected optimal XIs are recalculated.</p>
+        </div>
+        <div class="sim-builder-type-panel" id="sim-builder-injury" hidden>
+          <div class="sim-builder-controls">
+            <label>Affected manager<select id="sim-injury-team" onchange="simBuilderOptionsChanged()"></select></label>
+            <label>Unavailable player<select id="sim-injury-player"></select></label>
+            <label>Gameweeks missed<select id="sim-injury-weeks"><option value="1">1 GW</option><option value="2">2 GWs</option><option value="3" selected>3 GWs</option><option value="5">5 GWs</option><option value="8">8 GWs</option><option value="999">Rest of season</option></select></label>
+          </div><p class="sim-helper-note">Models complete absence for the chosen period; it does not predict a real injury or recovery date.</p>
+        </div>
+        <div class="sim-builder-type-panel" id="sim-builder-waiver" hidden>
+          <div class="sim-builder-controls sim-builder-trade-controls">
+            <label>Manager<select id="sim-waiver-team" onchange="simBuilderOptionsChanged()"></select></label>
+            <label>Drop<select id="sim-waiver-out" onchange="simBuilderOptionsChanged()"></select></label>
+            <label>Sign free agent<select id="sim-waiver-in"></select></label>
+          </div><p class="sim-helper-note">Only current free agents in the same position are offered as replacements.</p>
+        </div>
+        <div class="sim-builder-type-panel" id="sim-builder-points" hidden>
+          <div class="sim-builder-controls">
+            <label>Manager<select id="sim-points-team"></select></label>
+            <label>Extra / fewer expected points per GW<input type="number" id="sim-points-delta" min="-20" max="20" step="0.5" value="3"></label>
+            <label>Effect lasts<select id="sim-points-weeks"><option value="3">3 GWs</option><option value="5" selected>5 GWs</option><option value="10">10 GWs</option><option value="999">Rest of season</option></select></label>
+          </div>
+        </div>
+        <div class="sim-builder-actions"><button type="button" class="sim-build-add" onclick="simAddCustomAction()">＋ Add to scenario</button>
+          <button type="button" class="sim-build-run" onclick="simRunCustomMoves()">▶ Simulate my moves</button>
+          <button type="button" class="sim-build-clear" onclick="simClearCustomActions()">Clear all</button></div>
+        <div class="sim-save-variant-row"><label>Save a comparison version<input id="sim-variant-name" type="text" maxlength="50" placeholder="e.g. Haaland trade only"></label><button type="button" class="sim-save-variant" onclick="simSaveCustomVariant()">Save simulated version</button><span class="sim-helper-note">Keep up to four named custom scenarios for side-by-side comparison in this browser session.</span></div>
+        <div id="sim-saved-variants" class="sim-saved-variants" aria-label="Saved what-if scenarios"></div>
+        <div class="sim-builder-feedback" id="sim-builder-feedback" aria-live="polite"></div>
+        <div class="sim-build-list" id="sim-build-list" aria-label="Hypothetical moves"></div>
+        <div id="sim-custom-effects" class="sim-custom-effects"></div>
+      </div>
+      <div class="sim-metric-grid" id="sim-selected-metrics"></div>
+      <div class="sim-dual-grid">
+        <div class="card sim-chart-card"><h2>Finishing-position distribution</h2><p class="card-description" id="sim-distribution-desc">Select a scenario to compare outcomes against the baseline.</p><div id="sim-position-chart"></div></div>
+        <div class="card sim-chart-card sim-trajectory-card"><h2>All managers · projected league points</h2><p class="card-description">Every manager's mean simulated league-points path, coloured by team. Select several managers to compare their trajectories. The focused manager's 10th–90th percentile range can be shown separately.</p>
+          <div class="sim-team-filter" id="sim-trajectory-filter" aria-label="Filter league-point trajectories"></div>
+          <label class="sim-band-toggle"><input id="sim-trajectory-band" type="checkbox" checked onchange="simRenderTrajectoryOnly()"> Focus team's 10th–90th range</label>
+          <div id="sim-trajectory-chart"></div>
+        </div>
+      </div>
+      <div class="card"><div class="sim-section-head"><div><h2>Scenario comparison</h2><p class="card-description">The same random draws are reused across scenarios so differences reflect your assumptions, rather than different lucky simulation runs. Each row tracks your selected manager.</p></div><span id="sim-compare-count" class="muted"></span></div><div class="sim-table-wrap" id="sim-compare-table"></div></div>
+      <div class="card"><h2>Whole-league outcomes</h2><p class="card-description">Projected total league points, simulated 10th–90th finishing-position ranges and finishing-position heatmap for every manager under the selected scenario. Sort order follows expected league points; these are scenario-model results, not guarantees.</p><div id="sim-league-table" class="sim-table-wrap"></div></div>
+      <div class="card"><h2>How the simulator works</h2><div class="sim-method-grid"><div><b>Actual standings are locked</b><p>Only completed gameweeks contribute fixed results. Live scores are not locked: an active gameweek is simulated from its full pre-match forecast.</p></div><div><b>Each future matchup is played</b><p>Both teams receive a score sampled from their GW-specific expected points and historical volatility, with shared league-wide weekly shocks.</p></div><div><b>Rankings use real tie-breakers</b><p>Every sampled season awards 3/1/0 league points and orders tied managers by total points scored; draws occur only for tied simulated integer scores.</p></div><div><b>Scenarios are hypothetical</b><p>Presets change expected scores. Custom moves recompute optimal projected XIs using the current snapshot and legal formations; injuries remove players temporarily, trades and waiver changes last from their chosen start. Future real transfers and shocks remain unknown.</p></div></div></div>
+    </div>'''
+
+
 
 
 
@@ -10895,6 +11101,186 @@ def _build_five_gw_planner():
 
 five_gw_planner_data = _build_five_gw_planner()
 five_gw_planner_json = json.dumps(five_gw_planner_data, ensure_ascii=False)
+
+# ---------------------------- Waiver Intelligence (v55) ----------------------------
+# Read-only model: uses captured standings and public current rosters, not
+# private competing claims. No event ledger or historical mutation.
+def _waiver_intelligence_payload():
+    league_order = list(reversed(current_standings))
+    future_start = max(max(finished_gws, default=0) + 1,
+                       int(dashboard_target_gw or 1) + (1 if dashboard_game_state in ('live', 'upcoming') else 0))
+    next_gws = sorted({int(gw) for gw in full_fixture_schedule if int(gw) >= future_start})[:5]
+    if not next_gws:
+        next_gws = sorted({int(f.get('event')) for f in _all_pl_fixtures
+                           if f.get('event') is not None and int(f['event']) >= future_start})[:5]
+    if not next_gws:
+        next_gws = [future_start + i for i in range(5)]
+
+    rosters = {m: [int(pid) for pid in _trade_rosters.get(m, [])] for m in managers}
+    all_owned = {pid for ids in rosters.values() for pid in ids}
+    # The current Draft element-status pool can be broader than stored rosters.
+    all_owned.update(int(pid) for pid, owner in _analytics_owner_by_id.items() if owner in managers)
+    by_position = defaultdict(list)
+    for pid, meta in elements.items():
+        try:
+            pid = int(pid)
+        except (TypeError, ValueError):
+            continue
+        if pid in all_owned or not meta.get('draft_active', True):
+            continue
+        pos = positions_lookup.get(meta.get('element_type'), '')
+        if pos in ('GKP', 'DEF', 'MID', 'FWD'):
+            by_position[pos].append(pid)
+
+    proj_cache = {}
+    def proj(pid, gw):
+        key = (int(pid), int(gw))
+        if key not in proj_cache:
+            proj_cache[key] = round(float(_player_weekly_projection(
+                int(pid), _global_position_baselines, _global_league_player_mean,
+                target_gw=int(gw)) or 0), 3)
+        return proj_cache[key]
+
+    # A generous selection of realistic targets at every position. This is
+    # independent of any manager's own roster, so competition can be estimated.
+    candidate_ids = []
+    for pos, ids in by_position.items():
+        scored = sorted(ids, key=lambda pid: (
+            -sum(proj(pid, gw) for gw in next_gws[:3]),
+            -float(elements[pid].get('total_points', 0) or 0), pid
+        ))
+        candidate_ids.extend(scored[:22])
+    candidate_ids = list(dict.fromkeys(candidate_ids))
+
+    base_week = {}
+    for manager, ids in rosters.items():
+        base_week[manager] = {}
+        for gw in next_gws:
+            players = [{'id': pid, 'position': positions_lookup.get(elements.get(pid, {}).get('element_type'), ''),
+                        'projection': proj(pid, gw)} for pid in ids]
+            result = _best_projected_xi(players)
+            base_week[manager][gw] = float(result['total']) if result else 0.0
+
+    # Candidate x manager x horizon, assessed by re-solving a legal best XI.
+    interests = {m: {} for m in league_order}
+    targets = []
+    for pid in candidate_ids:
+        meta = elements[pid]
+        pos = positions_lookup.get(meta.get('element_type'), '')
+        candidate = {
+            'id': pid, 'name': meta.get('web_name', f'Player {pid}'), 'position': pos,
+            'club': teams_lookup.get(meta.get('team'), '—'),
+            'season_points': float(meta.get('total_points', 0) or 0),
+            'next_projection': round(proj(pid, next_gws[0]), 2),
+            'next_three': round(sum(proj(pid, gw) for gw in next_gws[:3]), 2),
+            'availability': _fpl_availability.get(pid, {}).get('status', 'a'),
+            'news': _fpl_availability.get(pid, {}).get('news', ''),
+            'fixtures': [row.get('label', '—') for row in _player_next_fixture_run(pid, 3, start_gw=next_gws[0])],
+        }
+        per_manager = {}
+        for manager in league_order:
+            ids = rosters.get(manager, [])
+            outgoing = [out for out in ids if positions_lookup.get(elements.get(out, {}).get('element_type'), '') == pos]
+            if not outgoing:
+                per_manager[manager] = {'gains': {'1': 0., '3': 0., '5': 0.}, 'drops': {}, 'need': 0., 'best_drop': None}
+                continue
+            best = {1: (-float('inf'), None), 3: (-float('inf'), None), 5: (-float('inf'), None)}
+            for out in outgoing:
+                new_roster = [p for p in ids if p != out] + [pid]
+                running = 0.0
+                for index, gw in enumerate(next_gws, start=1):
+                    player_rows = [{'id': p, 'position': positions_lookup.get(elements.get(p, {}).get('element_type'), ''),
+                                    'projection': proj(p, gw)} for p in new_roster]
+                    result = _best_projected_xi(player_rows)
+                    running += float(result['total']) - base_week[manager].get(gw, 0) if result else 0.0
+                    if index in (1, 3, 5) and running > best[index][0]:
+                        best[index] = (running, out)
+                # For early season or partial schedule, repeat the last horizon.
+                if len(next_gws) < 5 and running > best[5][0]: best[5] = (running, out)
+                if len(next_gws) < 3 and running > best[3][0]: best[3] = (running, out)
+            pos_need = float(positional_need_map.get(manager, {}).get(pos, {}).get('need_score', 50) or 50)
+            row = {'gains': {str(h): round(max(0., gain if gain != -float('inf') else 0.), 2) for h, (gain, _) in best.items()},
+                   'drops': {str(h): {'id': out, 'name': elements.get(out, {}).get('web_name', f'Player {out}')}
+                             for h, (_, out) in best.items() if out is not None},
+                   'need': round(pos_need), 'best_drop': best[3][1]}
+            per_manager[manager] = row
+            interests[manager][pid] = row
+        candidate['managers'] = per_manager
+        targets.append(candidate)
+
+    # Model each rival's interest by relative projected value *within the same
+    # positional free-agent pool*; a manager with better options at the same
+    # position is less likely to contest this particular name.
+    ranked_rival_targets = {m: defaultdict(list) for m in league_order}
+    for manager in league_order:
+        for candidate in targets:
+            row = candidate['managers'][manager]
+            ranked_rival_targets[manager][candidate['position']].append((
+                candidate['id'], float(row['gains'].get('3', 0)), float(row['need'])))
+        for pos in ranked_rival_targets[manager]:
+            ranked_rival_targets[manager][pos].sort(key=lambda t: (-t[1], -t[2], t[0]))
+    for candidate in targets:
+        pos = candidate['position']
+        for manager in league_order:
+            row = candidate['managers'][manager]
+            rank = next((i for i, item in enumerate(ranked_rival_targets[manager][pos], start=1)
+                         if item[0] == candidate['id']), 99)
+            row['pos_rank'] = rank
+            gain = float(row['gains'].get('3', 0))
+            need = float(row['need'])
+            row['interest'] = ('Strong' if gain >= 2.0 and rank <= 4 and need >= 35
+                               else 'Possible' if gain >= 0.7 and rank <= 10 and need >= 20
+                               else 'Limited')
+
+    # Interest assessment deliberately has no fabricated claim success %.
+    return {
+        'league_order': league_order,
+        'standings': [{'manager': m, 'league_rank': current_standings.index(m) + 1,
+                       'priority': league_order.index(m) + 1,
+                       'lp': int(league_points.get(m, 0)),
+                       'pf': round(float(points_for.get(m, 0)), 1)} for m in league_order],
+        'target_gw': next_gws[0], 'horizon_gws': next_gws,
+        'state': dashboard_game_state,
+        'candidates': targets,
+        'model_note': 'Estimates based on current roster needs and projected XI gains; rivals’ private claims are not accessible.',
+    }
+
+
+waiver_intelligence_json = json.dumps(_waiver_intelligence_payload(), ensure_ascii=False, separators=(',', ':'))
+
+
+def waiver_intelligence_html():
+    return '''<div class="wi-shell">
+      <div class="card wi-intro">
+        <span class="relationship-eyebrow">READ THE ROOM BEFORE CLAIMING</span>
+        <h2>Waiver Intelligence</h2>
+        <p class="card-description">Bottom of the completed McDraft table gets first priority. When a manager wins a claim, they move to the back for that gameweek. We assess your likely competition using earlier managers’ squad weaknesses and projected XI improvements. <b>We cannot see their private waiver requests or promise that any player will survive.</b></p>
+        <div class="wi-controls">
+          <label>My McDraft team<select id="wi-manager" onchange="renderWaiverIntelligence()"></select></label>
+          <label>Value horizon<select id="wi-horizon" onchange="renderWaiverIntelligence()"><option value="1">Next GW</option><option value="3" selected>Next 3 GWs</option><option value="5">Next 5 GWs</option></select></label>
+          <label>Pick strategy<select id="wi-strategy" onchange="renderWaiverIntelligence()"><option value="balanced">Balance value &amp; competition</option><option value="value">Highest projected XI gain</option><option value="realistic">Less-contested targets first</option></select></label>
+          <label>Position<select id="wi-position" onchange="renderWaiverIntelligence()"><option value="">All positions</option><option value="GKP">Goalkeepers</option><option value="DEF">Defenders</option><option value="MID">Midfielders</option><option value="FWD">Forwards</option></select></label>
+        </div>
+        <div class="wi-stats" id="wi-stats"></div>
+        <div id="wi-priority" class="wi-priority" aria-label="Estimated waiver queue"></div>
+        <div id="wi-notice" class="wi-notice"></div>
+      </div>
+      <div class="wi-grid">
+        <div class="card wi-market">
+          <div class="wi-heading"><div><h2>Target board</h2><p class="card-description">Projected improvement to your legal best XI, not just player form. Claim pressure shows estimated competition among teams currently ahead of you.</p></div><span class="muted" id="wi-count"></span></div>
+          <div class="wi-chip-row"><input id="wi-search" class="wi-search" type="search" placeholder="Search free agents…" oninput="renderWaiverIntelligence()" aria-label="Search free agents"><label class="wi-toggle"><input id="wi-hide-risk" type="checkbox" onchange="renderWaiverIntelligence()"> Hide heavily contested</label><label class="wi-toggle"><input id="wi-positive-only" type="checkbox" checked onchange="renderWaiverIntelligence()"> Projected XI upgrades only</label></div>
+          <div id="wi-assumed" class="wi-assumed"></div>
+          <div class="wi-target-scroll" id="wi-target-list"></div>
+        </div>
+        <div class="card wi-ladder-card">
+          <h2>My claim ladder</h2><p class="card-description">Build an ordered shortlist, choose backups, and copy it into your FPL Draft waiver requests. Nothing is submitted automatically.</p>
+          <div id="wi-claim-ladder" class="wi-ladder"></div>
+          <div class="wi-ladder-actions"><button type="button" class="relationship-reset" onclick="autoWaiverLadder()">Build sensible shortlist</button><button type="button" class="relationship-reset" onclick="copyWaiverLadder()">Copy claim order</button><button type="button" class="relationship-reset" onclick="clearWaiverLadder()">Clear</button></div>
+          <div class="wi-notice" id="wi-ladder-notice" aria-live="polite"></div>
+          <div class="wi-how"><h3>How to use it</h3><p>Your highest-priority requests go first. A speculative top pick can still be worth submitting, because an unsuccessful claim does not move you back. After a successful claim you move to the back for that GW, so line up realistic fallbacks as well. Claims for different players with the same outgoing player act as alternatives: once one succeeds, others involving that outgoing player become invalid.</p><p>After waivers process, free agency opens; check actual availability in FPL Draft before submitting any move.</p></div>
+        </div>
+      </div>
+    </div>'''
 
 # ---------------------------- Manager War Room ----------------------------
 def _build_manager_war_room(planner_data):
@@ -15974,6 +16360,199 @@ war_room_css = r'''
 '''
 
 
+wi_css = r'''
+.wi-shell{display:flex;flex-direction:column;gap:16px;min-width:0}
+.wi-intro{display:flex;flex-direction:column;gap:15px}
+.wi-intro h2{font-size:24px;margin:5px 0 1px}
+.wi-intro .card-description{max-width:1080px;line-height:1.6}
+.wi-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.wi-controls label{display:flex;flex-direction:column;gap:6px;font-weight:780;font-size:12px;color:var(--muted)}
+.wi-controls select{background:#0e1a2c;border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--text);min-width:0;width:100%}
+.wi-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.wi-stats div{background:#0c1a2d;border:1px solid #30445c;border-radius:12px;padding:13px;min-width:0}
+.wi-stats strong{display:block;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.25;color:#e5f5ff}
+.wi-stats span{display:block;font-size:11px;color:var(--muted);margin-top:4px}
+.wi-priority{display:flex;gap:6px;flex-wrap:wrap}
+.wi-queue-team{display:flex;gap:7px;align-items:center;border:1px solid #31465e;border-left:4px solid var(--wi-team);background:#102137;border-radius:8px;padding:8px 10px;color:#d5e5f7;font-size:11px;min-width:0}
+.wi-queue-team strong{color:var(--wi-team);font-variant-numeric:tabular-nums}
+.wi-queue-team span{white-space:nowrap}
+.wi-queue-team.mine{border-color:#eab308;background:#4a381a;color:#fff}
+.wi-queue-team.mine b{font-size:9px;color:#fde68a}
+.wi-notice{border:1px solid #30435c;background:#132339;border-radius:9px;color:#bbd0e6;font-size:11px;line-height:1.6;padding:12px}
+.wi-notice span{display:inline-block;margin:2px 3px;padding:2px 6px;background:#233851;border-left:3px solid var(--wi-team);border-radius:5px}
+.wi-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(300px,1fr);gap:16px;align-items:start}
+.wi-heading{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.wi-heading h2,.wi-ladder-card h2{margin:0 0 4px}
+.wi-chip-row{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0}
+.wi-toggle{display:flex;gap:7px;align-items:center;font-size:11px;color:#b9d0e9}
+.wi-target-scroll{max-height:790px;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:9px;padding-right:4px}
+.wi-target{border:1px solid #30445a;border-left:3px solid var(--wi-team);border-radius:12px;background:#101e32;padding:13px;min-width:0}
+.wi-target-head{display:flex;align-items:start;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.wi-target-head strong{display:block;font-size:16px}
+.wi-target-head small{color:var(--muted);display:block;margin-top:4px;font-size:11px}
+.wi-risk{font-size:10px;font-weight:900;padding:5px 8px;border-radius:7px;white-space:nowrap}
+.wi-risk.crowded{background:#532323;color:#ffb5a9}
+.wi-risk.possible{background:#504021;color:#ffdfa0}
+.wi-risk.clear{background:#13402c;color:#8beec4}
+.wi-target-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.wi-target-metrics>div{background:#0a1728;border-radius:8px;padding:9px;min-width:0}
+.wi-target-metrics b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.wi-target-metrics b.wi-gain{color:#4ade80}
+.wi-target-metrics small{display:block;color:var(--muted);font-size:10px;line-height:1.4;margin-top:2px}
+.wi-drop,.wi-fix{margin:7px 0;color:#c5d6ec;font-size:11px;line-height:1.6}
+.wi-fix{color:var(--muted)}.wi-flag{color:#facc15}
+.wi-target-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.wi-target-actions .relationship-reset{font-size:11px;min-height:32px}
+.wi-target-actions details{flex:1 1 170px;font-size:11px;color:#a9c6e1}
+.wi-target-actions summary{cursor:pointer}
+.wi-contenders{display:flex;flex-direction:column;gap:5px;background:#0b1728;border-radius:10px;padding:10px;margin-top:6px;min-width:250px}
+.wi-contender{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;border-bottom:1px solid #2d435a;padding:5px 0;font-size:10px}
+.wi-contender span:first-child{font-weight:750}.wi-contender i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--wi-team);margin-right:6px}
+.wi-ladder-card{position:sticky;top:12px}.wi-ladder{display:flex;flex-direction:column;gap:7px;margin:14px 0;max-height:510px;overflow:auto}
+.wi-ladder-empty{border:1px dashed #455b76;border-radius:10px;padding:16px;color:var(--muted);font-size:12px}
+.wi-ladder-row{display:flex;gap:9px;align-items:center;border:1px solid #30435e;border-radius:10px;background:#0e1d30;padding:10px;min-width:0}
+.wi-claim-num{display:flex;flex:0 0 28px;align-items:center;justify-content:center;height:28px;border-radius:50%;background:#254768;color:#a3daff;font-weight:900}
+.wi-claim-body{flex:1;min-width:0}.wi-claim-body b{display:block;font-size:12px}.wi-claim-body small{display:block;color:var(--muted);font-size:10px;line-height:1.5}
+.wi-claim-buttons{display:flex;gap:2px}.wi-claim-buttons button{background:#1c3048;border:1px solid #39516c;border-radius:7px;color:#f8fafc;width:24px;height:27px;cursor:pointer}.wi-claim-buttons button:disabled{opacity:.25;cursor:default}
+.wi-ladder-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.wi-ladder-actions button{font-size:11px}
+.wi-how{margin-top:12px;color:var(--muted);font-size:11px;line-height:1.65}.wi-how h3{font-size:12px;color:#e7f3ff}
+@media(max-width:1080px){.wi-grid{grid-template-columns:1fr}.wi-ladder-card{position:static}.wi-ladder{max-height:none}}
+@media(max-width:720px){.wi-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.wi-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.wi-controls{grid-template-columns:1fr 1fr;gap:8px}.wi-controls select{font-size:12px;padding:9px}.wi-target-metrics{gap:4px}.wi-target-metrics b{font-size:15px}.wi-target{padding:10px}}
+.wi-search{flex:1 1 190px;min-width:130px;background:#0f1d30;color:var(--text);border:1px solid var(--border);padding:9px 12px;border-radius:9px}
+.wi-assumed{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--muted);margin:2px 0 9px}
+.wi-assumed:empty{display:none}.wi-assumed button{border:1px solid #664c3a;background:#342a25;color:#ffd5b9;border-radius:8px;padding:6px 9px;cursor:pointer}
+'''
+
+simulator_css = r"""
+/* v53 — scenario-based Monte Carlo season simulator. */
+.simulator-shell{display:flex;flex-direction:column;gap:17px;min-width:0}
+.sim-hero{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap}
+.sim-hero h2{font-size:25px;margin:6px 0 8px}
+.sim-hero p{max-width:850px}
+.sim-status-puck{font-weight:850;font-size:12px;color:#67e8f9;background:#0b3043;border:1px solid #235269;border-radius:30px;padding:10px 14px;white-space:normal;max-width:320px}
+.sim-controls-card{display:flex;flex-direction:column;gap:16px}
+.sim-controls-grid{display:grid;grid-template-columns:minmax(180px,1.2fr) minmax(150px,1fr) minmax(150px,1fr) auto;gap:12px;align-items:end}
+.sim-controls-grid label{color:var(--muted);font-size:12px;font-weight:800;display:flex;flex-direction:column;gap:7px}
+.sim-controls-grid select{color:var(--text);background:#0f172a;border:1px solid var(--border);border-radius:10px;padding:11px 12px;font-size:13px;width:100%;min-width:0}
+.sim-run-button{background:#0e7490;border:1px solid #38bdf8;border-radius:11px;color:#fff;font-weight:900;padding:11px 17px;cursor:pointer;white-space:nowrap;min-height:43px}
+.sim-run-button:disabled{opacity:.6;cursor:wait}
+.sim-custom-controls{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:14px;background:#111d30;border-radius:12px;border:1px solid #283c52}
+.sim-custom-controls p{margin:5px 0 0;max-width:690px}
+.sim-custom-controls label{display:flex;flex-direction:column;gap:6px;text-align:center;min-width:230px}
+.sim-custom-controls input{accent-color:#38bdf8;width:100%}
+.sim-custom-controls b{font-size:14px;color:#67e8f9}
+.sim-scenario-switcher{display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:thin}
+.sim-scenario-chip{flex:0 0 auto;border:1px solid var(--border);background:#122035;color:#b7c6dd;border-radius:12px;text-align:left;padding:12px 14px;cursor:pointer;min-width:145px;max-width:215px}
+.sim-scenario-chip.active{border-color:#38bdf8;background:#18354b;box-shadow:inset 0 -3px 0 #38bdf8;color:#f8fafc}
+.sim-scenario-chip strong{font-size:12px;display:block}
+.sim-scenario-chip small{font-size:10px;color:#95aac2;display:block;margin-top:5px;line-height:1.4}
+.sim-model-note{font-size:11px;color:var(--muted);line-height:1.65}
+.sim-metric-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.sim-metric{border:1px solid var(--border);border-radius:15px;padding:15px;background:#13223a;min-width:0}
+.sim-metric .label{display:block;font-size:11px;color:#9eb1c9;margin-bottom:7px;font-weight:750}
+.sim-metric .value{display:block;font-size:26px;font-weight:900;color:#f8fafc;letter-spacing:-.03em;white-space:nowrap}
+.sim-metric .delta{display:block;font-size:11px;color:#93c5fd;margin-top:5px}
+.sim-dual-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}
+.sim-chart-card{min-width:0}
+.sim-chart-card h2{font-size:16px;margin:0 0 7px}
+.sim-chart-card svg{display:block;width:100%;height:auto;overflow:visible}
+.sim-svg-label{fill:#9db4d1;font:11px sans-serif}
+.sim-svg-axis{stroke:#425570;stroke-width:1}
+.sim-svg-grid{stroke:#314156;stroke-width:.7;stroke-dasharray:4 4}
+.sim-chart-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}
+.sim-chart-legend i{display:inline-block;width:12px;height:9px;margin-right:5px;border-radius:2px}
+.sim-section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.sim-section-head h2{margin:0 0 6px}
+.sim-table-wrap{width:100%;overflow-x:auto;scrollbar-width:thin}
+.sim-table{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}
+.sim-table th{color:#9cb2cb;font-size:11px;text-transform:uppercase;letter-spacing:.04em;text-align:right;padding:12px 10px;border-bottom:1px solid #35445b}
+.sim-table th:first-child,.sim-table td:first-child{text-align:left;position:sticky;left:0;background:var(--card-bg,#111c2c);z-index:1}
+.sim-table td{text-align:right;padding:12px 10px;border-bottom:1px solid rgba(148,163,184,.14)}
+.sim-table tbody tr:hover td{background:#172b42}
+.sim-table tr.selected td{background:#1c3850}
+.sim-table .sim-scenario-name{font-weight:850;display:block}
+.sim-table .sim-subtext{display:block;color:var(--muted);font-size:10px;white-space:normal;max-width:240px;margin-top:3px}
+.sim-table .sim-heat{font-weight:850;min-width:39px;text-align:center;padding:9px 4px;border:1px solid #172235;font-size:10px}
+.sim-manager-name{font-weight:850;display:flex;align-items:center;gap:7px}
+.sim-manager-name i{width:8px;height:8px;border-radius:99px;flex:0 0 auto}
+.sim-method-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.sim-method-grid>div{border:1px solid var(--border);background:#112034;padding:13px;border-radius:12px}
+.sim-method-grid b{color:#c7e5f7;font-size:13px}
+.sim-method-grid p{font-size:12px;line-height:1.55;color:var(--muted);margin:7px 0 0}
+.sim-loading{padding:35px;text-align:center;color:#9cb2cb;font-size:13px}
+.sim-empty{padding:22px;color:var(--muted);border:1px dashed var(--border);border-radius:12px}
+@media(max-width:1120px){.sim-controls-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sim-metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.sim-dual-grid{grid-template-columns:1fr}.sim-method-grid{grid-template-columns:1fr}.sim-custom-controls{flex-direction:column;align-items:stretch}.sim-custom-controls label{min-width:0}.sim-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sim-hero h2{font-size:20px}}
+@media(max-width:490px){.sim-controls-grid{grid-template-columns:1fr}.sim-metric .value{font-size:23px}.sim-scenario-chip{min-width:140px}}
+
+/* v54 — All-manager trajectory filters and stackable custom simulations. */
+.sim-trajectory-card{min-width:0}
+.sim-dual-grid:has(.sim-trajectory-card){grid-template-columns:minmax(0,1fr)}
+.sim-team-filter{display:flex;flex-direction:column;gap:10px;margin:13px 0 9px}
+.sim-team-presets,.sim-team-chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.sim-team-presets button{border:1px solid #374960;background:#0c1829;color:#cce0f6;border-radius:999px;padding:7px 11px;font-size:11px;font-weight:850;cursor:pointer}
+.sim-team-presets button:hover{border-color:#38bdf8}
+.sim-team-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #35445a;background:#132238;color:#a1b8d0;border-radius:999px;padding:7px 10px;font-size:10.5px;font-weight:750;cursor:pointer;opacity:.65}
+.sim-team-chip.active{color:#f8fafc;border-color:var(--sim-team-color);opacity:1;background:#19304a}
+.sim-team-chip i{display:inline-block;background:var(--sim-team-color);width:8px;height:8px;border-radius:999px}
+.sim-band-toggle{display:flex;align-items:center;gap:7px;color:#b4c6d9;font-size:11px;margin-bottom:12px}
+.sim-band-toggle input{accent-color:#38bdf8}
+.sim-trajectory-line{transition:stroke-width .2s,opacity .2s}
+.sim-trajectory-line:hover{stroke-width:5;opacity:1}
+.sim-trajectory-key{display:flex;flex-wrap:wrap;gap:9px 15px;margin:7px 0;font-size:10.5px;color:#c5d8eb}
+.sim-trajectory-key span{display:inline-flex;align-items:center;gap:5px}
+.sim-trajectory-key i{display:inline-block;width:9px;height:9px;border-radius:999px}
+.sim-trajectory-key b{font-variant-numeric:tabular-nums;color:#f8fafc}
+.sim-builder-card{display:flex;flex-direction:column;gap:15px}
+.sim-builder-count{font-size:12px;font-weight:850;color:#67e8f9;border:1px solid #286076;border-radius:999px;background:#102d43;padding:9px 12px}
+.sim-builder-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.sim-builder-trade-controls{grid-template-columns:repeat(4,minmax(0,1fr))}
+.sim-builder-controls label{min-width:0;color:#9db4d1;font-size:11px;font-weight:800;display:flex;flex-direction:column;gap:7px}
+.sim-builder-controls input,.sim-builder-controls select{width:100%;min-width:0;border-radius:10px;border:1px solid #405069;background:#0b1a2d;padding:10px 12px;color:#f8fafc;font-size:12px}
+.sim-builder-type-panel{padding:15px;border-radius:13px;background:#101e31;border:1px solid #2d4158}
+.sim-builder-type-panel[hidden]{display:none!important}
+.sim-helper-note{font-size:11px;line-height:1.5;color:#8ba3bb;margin:10px 0 0}
+.sim-builder-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sim-builder-actions button{padding:10px 14px;min-height:40px;border-radius:10px;color:#f8fafc;font-size:12px;font-weight:850;cursor:pointer}
+.sim-build-add{background:#124637;border:1px solid #379775}
+.sim-build-run{background:#0e7490;border:1px solid #38bdf8}
+.sim-build-clear{background:#293041;border:1px solid #53637a}
+.sim-builder-feedback{font-size:12px;color:#79d7b4;min-height:13px}
+.sim-builder-feedback.error{color:#fca5a5}
+.sim-build-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.sim-build-placeholder{border:1px dashed #3c4c64;border-radius:12px;padding:15px;color:#92a9c1;font-size:12px;grid-column:1/-1}
+.sim-build-move{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;border-radius:12px;border:1px solid #385167;background:#16273c;padding:12px}
+.sim-build-index{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#0c5a66;color:#fff;font-size:11px;font-weight:850}
+.sim-build-move strong{font-size:11px;color:#eff8ff}
+.sim-build-move p{font-size:11px;line-height:1.5;margin:5px 0 0;color:#a9c3d9}
+.sim-build-move button{border:0;background:#37252b;color:#fecaca;font-size:17px;font-weight:900;width:24px;height:24px;border-radius:7px;cursor:pointer}
+.sim-custom-effects h4{margin:0 0 9px;font-size:12px}
+.sim-custom-impact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.sim-custom-impact-grid>div{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 12px;border-radius:11px;border:1px solid #334c63;background:#0c2035;font-size:11px}
+.sim-custom-impact-grid i{width:8px;height:8px;border-radius:50%}
+.sim-custom-impact-grid strong{flex:1 1 100px}
+.sim-custom-impact-grid span{font-weight:850}
+.sim-custom-impact-grid span.positive{color:#67e8b6}
+.sim-custom-impact-grid span.negative{color:#fda4af}
+.sim-custom-impact-grid small{flex:1 1 100%;color:#91a9c3}
+@media(max-width:980px){.sim-builder-trade-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.sim-build-list{grid-template-columns:1fr}}
+@media(max-width:560px){.sim-builder-controls,.sim-builder-trade-controls{grid-template-columns:1fr}.sim-trajectory-key{font-size:10px}}
+.sim-save-variant-row{display:flex;align-items:end;gap:10px;flex-wrap:wrap;border-top:1px solid #31445b;padding-top:14px}
+.sim-save-variant-row label{display:flex;flex-direction:column;gap:6px;color:#9db4d1;font-size:11px;font-weight:800;min-width:220px;flex:1 1 260px}
+.sim-save-variant-row input{background:#0b1a2d;border:1px solid #405069;border-radius:10px;color:#f8fafc;padding:10px 12px;font-size:12px}
+.sim-save-variant{border:1px solid #9b8ffb;background:#30376b;border-radius:10px;color:#f8fafc;font-size:12px;font-weight:850;padding:11px 14px;cursor:pointer}
+.sim-save-variant-row .sim-helper-note{flex:1 1 230px;margin:0 0 3px}
+.sim-saved-variants{display:flex;flex-wrap:wrap;gap:9px}
+.sim-saved-caption{flex-basis:100%;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#a6bbd1;font-weight:900}
+.sim-saved-item{display:flex;align-items:center;gap:8px;background:#171f3f;border:1px solid #52578a;border-radius:12px;padding:10px 12px}
+.sim-saved-item span{display:flex;flex-direction:column;gap:5px;max-width:210px}
+.sim-saved-item strong{font-size:11px;color:#e9e9ff}
+.sim-saved-item small{font-size:10px;color:#a4aed5}
+.sim-saved-item button{background:#313a6d;border:1px solid #5b68a3;border-radius:8px;padding:7px 9px;color:#eff2ff;cursor:pointer;font-size:11px;font-weight:800}
+
+"""
+
 javascript = r"""
 /* ============================================================
    MY TEAM SELECTOR
@@ -17015,6 +17594,780 @@ function showAnalyticsSubtab(name, button) {
     if(name==='river-passport') requestAnimationFrame(renderTransferRiverPassport);
 }
 
+/* ============================================================
+   v53 — Season Simulator. All Monte Carlo runs are browser-local.
+   Forecasts and fixtures are generated by the Python season model.
+   ============================================================ */
+const SEASON_SIMULATOR_DATA = __SEASON_SIMULATOR_DATA__;
+const SIM_SCENARIOS = [
+    {id:'baseline', label:'Current path', description:'Present squad projections, unchanged.', type:'baseline'},
+    {id:'hot', label:'Hot streak', description:'+5 pts/GW for the focus manager.', type:'delta', delta:5},
+    {id:'waiver', label:'Waiver upgrade', description:'+3 pts/GW after a hypothetical improvement.', type:'delta', delta:3},
+    {id:'injury', label:'Injury setback', description:'−6 pts/GW for a major squad absence.', type:'delta', delta:-6},
+    {id:'slump', label:'Form slump', description:'−4 pts/GW for the focus manager.', type:'delta', delta:-4},
+    {id:'chaos', label:'League chaos', description:'55% greater weekly score volatility for everyone.', type:'chaos'},
+    {id:'custom', label:'Your slider', description:'Use the points adjustment slider.', type:'custom'},
+    {id:'roster', label:'Your custom moves', description:'Stack real-player trade, injury and waiver assumptions below.', type:'roster'}
+];
+const seasonSimState = {
+    initialized:false, running:false, runId:0, selected:'baseline',
+    outcomes:{}, focus:null, effectWeeks:5, sampleCount:3000, customDelta:3,
+    progress:'', noFixtures:false, customActions:[],actionSeq:0,customDirty:false,visibleManagers:null,fixtureWeeks:[],lastConfigKey:null,savedVariants:[],variantSeq:0
+};
+function simEscape(v){
+    return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function simColor(manager){return (SEASON_SIMULATOR_DATA.colors||{})[manager] || '#38bdf8';}
+function simRgb(hex){
+    const s=String(hex).replace('#','');
+    return /^[0-9a-f]{6}$/i.test(s) ? [parseInt(s.slice(0,2),16),parseInt(s.slice(2,4),16),parseInt(s.slice(4,6),16)] : [56,189,248];
+}
+function simFmtDelta(v,digits=1){
+    if(!Number.isFinite(v))return '—';
+    return (v>0?'+':'')+v.toFixed(digits);
+}
+function simPct(v){return (Number(v)||0).toFixed(1)+'%';}
+function simRank(v){return Math.round(v).toString();}
+function simQuantile(sorted,q){
+    if(!sorted.length)return 0;
+    const at=Math.max(0,Math.min(1,q))*(sorted.length-1),lo=Math.floor(at),hi=Math.ceil(at);
+    return sorted[lo]+(sorted[hi]-sorted[lo])*(at-lo);
+}
+function simSeed(seed){
+    let a=seed>>>0;
+    return function(){
+        a=(a+0x6D2B79F5)>>>0;
+        let t=a;
+        t=Math.imul(t^(t>>>15),t|1);
+        t^=t+Math.imul(t^(t>>>7),t|61);
+        return ((t^(t>>>14))>>>0)/4294967296;
+    };
+}
+function simNormalFactory(seed){
+    const uniform=simSeed(seed);
+    let spare=null;
+    return function(){
+        if(spare!==null){const next=spare;spare=null;return next;}
+        let u=uniform();if(u<1e-12)u=1e-12;
+        const v=uniform(),m=Math.sqrt(-2*Math.log(u)),theta=2*Math.PI*v;
+        spare=m*Math.sin(theta);
+        return m*Math.cos(theta);
+    };
+}
+function simStatus(text,loading){
+    const label=document.getElementById('sim-run-status');
+    if(label)label.textContent=text;
+    const button=document.querySelector('#page-season-simulator .sim-run-button');
+    if(button){button.disabled=!!loading;button.textContent=loading?'Running…':'↻ Run scenarios';}
+}
+function simPaintSwitcher(){
+    const wrap=document.getElementById('sim-scenario-switcher');if(!wrap)return;
+    wrap.innerHTML=simAllScenarios().map(s=>
+      '<button type="button" class="sim-scenario-chip'+(seasonSimState.selected===s.id?' active':'')+'" '
+      +'aria-pressed="'+(seasonSimState.selected===s.id)+'" onclick="selectSeasonScenario(\''+s.id+'\')">'
+      +'<strong>'+simEscape(s.label)+(seasonSimState.outcomes[s.id]?' ✓':'')+'</strong><small>'+simEscape(s.description)+'</small></button>'
+    ).join('');
+}
+function selectSeasonScenario(id){
+    if(!simAllScenarios().some(s=>s.id===id))return;
+    if(!seasonSimState.outcomes[id]){simBuilderMessage('This scenario has not been simulated yet.',true);return;}
+    seasonSimState.selected=id;
+    simPaintSwitcher();
+    simRenderResults();
+}
+function seasonSimCustomChanged(value){
+    seasonSimState.customDelta=Number(value)||0;
+    const label=document.getElementById('sim-custom-delta-value');
+    if(label)label.textContent=simFmtDelta(seasonSimState.customDelta)+' pts/GW';
+    const custom=SIM_SCENARIOS.find(s=>s.id==='custom');
+    if(custom)custom.description=simFmtDelta(seasonSimState.customDelta)+' pts/GW for your manager.';
+    simPaintSwitcher();
+    if(seasonSimState.outcomes.custom){
+        delete seasonSimState.outcomes.custom;
+        const note=document.getElementById('sim-model-note');
+        if(note)note.textContent='Custom adjustment changed; the custom scenario needs recalculation. Release the slider to rerun all scenarios.';
+    }
+}
+function seasonSimConfigurationChanged(){
+    if(!seasonSimState.initialized)return;
+    runSeasonScenarios();
+}
+/* v54 — Interactive what-if workshop and all-manager projection graph. */
+const SIM_POOL = new Map((SEASON_SIMULATOR_DATA.player_pool||[]).map(p=>[Number(p.id),p]));
+const SIM_FORMATIONS = SEASON_SIMULATOR_DATA.formations || [
+  {GKP:1,DEF:3,MID:4,FWD:3}, {GKP:1,DEF:3,MID:5,FWD:2},
+  {GKP:1,DEF:4,MID:4,FWD:2}, {GKP:1,DEF:4,MID:5,FWD:1},
+  {GKP:1,DEF:5,MID:3,FWD:2}, {GKP:1,DEF:5,MID:4,FWD:1}
+];
+function simPlayerLabel(pid){
+    const p=SIM_POOL.get(Number(pid));
+    return p ? p.name+' · '+p.position+' · '+p.club : 'Player #'+pid;
+}
+function simInitialRosters(){
+    const rosters={};
+    (SEASON_SIMULATOR_DATA.managers||[]).forEach(m=>rosters[m]=(SEASON_SIMULATOR_DATA.rosters?.[m]||[]).map(Number));
+    return rosters;
+}
+function simActionOrder(actions){
+    return actions.slice().sort((a,b)=>a.start-b.start||a.id-b.id);
+}
+function simApplyRosterAction(rosters,action){
+    if(action.kind==='trade'){
+        const a=rosters[action.aTeam],b=rosters[action.bTeam];
+        if(!a||!b||action.aTeam===action.bTeam||!a.includes(action.aPid)||!b.includes(action.bPid))throw Error('Trade players must be owned by different selected managers at that gameweek.');
+        if(SIM_POOL.get(action.aPid)?.position!==SIM_POOL.get(action.bPid)?.position)throw Error('Trade players must play the same position.');
+        a.splice(a.indexOf(action.aPid),1,action.bPid);
+        b.splice(b.indexOf(action.bPid),1,action.aPid);
+    }else if(action.kind==='waiver'){
+        const roster=rosters[action.team];
+        if(!roster||!roster.includes(action.outPid))throw Error('The dropped player is no longer owned by that manager at the selected gameweek.');
+        if(Object.values(rosters).some(ids=>ids.includes(action.inPid)))throw Error('The waiver target is already owned at the selected gameweek.');
+        if(SIM_POOL.get(action.outPid)?.position!==SIM_POOL.get(action.inPid)?.position)throw Error('Waiver replacements must play the same position.');
+        roster.splice(roster.indexOf(action.outPid),1,action.inPid);
+    }
+}
+function simVirtualRostersAt(start){
+    const rosters=simInitialRosters();
+    simActionOrder(seasonSimState.customActions).forEach(a=>{
+        if(a.start<=start && (a.kind==='trade'||a.kind==='waiver'))simApplyRosterAction(rosters,a);
+    });
+    return rosters;
+}
+function simBestProjectedXI(ids,gw){
+    const group={GKP:[],DEF:[],MID:[],FWD:[]};
+    ids.forEach(id=>{
+        const p=SIM_POOL.get(Number(id));
+        if(p && group[p.position])group[p.position].push(Number(p.by_gw?.[String(gw)]||0));
+    });
+    Object.keys(group).forEach(pos=>group[pos].sort((a,b)=>b-a));
+    let best=-1;
+    SIM_FORMATIONS.forEach(formation=>{
+        let total=0;
+        for(const pos of ['GKP','DEF','MID','FWD']){
+            const num=Number(formation[pos]||0);
+            if(group[pos].length<num)return;
+            for(let i=0;i<num;i++)total+=group[pos][i];
+        }
+        best=Math.max(best,total);
+    });
+    if(best>=0)return best;
+    // A hypothetical suspension/injury could otherwise leave no legal XI.
+    // Count available players rather than spuriously treating the team as zero.
+    return Object.values(group).flat().sort((a,b)=>b-a).slice(0,11).reduce((a,b)=>a+b,0);
+}
+function simComputeCustomDeltas(actions,weeks){
+    const initial=simInitialRosters(),rosters=simInitialRosters();
+    const deltas={};
+    const ordered=simActionOrder(actions),byWeek=weeks.map(()=>[]);
+    ordered.forEach(a=>{
+        if(a.start>=weeks.length)throw Error('A move starts after the last remaining gameweek.');
+        byWeek[a.start].push(a);
+    });
+    weeks.forEach((gw,wi)=>{
+        for(const action of byWeek[wi]){
+            if(action.kind==='trade'||action.kind==='waiver')simApplyRosterAction(rosters,action);
+            else if(action.kind==='injury'){
+                if(!Object.values(rosters).some(ids=>ids.includes(action.pid)))throw Error('The selected player is not on a squad when that injury begins.');
+            }
+        }
+        const absent=new Set(ordered.filter(a=>a.kind==='injury'&&wi>=a.start&&wi<a.start+a.weeks).map(a=>a.pid));
+        const map={};
+        (SEASON_SIMULATOR_DATA.managers||[]).forEach(manager=>{
+            const originalXI=simBestProjectedXI(initial[manager]||[],gw);
+            const newXI=simBestProjectedXI((rosters[manager]||[]).filter(pid=>!absent.has(pid)),gw);
+            let change=0.85*(newXI-originalXI);
+            ordered.filter(a=>a.kind==='points'&&a.team===manager&&wi>=a.start&&wi<a.start+a.weeks)
+                .forEach(a=>{change+=a.delta;});
+            map[manager]=Math.max(-35,Math.min(35,change));
+        });
+        deltas[String(gw)]=map;
+    });
+    return deltas;
+}
+function simBuilderMessage(text,error){
+    const el=document.getElementById('sim-builder-feedback');
+    if(el){el.textContent=text||'';el.classList.toggle('error',!!error);}
+}
+function simSelectOptions(id,rows,keep){
+    const el=document.getElementById(id);if(!el)return;
+    const value=keep??el.value;
+    el.innerHTML=rows.map(r=>'<option value="'+simEscape(r.value)+'">'+simEscape(r.text)+'</option>').join('');
+    if(rows.some(r=>String(r.value)===String(value)))el.value=String(value);
+}
+function simManagerOptions(){return (SEASON_SIMULATOR_DATA.managers||[]).map(m=>({value:m,text:m}));}
+function simRosterOptions(roster,pos){
+    return (roster||[]).filter(pid=>!pos||SIM_POOL.get(Number(pid))?.position===pos)
+      .sort((a,b)=>String(SIM_POOL.get(a)?.name||a).localeCompare(String(SIM_POOL.get(b)?.name||b)))
+      .map(pid=>({value:pid,text:simPlayerLabel(pid)}));
+}
+function simBuilderTypeChanged(){
+    const kind=document.getElementById('sim-action-type')?.value||'trade';
+    ['trade','injury','waiver','points'].forEach(type=>{
+        const el=document.getElementById('sim-builder-'+type);if(el)el.hidden=kind!==type;
+    });
+    simBuilderOptionsChanged();
+}
+function simBuilderOptionsChanged(){
+    if(!document.getElementById('sim-action-type'))return;
+    const start=Number(document.getElementById('sim-action-start')?.value||0);
+    let rosters;
+    try{rosters=simVirtualRostersAt(start);}
+    catch(error){simBuilderMessage(error.message,true);return;}
+    const opts=simManagerOptions();
+    ['sim-trade-team-a','sim-trade-team-b','sim-injury-team','sim-waiver-team','sim-points-team']
+      .forEach(id=>simSelectOptions(id,opts));
+    const first=document.getElementById('sim-trade-team-a')?.value;
+    const second=document.getElementById('sim-trade-team-b');
+    if(second&&second.value===first){second.value=opts.find(r=>r.value!==first)?.value||first;}
+    const apos=SIM_POOL.get(Number(document.getElementById('sim-trade-player-a')?.value))?.position;
+    simSelectOptions('sim-trade-player-a',simRosterOptions(rosters[first]));
+    const chosenPos=SIM_POOL.get(Number(document.getElementById('sim-trade-player-a')?.value))?.position||apos;
+    simSelectOptions('sim-trade-player-b',simRosterOptions(rosters[second?.value],chosenPos));
+    const injured=document.getElementById('sim-injury-team')?.value;
+    simSelectOptions('sim-injury-player',simRosterOptions(rosters[injured]));
+    const waive=document.getElementById('sim-waiver-team')?.value;
+    simSelectOptions('sim-waiver-out',simRosterOptions(rosters[waive]));
+    const drop=Number(document.getElementById('sim-waiver-out')?.value);
+    const pos=SIM_POOL.get(drop)?.position;
+    const owned=new Set(Object.values(rosters).flat());
+    const free=(SEASON_SIMULATOR_DATA.player_pool||[]).filter(p=>p.position===pos&&!owned.has(Number(p.id)))
+      .sort((a,b)=>(Number(b.by_gw?.[String((SEASON_SIMULATOR_DATA.fixtures||[])[0]?.gw)]||0)-Number(a.by_gw?.[String((SEASON_SIMULATOR_DATA.fixtures||[])[0]?.gw)]||0))||a.name.localeCompare(b.name))
+      .map(p=>({value:p.id,text:simPlayerLabel(p.id)}));
+    simSelectOptions('sim-waiver-in',free);
+}
+function simActionDescription(a){
+    const timing='from GW'+(seasonSimState.fixtureWeeks?.[a.start]??'?');
+    if(a.kind==='trade')return simPlayerLabel(a.aPid)+' ('+a.aTeam+') ↔ '+simPlayerLabel(a.bPid)+' ('+a.bTeam+') · '+timing;
+    if(a.kind==='waiver')return a.team+': drop '+simPlayerLabel(a.outPid)+' → '+simPlayerLabel(a.inPid)+' · '+timing;
+    if(a.kind==='injury')return simPlayerLabel(a.pid)+' unavailable for '+(a.weeks>=999?'all remaining':a.weeks)+' GWs · '+timing;
+    return a.team+' '+simFmtDelta(a.delta)+' projected pts/GW for '+(a.weeks>=999?'all remaining':a.weeks)+' GWs · '+timing;
+}
+function simRenderCustomActions(){
+    const wrap=document.getElementById('sim-build-list'),count=document.getElementById('sim-builder-count');
+    if(count)count.textContent=seasonSimState.customActions.length+' / 6 moves';
+    if(!wrap)return;
+    wrap.innerHTML=seasonSimState.customActions.length ? seasonSimState.customActions.map((a,i)=>
+        '<div class="sim-build-move"><span class="sim-build-index">'+(i+1)+'</span><div><strong>'+simEscape(a.kind==='trade'?'Trade':a.kind==='waiver'?'Waiver move':a.kind==='injury'?'Injury setback':'Points change')+'</strong><p>'+simEscape(simActionDescription(a))+'</p></div><button type="button" aria-label="Remove move" onclick="simRemoveCustomAction('+a.id+')">×</button></div>'
+    ).join(''):'<div class="sim-build-placeholder">No moves queued yet. Choose a scenario above, then add it here.</div>';
+    const effects=document.getElementById('sim-custom-effects');
+    if(effects&&(!seasonSimState.outcomes.roster||seasonSimState.customDirty))effects.innerHTML='';
+    simRenderSavedVariants();
+    simPaintSwitcher();
+}
+function simInvalidateCustom(){
+    seasonSimState.customDirty=true;
+    delete seasonSimState.outcomes.roster;
+    if(seasonSimState.selected==='roster')seasonSimState.selected='baseline';
+    simRenderCustomActions();
+    simRenderResults();
+}
+function simAddCustomAction(){
+    if(seasonSimState.customActions.length>=6){simBuilderMessage('This scenario already contains six changes. Remove one to add another.',true);return;}
+    const v=id=>document.getElementById(id)?.value;
+    const start=Number(v('sim-action-start')||0),kind=v('sim-action-type');
+    const id=++seasonSimState.actionSeq;
+    let action;
+    if(kind==='trade'){
+        action={id,kind,start,aTeam:v('sim-trade-team-a'),bTeam:v('sim-trade-team-b'),aPid:Number(v('sim-trade-player-a')),bPid:Number(v('sim-trade-player-b'))};
+        if(!action.aTeam||!action.bTeam||!action.aPid||!action.bPid){simBuilderMessage('Choose both managers and both players.',true);return;}
+    }else if(kind==='waiver'){
+        action={id,kind,start,team:v('sim-waiver-team'),outPid:Number(v('sim-waiver-out')),inPid:Number(v('sim-waiver-in'))};
+        if(!action.team||!action.outPid||!action.inPid){simBuilderMessage('Choose a manager, dropped player and available replacement.',true);return;}
+    }else if(kind==='injury'){
+        action={id,kind,start,team:v('sim-injury-team'),pid:Number(v('sim-injury-player')),weeks:Number(v('sim-injury-weeks')||3)};
+        if(!action.pid){simBuilderMessage('Choose the injured player.',true);return;}
+    }else{
+        action={id,kind:'points',start,team:v('sim-points-team'),delta:Number(v('sim-points-delta')),weeks:Number(v('sim-points-weeks')||5)};
+        if(!action.team||!Number.isFinite(action.delta)||Math.abs(action.delta)>20){simBuilderMessage('Enter a valid points change between −20 and +20.',true);return;}
+    }
+    const all=[...seasonSimState.customActions,action];
+    try{simComputeCustomDeltas(all,seasonSimState.fixtureWeeks||[]);}
+    catch(error){simBuilderMessage('Could not add move: '+error.message,true);return;}
+    seasonSimState.customActions=all;
+    simInvalidateCustom();
+    simBuilderMessage('Added: '+simActionDescription(action)+'. Press Simulate my moves to see the impact.',false);
+    simBuilderOptionsChanged();
+}
+function simRemoveCustomAction(id){
+    seasonSimState.customActions=seasonSimState.customActions.filter(a=>a.id!==Number(id));
+    // Sequential moves can depend on a previous trade. Drop any now-invalid
+    // follow-on actions rather than silently producing impossible rosters.
+    let valid=[];
+    seasonSimState.customActions.forEach(a=>{
+        try{simComputeCustomDeltas([...valid,a],seasonSimState.fixtureWeeks||[]);valid.push(a);}
+        catch(error){simBuilderMessage('Removed a dependent move that was no longer possible: '+error.message,true);}
+    });
+    seasonSimState.customActions=valid;
+    simInvalidateCustom();
+    simBuilderOptionsChanged();
+}
+function simClearCustomActions(){
+    seasonSimState.customActions=[];
+    simInvalidateCustom();
+    simBuilderMessage('Your custom scenario has been cleared.',false);
+    simBuilderOptionsChanged();
+}
+function simRenderTeamFilters(){
+    const wrap=document.getElementById('sim-trajectory-filter');if(!wrap)return;
+    const visible=seasonSimState.visibleManagers||new Set();
+    let html='<div class="sim-team-presets">'+[['All','all'],['Top 5','top5'],['Focus','focus'],['None','none']].map(([name,id])=>
+        '<button type="button" onclick="simSetTeamFilter(\''+id+'\')">'+name+'</button>'
+    ).join('')+'</div><div class="sim-team-chips">';
+    (SEASON_SIMULATOR_DATA.managers||[]).forEach(manager=>{
+        const selected=visible.has(manager),color=simColor(manager);
+        html+='<button type="button" class="sim-team-chip'+(selected?' active':'')+'" style="--sim-team-color:'+color+'" '+
+            'aria-pressed="'+selected+'" data-team="'+simEscape(manager)+'"><i></i>'+simEscape(manager)+'</button>';
+    });
+    wrap.innerHTML=html+'</div>';
+    wrap.querySelectorAll('.sim-team-chip').forEach(btn=>btn.addEventListener('click',()=>simToggleTeamFilter(btn.dataset.team)));
+}
+function simSetTeamFilter(preset){
+    const managers=SEASON_SIMULATOR_DATA.managers||[];
+    const focus=seasonSimState.focus||managers[0];
+    seasonSimState.visibleManagers=new Set(preset==='all'?managers:preset==='top5'?managers.slice(0,5):preset==='focus'?[focus]:[]);
+    simRenderTeamFilters();simRenderTrajectoryOnly();
+}
+function simToggleTeamFilter(manager){
+    if(!seasonSimState.visibleManagers)seasonSimState.visibleManagers=new Set(SEASON_SIMULATOR_DATA.managers||[]);
+    if(seasonSimState.visibleManagers.has(manager))seasonSimState.visibleManagers.delete(manager);
+    else seasonSimState.visibleManagers.add(manager);
+    simRenderTeamFilters();simRenderTrajectoryOnly();
+}
+function simRenderTrajectoryOnly(){
+    const result=seasonSimState.outcomes[seasonSimState.selected]||seasonSimState.outcomes.baseline;
+    const chart=document.getElementById('sim-trajectory-chart');if(!chart||!result)return;
+    chart.innerHTML=simTrajectoryHTML(result,seasonSimState.outcomes.baseline,seasonSimState.focus);
+}
+function simRenderCustomEffects(result){
+    const wrap=document.getElementById('sim-custom-effects');if(!wrap)return;
+    if(!result||!result.effects){wrap.innerHTML='';return;}
+    const weeks=seasonSimState.fixtureWeeks||[],summaries=[];
+    (SEASON_SIMULATOR_DATA.managers||[]).forEach(m=>{
+        const values=weeks.map(gw=>Number(result.effects[String(gw)]?.[m]||0)).filter(v=>Math.abs(v)>.001);
+        if(values.length){
+            const avg=values.reduce((a,b)=>a+b,0)/values.length;
+            summaries.push({manager:m,avg,count:values.length});
+        }
+    });
+    wrap.innerHTML=summaries.length?'<h4>Estimated weekly XI changes under these moves</h4><div class="sim-custom-impact-grid">'+summaries.map(r=>
+        '<div><i style="background:'+simColor(r.manager)+'"></i><strong>'+simEscape(r.manager)+'</strong><span class="'+(r.avg>0?'positive':r.avg<0?'negative':'')+'">'+simFmtDelta(r.avg)+' pts/GW</span><small>across '+r.count+' affected GWs</small></div>'
+    ).join('')+'</div>':'';
+}
+async function simRunCustomMoves(){
+    if(!seasonSimState.customActions.length){simBuilderMessage('Add at least one trade, injury, waiver or points change first.',true);return;}
+    const data=SEASON_SIMULATOR_DATA;
+    if(!(data.fixtures||[]).length){simBuilderMessage('No remaining fixtures to simulate.',true);return;}
+    const selector=document.getElementById('sim-manager');
+    const focus=selector?.value||data.managers[0];
+    const config={focus,effectWeeks:Number(document.getElementById('sim-horizon')?.value||5),
+        sampleCount:Number(document.getElementById('sim-samples')?.value||3000),
+        customDelta:Number(document.getElementById('sim-custom-delta')?.value||0),
+        customActions:seasonSimState.customActions.slice()};
+    let effects;
+    try{effects=simComputeCustomDeltas(config.customActions,seasonSimState.fixtureWeeks||[]);}
+    catch(error){simBuilderMessage('Fix this scenario before running: '+error.message,true);return;}
+    const key=JSON.stringify([focus,config.effectWeeks,config.sampleCount,config.customDelta]);
+    const runId=++seasonSimState.runId;
+    seasonSimState.running=true;seasonSimState.focus=focus;seasonSimState.selected='roster';
+    simStatus('Simulating custom roster changes…',true);simPaintSwitcher();
+    if(seasonSimState.lastConfigKey!==key||!seasonSimState.outcomes.baseline){
+        const baseline=await simRunOneScenario(SIM_SCENARIOS[0],config,runId);
+        if(runId!==seasonSimState.runId)return;
+        seasonSimState.outcomes={baseline};
+    }
+    const scenario=SIM_SCENARIOS.find(s=>s.id==='roster');
+    const result=await simRunOneScenario(scenario,{...config,customEffects:effects},runId,(done,total)=>
+        simStatus('Simulating custom moves · '+Math.round(done/total*100)+'%',true));
+    if(runId!==seasonSimState.runId)return;
+    seasonSimState.outcomes.roster=result;
+    seasonSimState.lastConfigKey=key;
+    seasonSimState.customDirty=false;seasonSimState.running=false;
+    simRenderCustomEffects(result);
+    simStatus(config.sampleCount.toLocaleString()+' custom seasons simulated',false);
+    simPaintSwitcher();simRenderResults();
+    simBuilderMessage('Custom scenario simulated. Select another scenario above to compare it against the baseline.',false);
+}
+
+function simAllScenarios(){return [...SIM_SCENARIOS,...(seasonSimState.savedVariants||[])];}
+function simRenderSavedVariants(){
+    const box=document.getElementById('sim-saved-variants');if(!box)return;
+    const saved=seasonSimState.savedVariants||[];
+    box.innerHTML=saved.length?'<span class="sim-saved-caption">Saved what-if scenarios</span>'+saved.map(s=>
+        '<div class="sim-saved-item"><span><strong>'+simEscape(s.label)+'</strong><small>'+s.actions.length+' hypothetical changes · compare with baseline</small></span>'+
+        '<button type="button" data-view-variant="'+s.id+'">View</button>'+
+        '<button type="button" aria-label="Remove saved scenario" data-delete-variant="'+s.id+'">×</button></div>'
+    ).join(''):'';
+    box.querySelectorAll('[data-view-variant]').forEach(btn=>btn.addEventListener('click',()=>selectSeasonScenario(btn.dataset.viewVariant)));
+    box.querySelectorAll('[data-delete-variant]').forEach(btn=>btn.addEventListener('click',()=>simRemoveSavedVariant(btn.dataset.deleteVariant)));
+}
+function simSaveCustomVariant(){
+    if(seasonSimState.customDirty||!seasonSimState.outcomes.roster){
+        simBuilderMessage('Simulate your current moves before saving a comparison version.',true);return;
+    }
+    if(seasonSimState.savedVariants.length>=4){simBuilderMessage('Four saved versions already exist. Remove one to save another.',true);return;}
+    const labelInput=document.getElementById('sim-variant-name');
+    const label=labelInput?.value.trim()||'Custom version '+(seasonSimState.savedVariants.length+1);
+    if(seasonSimState.savedVariants.some(s=>s.label.toLowerCase()===label.toLowerCase())){
+        simBuilderMessage('Use a different name for this version.',true);return;
+    }
+    const id='variant_'+(++seasonSimState.variantSeq);
+    const actions=JSON.parse(JSON.stringify(seasonSimState.customActions));
+    const variant={id,label,description:actions.length+' hypothetical move'+(actions.length===1?'':'s'),type:'roster',actions};
+    seasonSimState.savedVariants.push(variant);
+    seasonSimState.outcomes[id]={...seasonSimState.outcomes.roster,id,label,description:variant.description};
+    seasonSimState.selected=id;
+    if(labelInput)labelInput.value='';
+    simRenderSavedVariants();simPaintSwitcher();simRenderResults();
+    simBuilderMessage('Saved '+label+'. You can change the workshop and save another version to compare.',false);
+}
+function simRemoveSavedVariant(id){
+    seasonSimState.savedVariants=seasonSimState.savedVariants.filter(s=>s.id!==id);
+    delete seasonSimState.outcomes[id];
+    if(seasonSimState.selected===id)seasonSimState.selected='baseline';
+    simRenderSavedVariants();simPaintSwitcher();simRenderResults();
+}
+
+function initSeasonSimulator(){
+    const page=document.getElementById('page-season-simulator');if(!page)return;
+    if(!seasonSimState.initialized){
+        seasonSimState.initialized=true;
+        const selector=document.getElementById('sim-manager');
+        const managers=SEASON_SIMULATOR_DATA.managers||[];
+        if(selector){
+            selector.innerHTML=managers.map(m=>'<option value="'+simEscape(m)+'">'+simEscape(m)+'</option>').join('');
+            const preferred=managers.find(m=>String(m).toLowerCase()==='kamararama fc')||managers[0];
+            if(preferred)selector.value=preferred;
+        }
+        seasonSimState.fixtureWeeks=[...new Set((SEASON_SIMULATOR_DATA.fixtures||[]).map(f=>Number(f.gw)))].sort((a,b)=>a-b);
+        seasonSimState.visibleManagers=new Set(managers);
+        seasonSimCustomChanged(3);
+        simPaintSwitcher();
+        simRenderTeamFilters();
+        simBuilderTypeChanged();
+        simRenderCustomActions();
+    }
+    if(!seasonSimState.running && !Object.keys(seasonSimState.outcomes).length)runSeasonScenarios();
+    else simRenderResults();
+}
+
+async function simRunOneScenario(scenario, config, runId, onProgress){
+    const data=SEASON_SIMULATOR_DATA;
+    const managers=data.managers||[];
+    const teamIndex=new Map(managers.map((m,i)=>[m,i]));
+    const focusIndex=teamIndex.get(config.focus);
+    const nTeams=managers.length,nRuns=config.sampleCount;
+    const fixtures=(data.fixtures||[]).slice().sort((a,b)=>a.gw-b.gw);
+    const weeks=[...new Set(fixtures.map(f=>f.gw))].sort((a,b)=>a-b);
+    const weekIndex=new Map(weeks.map((w,i)=>[w,i]));
+    const profile=managers.map(m=>data.profiles[m]||{});
+    const matches=fixtures.map(f=>{
+        const home=teamIndex.get(f.home),away=teamIndex.get(f.away),gw=Number(f.gw);
+        const mu1=Number((profile[home].by_gw||{})[String(gw)] ?? profile[home].weekly_mean ?? 45);
+        const mu2=Number((profile[away].by_gw||{})[String(gw)] ?? profile[away].weekly_mean ?? 45);
+        return {gw,wi:weekIndex.get(gw),home,away,mu1,mu2,sd1:Number(profile[home].sd)||12,sd2:Number(profile[away].sd)||12,
+                focusEffect:weekIndex.get(gw)<config.effectWeeks};
+    });
+    const histMean=(managers.reduce((t,m)=>t+Number((data.profiles[m]||{}).weekly_mean||45),0)/Math.max(1,nTeams));
+    const sharedSD=Math.max(1,Math.min(5, histMean*0.055));
+    const volatilityMultiplier=scenario.type==='chaos'?1.55:1;
+    const delta=scenario.type==='custom'?config.customDelta:Number(scenario.delta||0);
+    const scenarioEffects=scenario.type==='roster'?(scenario.actions?simComputeCustomDeltas(scenario.actions,weeks):(config.customEffects||simComputeCustomDeltas(config.customActions||[],weeks))):null;
+    const rng=simNormalFactory(Number(data.seed||17288)+1024);
+    const rankCounts=managers.map(()=>new Uint32Array(nTeams));
+    const lpTotals=new Float64Array(nTeams);
+    const pfTotals=new Float64Array(nTeams);
+    const wTotals=new Float64Array(nTeams);
+    const dTotals=new Float64Array(nTeams);
+    const lTotals=new Float64Array(nTeams);
+    const positions=managers.map(()=>[]);
+    const lpSamples=managers.map(()=>[]);
+    const timeline=weeks.map(()=>[]);
+    const allTimelineTotals=weeks.map(()=>new Float64Array(nTeams));
+    function captureWeek(wi,lp){
+        if(wi<0)return;
+        timeline[wi].push(lp[focusIndex]);
+        for(let i=0;i<nTeams;i++)allTimelineTotals[wi][i]+=lp[i];
+    }
+    const lpInitial=profile.map(p=>Number(p.current_lp)||0);
+    const pfInitial=profile.map(p=>Number(p.current_pf)||0);
+    const chunks=125;
+    for(let run=0;run<nRuns;run++){
+        if(runId!==seasonSimState.runId)return null;
+        const lp=Float64Array.from(lpInitial),pf=Float64Array.from(pfInitial);
+        const wins=new Uint16Array(nTeams),draws=new Uint16Array(nTeams),losses=new Uint16Array(nTeams);
+        let lastWeek=-1,weekShock=0;
+        for(let ix=0;ix<matches.length;ix++){
+            const f=matches[ix];
+            if(f.wi!==lastWeek){
+                if(lastWeek>=0)captureWeek(lastWeek,lp);
+                lastWeek=f.wi;
+                weekShock=rng()*sharedSD*volatilityMultiplier;
+            }
+            const adj=(f.focusEffect ? delta : 0);
+            const effect=scenarioEffects?.[String(f.gw)];
+            const muHome=f.mu1+((f.home===focusIndex)?adj:0)+Number(effect?.[managers[f.home]]||0);
+            const muAway=f.mu2+((f.away===focusIndex)?adj:0)+Number(effect?.[managers[f.away]]||0);
+            const s1=Math.max(0,Math.round(muHome+weekShock+rng()*f.sd1*volatilityMultiplier));
+            const s2=Math.max(0,Math.round(muAway+weekShock+rng()*f.sd2*volatilityMultiplier));
+            pf[f.home]+=s1;pf[f.away]+=s2;
+            if(s1>s2){lp[f.home]+=3;wins[f.home]++;losses[f.away]++;}
+            else if(s2>s1){lp[f.away]+=3;wins[f.away]++;losses[f.home]++;}
+            else{lp[f.home]++;lp[f.away]++;draws[f.home]++;draws[f.away]++;}
+        }
+        if(lastWeek>=0)captureWeek(lastWeek,lp);
+        const ranking=Array.from({length:nTeams},(_,i)=>i).sort((a,b)=>lp[b]-lp[a]||pf[b]-pf[a]||managers[a].localeCompare(managers[b]));
+        ranking.forEach((ti,pos)=>{
+            rankCounts[ti][pos]++;
+            positions[ti].push(pos+1);
+        });
+        for(let ti=0;ti<nTeams;ti++){
+            lpTotals[ti]+=lp[ti];pfTotals[ti]+=pf[ti];
+            wTotals[ti]+=wins[ti];dTotals[ti]+=draws[ti];lTotals[ti]+=losses[ti];
+            lpSamples[ti].push(lp[ti]);
+        }
+        if((run+1)%chunks===0){
+            if(typeof onProgress==='function')onProgress(run+1,nRuns);
+            await new Promise(resolve=>setTimeout(resolve,0));
+        }
+    }
+    const teamRows=managers.map((manager,ti)=>{
+        const sortedPositions=positions[ti].sort((a,b)=>a-b),sortedLP=lpSamples[ti].sort((a,b)=>a-b);
+        const probabilities=Array.from(rankCounts[ti],x=>x/nRuns*100);
+        return {manager,current_lp:lpInitial[ti],current_pf:pfInitial[ti],
+            expected_lp:lpTotals[ti]/nRuns,expected_pf:pfTotals[ti]/nRuns,
+            median_finish:simQuantile(sortedPositions,0.50),
+            finish_p10:simQuantile(sortedPositions,0.10),finish_p90:simQuantile(sortedPositions,0.90),
+            lp_p10:simQuantile(sortedLP,0.10),lp_p90:simQuantile(sortedLP,0.90),
+            champion_pct:probabilities[0]||0,
+            top3_pct:probabilities.slice(0,Math.min(3,nTeams)).reduce((a,b)=>a+b,0),
+            wooden_pct:probabilities[nTeams-1]||0,
+            expected_wins:wTotals[ti]/nRuns, expected_draws:dTotals[ti]/nRuns, expected_losses:lTotals[ti]/nRuns,
+            positions_pct:probabilities};
+    });
+    const focusTimeline=[{gw:data.last_completed_gw,lo:lpInitial[focusIndex],mid:lpInitial[focusIndex],hi:lpInitial[focusIndex]}];
+    weeks.forEach((gw,i)=>{
+        const sorted=timeline[i].sort((a,b)=>a-b);
+        focusTimeline.push({gw,lo:simQuantile(sorted,.10),mid:simQuantile(sorted,.50),hi:simQuantile(sorted,.90)});
+    });
+    const allTimelines={};
+    managers.forEach((manager,ti)=>{
+        allTimelines[manager]=[{gw:data.last_completed_gw,mid:lpInitial[ti]}];
+        weeks.forEach((gw,wi)=>allTimelines[manager].push({gw,mid:allTimelineTotals[wi][ti]/nRuns}));
+    });
+    return {id:scenario.id,label:scenario.label,description:scenario.description,teams:teamRows,
+        focus:config.focus,focusTimeline,allTimelines,focusIndex,runs:nRuns,
+        effects:scenarioEffects,scenario_delta:delta, weeksAffected:config.effectWeeks};
+}
+
+async function runSeasonScenarios(){
+    const data=SEASON_SIMULATOR_DATA;
+    if(!data.managers||!data.managers.length)return;
+    const selector=document.getElementById('sim-manager');
+    const focus=(selector&&selector.value)||data.managers[0];
+    const horizon=Number(document.getElementById('sim-horizon')?.value||5);
+    const sampleCount=Number(document.getElementById('sim-samples')?.value||3000);
+    const customDelta=Number(document.getElementById('sim-custom-delta')?.value||0);
+    const config={focus,effectWeeks:horizon,sampleCount,customDelta,
+        customActions:seasonSimState.customActions.slice()};
+    const key=JSON.stringify([focus,horizon,sampleCount,customDelta]);
+    const runId=++seasonSimState.runId;
+    seasonSimState.running=true;seasonSimState.focus=focus;
+    seasonSimState.effectWeeks=horizon;seasonSimState.sampleCount=sampleCount;seasonSimState.customDelta=customDelta;
+    seasonSimState.outcomes={};
+    seasonSimState.lastConfigKey=key;
+    simPaintSwitcher();
+    const note=document.getElementById('sim-model-note');
+    if(note){
+        const fixtureCount=(data.fixtures||[]).length;
+        const confidence=data.confidence||'Unknown';
+        note.textContent=fixtureCount+' remaining scheduled head-to-head fixtures across '+
+          new Set((data.fixtures||[]).map(f=>f.gw)).size+' gameweeks. ' +
+          'Scenarios modify expected scores, not historical results. Every scenario uses the same random draws. ' +
+          (data.in_progress_gw ? ('GW'+data.in_progress_gw+' is live; its partial score is not locked in this model. ') : '')+
+          confidence+' model confidence from completed-GW evidence. '+
+          'Presets are illustrative; custom trades, injury absences and waiver swaps recalculate legal projected XIs from the latest captured rosters.';
+    }
+    if(!(data.fixtures||[]).length){
+        seasonSimState.running=false;seasonSimState.noFixtures=true;
+        simStatus('No remaining scheduled fixtures',false);
+        simRenderResults();return;
+    }
+    seasonSimState.noFixtures=false;
+    simStatus('Preparing '+sampleCount.toLocaleString()+' samples per scenario…',true);
+    const runnable=simAllScenarios().filter(s=>s.id!=='roster'||config.customActions.length>0);
+    try{
+        if(config.customActions.length)config.customEffects=simComputeCustomDeltas(config.customActions,seasonSimState.fixtureWeeks);
+    }catch(error){simBuilderMessage(error.message,true);seasonSimState.running=false;simStatus('Custom scenario invalid',false);return;}
+    for(let ix=0;ix<runnable.length;ix++){
+        if(runId!==seasonSimState.runId)return;
+        const scenario=runnable[ix];
+        simStatus('Running '+(ix+1)+'/'+runnable.length+': '+scenario.label+'…',true);
+        const result=await simRunOneScenario(scenario,config,runId,(done,total)=>{
+            simStatus('Scenario '+(ix+1)+'/'+runnable.length+': '+scenario.label+' · '+Math.round(done/total*100)+'%',true);
+        });
+        if(runId!==seasonSimState.runId)return;
+        seasonSimState.outcomes[scenario.id]=result;
+        if(scenario.id==='roster'){seasonSimState.customDirty=false;simRenderCustomEffects(result);}
+        simPaintSwitcher();
+        simRenderResults();
+    }
+    seasonSimState.running=false;
+    simStatus((sampleCount*runnable.length).toLocaleString()+' seasons simulated · '+runnable.length+' scenarios ready',false);
+    simRenderResults();
+}
+function simSvgPath(points){return points.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');}
+function simDistributionHTML(result,baseline,focus){
+    const target=result?.teams.find(t=>t.manager===focus);
+    const base=baseline?.teams.find(t=>t.manager===focus);
+    if(!target)return '<div class="sim-empty">Run simulations to see the distribution.</div>';
+    const n=target.positions_pct.length,w=680,h=265,pad={l:37,r:12,t:23,b:39};
+    const plotW=w-pad.l-pad.r,plotH=h-pad.t-pad.b,barStep=plotW/n;
+    const maxP=Math.max(12,...target.positions_pct,...(base?.positions_pct||[]));
+    const top=Math.ceil(maxP/10)*10;
+    const rgb=simRgb(simColor(focus)),color='rgb('+rgb.join(',')+')';
+    const y=p=>pad.t+(1-p/top)*plotH;
+    let grid='',labels='',bars='';
+    for(let tick=0;tick<=4;tick++){
+        const pct=tick*top/4,py=y(pct);
+        grid+='<line x1="'+pad.l+'" y1="'+py+'" x2="'+(w-pad.r)+'" y2="'+py+'" class="sim-svg-grid"/>'+
+              '<text class="sim-svg-label" x="'+(pad.l-8)+'" y="'+(py+4)+'" text-anchor="end">'+pct.toFixed(0)+'%</text>';
+    }
+    for(let i=0;i<n;i++){
+        const cx=pad.l+(i+.5)*barStep;
+        if(base&&result.id!=='baseline'){
+            const bv=base.positions_pct[i]||0,bw=barStep*.68;
+            bars+='<rect x="'+(cx-bw/2)+'" y="'+y(bv)+'" width="'+bw+'" height="'+Math.max(0,pad.t+plotH-y(bv))+'" rx="3" fill="#64748b" opacity=".42"><title>Baseline #'+(i+1)+': '+simPct(bv)+'</title></rect>';
+        }
+        const v=target.positions_pct[i],bw=barStep*((base && result.id !== 'baseline') ? .39 : .68);
+        bars+='<rect x="'+(cx-bw/2)+'" y="'+y(v)+'" width="'+bw+'" height="'+Math.max(0,pad.t+plotH-y(v))+'" rx="3" fill="'+color+'" opacity=".85"><title>#'+(i+1)+': '+simPct(v)+'</title></rect>';
+        labels+='<text class="sim-svg-label" x="'+cx+'" y="'+(h-16)+'" text-anchor="middle">#'+(i+1)+'</text>';
+    }
+    return '<svg role="img" aria-label="Simulated final rank probabilities" viewBox="0 0 '+w+' '+h+'">'+grid+bars+labels+'</svg>'+
+      '<div class="sim-chart-legend"><span><i style="background:'+color+'"></i>'+simEscape(result.label)+'</span>'+
+      (base&&result.id!=='baseline'?'<span><i style="background:#64748b"></i>Current path</span>':'')+'</div>';
+}
+function simTrajectoryHTML(result,baseline,focus){
+    const all=result?.allTimelines||{},visible=seasonSimState.visibleManagers||new Set(SEASON_SIMULATOR_DATA.managers||[]);
+    const managers=(SEASON_SIMULATOR_DATA.managers||[]).filter(m=>visible.has(m)&&all[m]?.length>1);
+    if(!managers.length)return '<div class="sim-empty">No teams selected. Use All, Top 5, Focus, or the team chips above to display league-points trajectories.</div>';
+    const baseRows=baseline?.allTimelines?.[focus]||[];
+    const bandRows=(result.focusTimeline||[]);
+    const hasBand=document.getElementById('sim-trajectory-band')?.checked!==false&&managers.includes(focus)&&bandRows.length>1;
+    const allPoints=managers.flatMap(m=>all[m].map(r=>r.mid));
+    if(hasBand)allPoints.push(...bandRows.flatMap(r=>[r.lo,r.hi]));
+    if(baseline&&result.id!=='baseline'&&managers.includes(focus))allPoints.push(...baseRows.map(r=>r.mid));
+    let min=Math.floor(Math.min(...allPoints)/5)*5,max=Math.ceil(Math.max(...allPoints)/5)*5;
+    if(max-min<5){max+=5;min-=5;}
+    const sample=all[managers[0]],w=940,h=362,pad={l:45,r:26,t:20,b:42};
+    const x=i=>pad.l+i*(w-pad.l-pad.r)/Math.max(1,sample.length-1);
+    const y=v=>pad.t+(max-v)/(max-min)*(h-pad.t-pad.b);
+    let grid='',labels='',draw='';
+    for(let t=0;t<=5;t++){
+        const val=min+(max-min)*t/5,py=y(val);
+        grid+='<line x1="'+pad.l+'" y1="'+py+'" x2="'+(w-pad.r)+'" y2="'+py+'" class="sim-svg-grid"/>'+
+            '<text class="sim-svg-label" x="'+(pad.l-7)+'" y="'+(py+4)+'" text-anchor="end">'+val.toFixed(0)+'</text>';
+    }
+    const gwStep=Math.max(1,Math.ceil(sample.length/10));
+    sample.forEach((r,i)=>{if(i%gwStep===0||i===sample.length-1){labels+='<text class="sim-svg-label" x="'+x(i)+'" y="'+(h-12)+'" text-anchor="middle">GW'+r.gw+'</text>';}});
+    if(hasBand){
+        const upper=bandRows.map((r,i)=>[x(i),y(r.hi)]);
+        const lower=bandRows.map((r,i)=>[x(i),y(r.lo)]);
+        const band=simSvgPath(upper)+' '+lower.reverse().map(p=>'L'+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+' Z';
+        const rgb=simRgb(simColor(focus));
+        draw+='<path d="'+band+'" fill="rgba('+rgb.join(',')+',.15)" stroke="none"/>';
+    }
+    if(baseline&&result.id!=='baseline'&&managers.includes(focus)&&baseRows.length===sample.length){
+        draw+='<path d="'+simSvgPath(baseRows.map((r,i)=>[x(i),y(r.mid)]))+'" fill="none" stroke="'+simColor(focus)+'" stroke-dasharray="7 5" stroke-width="2" opacity=".55"><title>'+simEscape(focus)+' · baseline mean</title></path>';
+    }
+    managers.slice().sort((a,b)=>(a===focus?1:0)-(b===focus?1:0)).forEach(manager=>{
+        const rows=all[manager],color=simColor(manager),focused=manager===focus;
+        const path=simSvgPath(rows.map((r,i)=>[x(i),y(r.mid)]));
+        draw+='<path class="sim-trajectory-line" d="'+path+'" fill="none" stroke="'+color+'" stroke-width="'+(focused?3.8:2.2)+'" '+
+            'stroke-linecap="round" stroke-linejoin="round" opacity="'+(focused?1:.81)+'"><title>'+simEscape(manager)+' · '+simEscape(result.label)+' · final '+rows[rows.length-1].mid.toFixed(1)+' expected LP</title></path>';
+        const end=rows[rows.length-1],endX=x(rows.length-1),endY=y(end.mid);
+        draw+='<circle cx="'+endX+'" cy="'+endY+'" r="'+(focused?5:3.3)+'" fill="'+color+'" stroke="#0c1728" stroke-width="1.5"><title>'+simEscape(manager)+' · GW'+end.gw+': '+end.mid.toFixed(1)+' expected LP</title></circle>';
+    });
+    const legend=managers.map(m=>{
+        const end=all[m][all[m].length-1].mid;
+        return '<span><i style="background:'+simColor(m)+'"></i>'+simEscape(m)+' <b>'+end.toFixed(1)+'</b></span>';
+    }).join('');
+    return '<svg role="img" aria-label="Projected league-points trajectories for '+managers.length+' selected McDraft managers" viewBox="0 0 '+w+' '+h+'">'+grid+draw+labels+'</svg>'+
+      '<div class="sim-trajectory-key">'+legend+'</div>'+
+      (hasBand?'<p class="sim-helper-note">Shaded range: '+simEscape(focus)+' · 10th–90th percentile sampled league points.</p>':'');
+}
+
+function simRenderResults(){
+    const page=document.getElementById('page-season-simulator');
+    if(!page||!page.classList.contains('active'))return;
+    const outcomes=seasonSimState.outcomes, result=outcomes[seasonSimState.selected]||outcomes.baseline;
+    const baseline=outcomes.baseline;
+    const focus=seasonSimState.focus||SEASON_SIMULATOR_DATA.managers?.[0];
+    const metrics=document.getElementById('sim-selected-metrics');
+    const dist=document.getElementById('sim-position-chart');
+    const trajectory=document.getElementById('sim-trajectory-chart');
+    const description=document.getElementById('sim-distribution-desc');
+    const compare=document.getElementById('sim-compare-table');
+    const league=document.getElementById('sim-league-table');
+    const compareCount=document.getElementById('sim-compare-count');
+    if(seasonSimState.noFixtures){
+        const message='<div class="sim-empty">No remaining fixtures were returned by the Draft schedule. All completed results remain in the existing league table; there is nothing to simulate.</div>';
+        [metrics,dist,trajectory,compare,league].forEach(el=>{if(el)el.innerHTML=message;});
+        return;
+    }
+    if(!result){
+        const message='<div class="sim-loading">Running the Monte Carlo model… Results appear as each scenario finishes.</div>';
+        [metrics,dist,trajectory,compare,league].forEach(el=>{if(el)el.innerHTML=message;});
+        return;
+    }
+    const row=result.teams.find(t=>t.manager===focus),baseRow=baseline?.teams.find(t=>t.manager===focus);
+    const fmtPointDelta=baseRow ? simFmtDelta(row.expected_lp-baseRow.expected_lp,1)+' vs baseline':'Baseline scenario';
+    if(metrics&&row){
+        const cards=[
+            ['Expected league points',row.expected_lp.toFixed(1),fmtPointDelta],
+            ['Simulated 1st place',simPct(row.champion_pct),baseRow?simFmtDelta(row.champion_pct-baseRow.champion_pct)+' pp vs baseline':'All simulations'],
+            ['Simulated top 3',simPct(row.top3_pct),baseRow?simFmtDelta(row.top3_pct-baseRow.top3_pct)+' pp vs baseline':'All simulations'],
+            ['Median finish','#'+simRank(row.median_finish),'80% range #'+simRank(row.finish_p10)+'–#'+simRank(row.finish_p90)],
+            ['Simulated last place',simPct(row.wooden_pct),'Modelled finishing-position frequency']
+        ];
+        metrics.innerHTML=cards.map(c=>'<div class="sim-metric"><span class="label">'+simEscape(c[0])+'</span><strong class="value">'+simEscape(c[1])+'</strong><span class="delta">'+simEscape(c[2])+'</span></div>').join('');
+    }
+    if(dist)dist.innerHTML=simDistributionHTML(result,baseline,focus);
+    if(trajectory)trajectory.innerHTML=simTrajectoryHTML(result,baseline,focus);
+    if(result.effects)simRenderCustomEffects(result);
+    if(description)description.textContent=focus+' · '+result.label+' · based on '+result.runs.toLocaleString()+' sampled seasons.';
+    if(compare){
+        const rows=simAllScenarios().filter(s=>outcomes[s.id]).map(s=>{
+            const r=outcomes[s.id].teams.find(t=>t.manager===focus),delta=baseRow?r.expected_lp-baseRow.expected_lp:0;
+            return '<tr class="'+(seasonSimState.selected===s.id?'selected':'')+'"><td><button type="button" class="sim-scenario-chip'+(seasonSimState.selected===s.id?' active':'')+'" onclick="selectSeasonScenario(\''+s.id+'\')"><span class="sim-scenario-name">'+simEscape(s.label)+'</span><span class="sim-subtext">'+simEscape(s.description)+'</span></button></td>'+
+              '<td>'+r.expected_lp.toFixed(1)+'</td><td>'+simFmtDelta(delta)+'</td><td>'+simPct(r.champion_pct)+'</td><td>'+simPct(r.top3_pct)+'</td><td>'+simPct(r.wooden_pct)+'</td><td>#'+simRank(r.finish_p10)+'–#'+simRank(r.finish_p90)+'</td></tr>';
+        });
+        compare.innerHTML='<table class="sim-table"><thead><tr><th>Scenario</th><th>Exp. LP</th><th>Δ LP</th><th>1st</th><th>Top 3</th><th>Last</th><th>80% finish range</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
+    }
+    if(compareCount)compareCount.textContent=Object.keys(outcomes).length+' / '+(simAllScenarios().length-(!seasonSimState.customActions.length?1:0))+' scenarios completed';
+    if(league){
+        const rows=result.teams.slice().sort((a,b)=>b.expected_lp-a.expected_lp||b.expected_pf-a.expected_pf||a.manager.localeCompare(b.manager));
+        let head='<tr><th>Manager</th><th>Current LP</th><th>Expected LP</th><th>Expected PF</th><th>80% finish range</th><th>1st</th><th>Top 3</th>';
+        for(let i=1;i<=result.teams.length;i++)head+='<th>#'+i+'</th>';
+        head+='</tr>';
+        let body='';
+        rows.forEach(t=>{
+            const rgb=simRgb(simColor(t.manager));
+            body+='<tr'+(t.manager===focus?' class="selected"':'')+'><td><span class="sim-manager-name"><i style="background:'+simColor(t.manager)+'"></i>'+simEscape(t.manager)+'</span></td>'+
+              '<td>'+t.current_lp.toFixed(0)+'</td><td><b>'+t.expected_lp.toFixed(1)+'</b></td><td>'+t.expected_pf.toFixed(0)+'</td>'+
+              '<td>#'+simRank(t.finish_p10)+'–#'+simRank(t.finish_p90)+'</td><td>'+simPct(t.champion_pct)+'</td><td>'+simPct(t.top3_pct)+'</td>';
+            t.positions_pct.forEach((pct,i)=>{
+                const alpha=Math.max(.07,Math.min(.62,.07+pct/100*.75));
+                const bg='rgba('+rgb.join(',')+','+alpha.toFixed(3)+')';
+                body+='<td class="sim-heat" style="background:'+bg+'"><span title="#'+(i+1)+': '+simPct(pct)+'">'+(pct>=.1?pct.toFixed(0)+'%':'·')+'</span></td>';
+            });
+            body+='</tr>';
+        });
+        league.innerHTML='<table class="sim-table"><thead>'+head+'</thead><tbody>'+body+'</tbody></table>';
+    }
+}
+
+
 function showPage(
     pageName
 ) {
@@ -17086,6 +18439,7 @@ function showPage(
     );
 
     if (pageName === "war-room") requestAnimationFrame(renderManagerWarRoom);
+    if (pageName === "season-simulator") requestAnimationFrame(initSeasonSimulator);
 
 }
 
@@ -18361,8 +19715,177 @@ function renderPlayerDirectoryCard(player) {
 
 
 
+// v55 Waiver Intelligence. All changes are local browser exploration only.
+const WI_DATA = __WAIVER_INTELLIGENCE_DATA__;
+const wiState = {manager: null, ladder: [], assumedTaken: new Set()};
+function wiSafe(value){return String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function wiColour(m){return (typeof MANAGER_COLORS!=='undefined' && MANAGER_COLORS[m])||'#64748b';}
+function wiHorizon(){return document.getElementById('wi-horizon')?.value||'3';}
+function wiManager(){return document.getElementById('wi-manager')?.value||WI_DATA.league_order[0]||'';}
+function wiAhead(){return WI_DATA.league_order.slice(0, WI_DATA.league_order.indexOf(wiManager()));}
+function wiCandidate(id){return WI_DATA.candidates.find(p=>Number(p.id)===Number(id));}
+function wiOwn(p){return (p.managers||{})[wiManager()]||{gains:{'1':0,'3':0,'5':0},drops:{},need:0};}
+function wiAssessment(p){
+  const before=wiAhead();
+  const strong=[],possible=[];
+  before.forEach(m=>{
+    const info=p.managers[m];if(!info)return;
+    if(info.interest==='Strong') strong.push({name:m,...info});
+    else if(info.interest==='Possible') possible.push({name:m,...info});
+  });
+  const pressure=strong.length*2+possible.length*.8;
+  const label=strong.length>=2||pressure>=3.6?'Crowded market':strong.length||possible.length>=2?'Possible competition':'Clearer route';
+  const cls=label==='Crowded market'?'crowded':label==='Possible competition'?'possible':'clear';
+  return {strong,possible,pressure,label,cls};
+}
+function wiScored(p){
+  const own=wiOwn(p), gain=Math.max(0,Number(own.gains[wiHorizon()]||0));
+  const risk=wiAssessment(p);
+  const mode=document.getElementById('wi-strategy')?.value||'balanced';
+  const score=mode==='value'?gain:mode==='realistic'?gain/(1+.40*risk.pressure):gain/(1+.18*risk.pressure);
+  return {p,gain,own,risk,score};
+}
+function wiSortedCandidates(includeTaken=false){
+  const pos=document.getElementById('wi-position')?.value||'';
+  const search=(document.getElementById('wi-search')?.value||'').trim().toLowerCase();
+  const hide=document.getElementById('wi-hide-risk')?.checked;
+  const positives=document.getElementById('wi-positive-only')?.checked;
+  return WI_DATA.candidates.map(wiScored).filter(r=>(!pos||r.p.position===pos) &&
+     (!search||r.p.name.toLowerCase().includes(search)||r.p.club.toLowerCase().includes(search)) &&
+     (includeTaken||!wiState.assumedTaken.has(r.p.id)) &&
+     (!hide||r.risk.cls!=='crowded') && (!positives||r.gain>.05))
+    .sort((a,b)=>b.score-a.score || b.gain-a.gain || a.p.name.localeCompare(b.p.name));
+}
+function initWaiverIntelligence(){
+  const sel=document.getElementById('wi-manager');if(!sel)return;
+  if(!sel.dataset.ready){
+    sel.innerHTML=WI_DATA.league_order.map(m=>'<option value="'+wiSafe(m)+'">'+wiSafe(m)+'</option>').join('');
+    const selected=(typeof currentMyTeamManager==='function'?currentMyTeamManager():null);
+    if(WI_DATA.league_order.includes(selected))sel.value=selected;
+    else if(WI_DATA.league_order.includes('Kamararama FC'))sel.value='Kamararama FC';
+    sel.dataset.ready='1';
+    wiState.manager=sel.value;
+  }
+  renderWaiverIntelligence();
+}
+function wiPriorityHTML(){
+  const manager=wiManager();
+  return WI_DATA.standings.map(row=>{
+    const me=row.manager===manager;
+    return '<div class="wi-queue-team '+(me?'mine':'')+'" style="--wi-team:'+wiColour(row.manager)+'"><strong>#'+row.priority+'</strong><span>'+wiSafe(row.manager)+'</span>'+(me?'<b>YOU</b>':'')+'</div>';
+  }).join('');
+}
+function wiRenderTarget(r){
+  const p=r.p,info=r.own,risk=r.risk;
+  const drop=info.drops[wiHorizon()]||{};
+  const flagged=p.availability!=='a';
+  const competitors=[...risk.strong,...risk.possible];
+  const competitorHtml=competitors.length?competitors.map(c=>
+    '<div class="wi-contender" style="--wi-team:'+wiColour(c.name)+'"><span><i></i>'+wiSafe(c.name)+'</span><span>'+wiSafe(c.interest)+' · #'+c.pos_rank+' target for their '+wiSafe(p.position)+'s · +'+Number(c.gains[wiHorizon()]||0).toFixed(1)+' XI pts</span></div>'
+  ).join(''):'<div class="muted">No earlier manager shows a clear same-position need for this player in our model. Their actual claims remain private.</div>';
+  const taken=wiState.assumedTaken.has(p.id);
+  const choice=wiState.ladder.some(i=>i.id===p.id);
+  return '<article class="wi-target" style="--wi-team:'+wiColour(wiManager())+'">'+
+    '<div class="wi-target-head"><div><strong>'+wiSafe(p.name)+'</strong><small>'+wiSafe(p.position)+' · '+wiSafe(p.club)+' · '+p.season_points+' pts this season</small></div><span class="wi-risk '+risk.cls+'">'+risk.label+'</span></div>'+
+    '<div class="wi-target-metrics"><div><b class="wi-gain">+'+r.gain.toFixed(1)+'</b><small>Projected XI pts / '+wiHorizon()+' GW</small></div><div><b>'+p.next_projection.toFixed(1)+'</b><small>Next GW player projection</small></div><div><b>'+risk.strong.length+' / '+wiAhead().length+'</b><small>Earlier managers: strong interest</small></div></div>'+
+    '<p class="wi-drop">Suggested claim: <b>'+wiSafe(p.name)+'</b> for <b>'+wiSafe(drop.name||'No legal drop')+'</b></p>'+
+    '<p class="wi-fix">'+(p.fixtures.length?wiSafe(p.fixtures.join(' · ')):'Fixtures TBC')+(flagged?' · <span class="wi-flag">⚠ Availability flag: '+wiSafe(p.news||p.availability)+'</span>':'')+'</p>'+
+    '<div class="wi-target-actions"><button class="relationship-reset" type="button" onclick="wiAddClaim('+p.id+')" '+(choice?'disabled':'')+'>'+(choice?'In claim ladder':'Add to claims')+'</button>'+
+    '<button class="relationship-reset" type="button" onclick="wiToggleTaken('+p.id+')">'+(taken?'Restore':'Assume taken')+'</button>'+
+    '<details><summary>Who might want him?</summary><div class="wi-contenders">'+competitorHtml+'</div></details></div></article>';
+}
+function renderWaiverIntelligence(){
+  const host=document.getElementById('wi-target-list');if(!host)return;
+  const manager=wiManager();
+  if(wiState.manager!==manager){wiState.manager=manager;wiState.ladder=[];wiState.assumedTaken.clear();const status=document.getElementById('wi-ladder-notice');if(status)status.textContent='';}
+  const priority=WI_DATA.league_order.indexOf(manager)+1;
+  const ahead=wiAhead();
+  document.getElementById('wi-priority').innerHTML=wiPriorityHTML();
+  const assumedHost=document.getElementById('wi-assumed');
+  if(assumedHost)assumedHost.innerHTML=wiState.assumedTaken.size?'<span>Assumed claimed:</span> '+Array.from(wiState.assumedTaken).map(id=>{const p=wiCandidate(id);return '<button type="button" onclick="wiToggleTaken('+id+')" aria-label="Restore target ' + wiSafe(p?.name||id) + '">'+wiSafe(p?.name||id)+' ×</button>';}).join('')+'<button type="button" onclick="wiRestoreAll()">Restore all</button>':'';
+  const assessed=wiSortedCandidates();
+  document.getElementById('wi-count').textContent=assessed.length+' targets shown';
+  host.innerHTML=assessed.slice(0,60).map(wiRenderTarget).join('')||'<div class="notice">No current free agents meet these filters. Try another position, switch off upgrades-only or restore assumed-taken targets.</div>';
+  const aheadHTML=ahead.length?ahead.map(m=>'<span style="--wi-team:'+wiColour(m)+'">'+wiSafe(m)+'</span>').join(''):'<b>Nobody — first in line</b>';
+  const notice=document.getElementById('wi-notice');
+  notice.innerHTML='<b>GW'+WI_DATA.target_gw+' provisional waiver order:</b> '+(WI_DATA.state==='live'?'Live scores are not a final league table. This queue can change at full time. ':WI_DATA.state==='upcoming'?'The upcoming GW may already have processed waivers; order shown is provisional for the following cycle. ':'Based on captured completed standings. ')+
+    'Earlier claimants: '+aheadHTML+'. Rival interest is inferred from squad needs and projected improvement, never their private requests.';
+  const crowded=WI_DATA.candidates.map(wiScored).filter(r=>r.gain>.1&&r.risk.cls==='crowded').length;
+  const clearer=WI_DATA.candidates.map(wiScored).filter(r=>r.gain>.1&&r.risk.cls==='clear').length;
+  document.getElementById('wi-stats').innerHTML=
+    '<div><strong>#'+priority+' / '+WI_DATA.league_order.length+'</strong><span>Your current first-claim priority</span></div><div><strong>'+ahead.length+'</strong><span>Managers with earlier first claims</span></div><div><strong>'+crowded+'</strong><span>Upgrades with high modeled competition</span></div><div><strong>'+clearer+'</strong><span>Upgrades with clearer routes</span></div>';
+  renderWiLadder();
+}
+function wiRestoreAll(){wiState.assumedTaken.clear();renderWaiverIntelligence();}
+function wiToggleTaken(id){
+  if(wiState.assumedTaken.has(id))wiState.assumedTaken.delete(id);else wiState.assumedTaken.add(id);
+  renderWaiverIntelligence();
+}
+function wiAddClaim(id){
+  id=Number(id);if(!wiCandidate(id)||wiState.ladder.some(x=>x.id===id))return;
+  wiState.ladder.push({id});renderWaiverIntelligence();
+}
+function wiRemoveClaim(index){wiState.ladder.splice(index,1);renderWaiverIntelligence();}
+function wiMoveClaim(index,direction){const target=index+direction;if(target<0||target>=wiState.ladder.length)return;
+  const [item]=wiState.ladder.splice(index,1);wiState.ladder.splice(target,0,item);renderWaiverIntelligence();}
+function clearWaiverLadder(){wiState.ladder=[];renderWaiverIntelligence();}
+function autoWaiverLadder(){
+  // First an ambitious high-upside claim, then two attainable alternatives,
+  // preserving a legal like-for-like drop for each.
+  const eligible=wiSortedCandidates().filter(r=>r.gain>.25&&!wiState.assumedTaken.has(r.p.id));
+  if(!eligible.length){document.getElementById('wi-ladder-notice').textContent='No eligible upgrades for your current filters.';return;}
+  const sortedValue=eligible.slice().sort((a,b)=>b.gain-a.gain);
+  const result=[sortedValue[0]];
+  const available=eligible.filter(r=>r.p.id!==result[0].p.id);
+  // Prefer a credible alternative in the same position, then diversify.
+  const backup=available.find(r=>r.p.position===result[0].p.position&&r.risk.cls!=='crowded');
+  if(backup)result.push(backup);
+  const used=new Set(result.map(r=>r.p.id));
+  for(const r of available){
+    if(result.length>=6)break;
+    if(used.has(r.p.id))continue;
+    const posCount=result.filter(x=>x.p.position===r.p.position).length;
+    if(posCount>=2)continue;
+    result.push(r);used.add(r.p.id);
+  }
+  wiState.ladder=result.map(r=>({id:r.p.id}));renderWaiverIntelligence();
+  document.getElementById('wi-ladder-notice').textContent='Suggested order built. Review the outgoing player and claim priority in FPL Draft before submitting.';
+}
+function renderWiLadder(){
+  const host=document.getElementById('wi-claim-ladder');if(!host)return;
+  const selected=wiState.ladder.map(x=>wiCandidate(x.id)).filter(Boolean);
+  if(!selected.length){host.innerHTML='<div class="wi-ladder-empty">No claims planned. Add players from the target board or generate a shortlist.</div>';return;}
+  const usedDrops=new Map();
+  host.innerHTML=selected.map((p,i)=>{
+    const data=wiScored(p),drop=data.own.drops[wiHorizon()]||{};
+    const duplicate=drop.id!==undefined&&usedDrops.has(drop.id);
+    if(drop.id!==undefined&&!usedDrops.has(drop.id))usedDrops.set(drop.id,i+1);
+    const warning=wiState.assumedTaken.has(p.id)?'<small class="wi-flag">You marked this target as taken.</small>':
+       duplicate?'<small class="muted">Alternative to claim #'+usedDrops.get(drop.id)+' (same outgoing player)</small>':'';
+    return '<div class="wi-ladder-row"><span class="wi-claim-num">'+(i+1)+'</span><div class="wi-claim-body"><b>'+wiSafe(p.name)+'</b><small>'+wiSafe(p.position)+' · +'+data.gain.toFixed(1)+' pts · '+data.risk.label+'</small><small>Drop '+wiSafe(drop.name||'—')+'</small>'+warning+'</div><div class="wi-claim-buttons">'+
+       '<button type="button" onclick="wiMoveClaim('+i+',-1)" '+(i===0?'disabled':'')+' aria-label="Move claim up">↑</button>'+
+       '<button type="button" onclick="wiMoveClaim('+i+',1)" '+(i===selected.length-1?'disabled':'')+' aria-label="Move claim down">↓</button>'+
+       '<button type="button" onclick="wiRemoveClaim('+i+')" aria-label="Remove claim">×</button></div></div>';
+  }).join('');
+}
+function wiLadderText(){
+  return 'McDraft – proposed GW'+WI_DATA.target_gw+' waiver claims for '+wiManager()+' (first-claim priority #'+(WI_DATA.league_order.indexOf(wiManager())+1)+')\n'+
+     wiState.ladder.map((item,i)=>{const p=wiCandidate(item.id),d=p?wiOwn(p).drops[wiHorizon()]:null;
+        return (i+1)+'. CLAIM '+(p?p.name:'Unknown')+' / DROP '+(d?.name||'—');}).join('\n')+
+     '\n\nDraft only: verify actual player availability and submit these claims in FPL Draft. Rival claims are private; no guaranteed success.';
+}
+async function copyWaiverLadder(){
+  const notice=document.getElementById('wi-ladder-notice');
+  if(!wiState.ladder.length){if(notice)notice.textContent='Add at least one claim first.';return;}
+  const text=wiLadderText();
+  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);if(notice)notice.textContent='Claim order copied.';return;}}
+  catch(error){}
+  const input=document.createElement('textarea');input.value=text;input.style.position='fixed';input.style.opacity='0';document.body.appendChild(input);input.select();
+  const copied=document.execCommand('copy');input.remove();if(notice)notice.textContent=copied?'Claim order copied.':'Copy unavailable. Select and copy the following list manually: '+text;
+}
+
 function showTransferSubtab(name, button) {
- document.querySelectorAll('.transfer-subpanel').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.transfer-subtab').forEach(t=>t.classList.remove('active')); const p=document.getElementById('transfer-subpanel-'+name); if(p)p.classList.add('active'); if(button)button.classList.add('active');
+ document.querySelectorAll('.transfer-subpanel').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.transfer-subtab').forEach(t=>t.classList.remove('active')); const p=document.getElementById('transfer-subpanel-'+name); if(p)p.classList.add('active'); if(button)button.classList.add('active'); if(name==='intelligence') requestAnimationFrame(initWaiverIntelligence);
 }
 const TRADE_SIMULATOR_DATA = __TRADE_SIMULATOR_DATA__;
 function renderTradeSimulator(){const a=document.getElementById('trade-sim-manager-a'),b=document.getElementById('trade-sim-manager-b'),ra=document.getElementById('trade-sim-roster-a'),rb=document.getElementById('trade-sim-roster-b');if(!a||!b||!ra||!rb)return;const ma=a.value,mb=b.value;document.getElementById('trade-sim-title-a').textContent=(ma||'Manager A')+' gives';document.getElementById('trade-sim-title-b').textContent=(mb||'Manager B')+' gives';if(!ma||!mb||ma===mb){ra.innerHTML=rb.innerHTML='<div class="notice">Choose two different managers.</div>';evaluateTradeSimulator();return;}ra.innerHTML=tradeSimRosterHtml(ma,'a');rb.innerHTML=tradeSimRosterHtml(mb,'b');evaluateTradeSimulator();}
@@ -19004,6 +20527,7 @@ function initialiseDashboard() {
     safeInit("Analytics manager filters", function() {
         initAnalyticsManagerFilter();
         initPlayerRelationships();
+        initWaiverIntelligence();
         initTransferRiverPassport();
         initManagerWarRoom();
 if ((SEASON_TIMELINE_DATA||[]).length) renderSeasonTimeline(SEASON_TIMELINE_DATA.length-1);
@@ -19230,6 +20754,14 @@ __CSS__
                 Season Summary
             </button>
 
+            <button
+                class="nav-button"
+                data-page="season-simulator"
+                onclick="showPage('season-simulator')"
+            >
+                Season Simulator
+            </button>
+
         </nav>
 
     </header>
@@ -19250,6 +20782,7 @@ __CSS__
             </div>
             <div class="overview-subpage active" id="overview-sub-standings">
                 <div class="card"><h2>McDraft League Table</h2>__STANDINGS_TABLE__</div>
+                <div class="card storyline-card"><h2>__HOME_GAME_STATE_TITLE__</h2>__HOME_GAME_STATE_PANEL__</div>
                 <div class="card"><h2>Upcoming McDraft Fixtures</h2><p class="card-description">Fixtures only — predictions and difficulty live in the Fixtures tab.</p>__OVERVIEW_UPCOMING_FIXTURES__</div>
                 <div class="card"><h2>Premier League Table</h2><p class="card-description">Real PL standings, total FPL points generated by each club, and its evolving fantasy-strength score.</p>__PREMIER_LEAGUE_TABLE__</div>
             </div>
@@ -19259,7 +20792,6 @@ __CSS__
                 <div class="card"><h2>Rest-of-Season Prediction</h2><p class="card-description">Fixture-aware Monte Carlo forecast based on evolving PL club strength and the remaining real PL schedule.</p>__SEASON_PREDICTION_TABLE__</div>
                 <div class="card"><h2>Finish Probability Matrix</h2>__POSITION_PROBABILITY_TABLE__</div>
                 <div class="card"><h2>Squad Pedigree</h2>__SQUAD_PEDIGREE_TABLE__</div>
-                <div class="card storyline-card"><h2>__HOME_GAME_STATE_TITLE__</h2>__HOME_GAME_STATE_PANEL__</div>
             <div class="dashboard-grid">
 
 
@@ -19734,12 +21266,13 @@ __CSS__
              ================================================== -->
         <section class="page" id="page-transfers">
             <div class="page-heading"><h1>Transfers</h1><p>Waivers, free-agent churn, negotiated deals and a mildly dangerous trade laboratory.</p></div>
-            <div class="transfer-subtabs" role="tablist" aria-label="Transfer sections"><button class="transfer-subtab active" type="button" onclick="showTransferSubtab('waivers', this)">Waivers</button><button class="transfer-subtab" type="button" onclick="showTransferSubtab('trades', this)">Trades</button></div>
+            <div class="transfer-subtabs" role="tablist" aria-label="Transfer sections"><button class="transfer-subtab active" type="button" onclick="showTransferSubtab('waivers', this)">Waivers</button><button class="transfer-subtab" type="button" onclick="showTransferSubtab('trades', this)">Trades</button><button class="transfer-subtab" type="button" onclick="showTransferSubtab('intelligence', this)">Waiver Intelligence <span>NEW</span></button></div>
             <div class="transfer-subpanel active" id="transfer-subpanel-waivers">
               <div class="card"><h2>Latest Waiver Activity · GW__LATEST_TRANSFER_GW__</h2><p class="card-description">A same-gameweek drop and pickup is shown as one completed waiver move.</p>__RECENT_WAIVER_ACTIVITY__</div>
               <div class="card"><h2>Waiver History</h2><p class="card-description">All captured free-agent ins and outs, paired into manager transactions rather than double-counted player legs.</p><div class="player-filter-grid transfer-filter-grid"><select id="waiver-team-filter" class="player-filter" onchange="filterWaivers()"><option value="">All fantasy teams</option>__TRANSFER_TEAM_OPTIONS__</select></div>__WAIVER_ARCHIVE__</div>
               <div class="card"><h2>Most Moved Players</h2>__TRANSFERS_CHART____TRANSFER_TABLE__</div><div class="card"><h2>Players Used By The Most Managers</h2>__TEAM_HOPPERS_CHART__</div><div class="card"><h2>Waiver / Market ROI</h2><p class="card-description">Points gained from post-draft acquisitions minus points subsequently scored by players after they were dropped.</p>__TRANSFER_ROI__</div><div class="card"><h2>Hall of Shame</h2>__ABANDONED_ASSETS__</div><div class="card"><h2>Best Historical Pickups</h2>__BEST_HISTORICAL_TRANSFERS__</div>
             </div>
+            <div class="transfer-subpanel" id="transfer-subpanel-intelligence">__WAIVER_INTELLIGENCE_HTML__</div>
             <div class="transfer-subpanel" id="transfer-subpanel-trades">
               <div class="card">__TRADE_SIMULATOR__</div><div class="card"><h2>Recent League Trades · GW__LATEST_TRANSFER_GW__</h2><p class="card-description">Negotiated manager-to-manager trades only.</p>__TRADES_TABLE__</div><div class="card"><h2>Historical Trades</h2><div class="player-filter-grid transfer-filter-grid"><select id="historical-trade-team-filter" class="player-filter" onchange="filterHistoricalTrades()"><option value="">All fantasy teams</option>__TRANSFER_TEAM_OPTIONS__</select></div>__HISTORICAL_TRADES__</div>
             </div>
@@ -19761,6 +21294,14 @@ __CSS__
         <section class="page" id="page-analytics">
             <div class="page-heading"><h1>Analytics Lab</h1><p>Thirty-plus views of performance, luck, squad construction, the market and all the other numbers that can ruin a perfectly civil group chat.</p></div>
             __ANALYTICS_PAGE__
+        </section>
+
+        <!-- ==================================================
+             SEASON SIMULATOR · FINAL MAIN TAB
+             ================================================== -->
+        <section class="page" id="page-season-simulator">
+            <div class="page-heading"><h1>Season Simulator</h1><p>Thousands of possible McDraft seasons. Eight scenarios, including your own transfer-market multiverse.</p></div>
+            __SEASON_SIMULATOR_HTML__
         </section>
 
 
@@ -19949,6 +21490,7 @@ replacements = {
     "__ANALYTICS_PAGE__":
         analytics_page_html(),
     "__PLAYER_RELATIONSHIPS__": safe_js_json(player_relationships_json),
+    "__WAIVER_INTELLIGENCE_HTML__": waiver_intelligence_html(),
     "__MANAGER_WAR_ROOM__": safe_js_json(manager_war_room_json),
     "__TRANSFER_RIVER_PASSPORT__": safe_js_json(transfer_river_passport_json),
     "__HEALTH_OWNER_OPTIONS__": "".join(f'<option value="{escape_html(m)}">{escape_html(m)}</option>' for m in managers),
@@ -19959,6 +21501,9 @@ replacements = {
 
     "__MANAGER_WAR_ROOM_HTML__":
         manager_war_room_html(),
+
+    "__SEASON_SIMULATOR_HTML__":
+        season_simulator_html(),
 
     "__OVERVIEW_UPCOMING_FIXTURES__":
         overview_next_fixtures_html(),
@@ -20095,10 +21640,10 @@ replacements = {
         fun_stats_html,
 
     "__CSS__":
-        css + radar_health_css + relationship_css + river_passport_css + war_room_css,
+        css + radar_health_css + relationship_css + river_passport_css + war_room_css + simulator_css + wi_css,
 
     "__JAVASCRIPT__":
-        javascript.replace("__HEALTH_ANALYTICS__", safe_js_json(json.dumps(health_analytics_data, ensure_ascii=False))).replace(
+        javascript.replace("__WAIVER_INTELLIGENCE_DATA__", safe_js_json(waiver_intelligence_json)).replace("__SEASON_SIMULATOR_DATA__", safe_js_json(season_simulator_json)).replace("__HEALTH_ANALYTICS__", safe_js_json(json.dumps(health_analytics_data, ensure_ascii=False))).replace(
             "__TOTW_GAMEWEEKS__",
             safe_js_json(json.dumps(finished_gws))
         ).replace(
