@@ -14,6 +14,8 @@ import math
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 import calendar
+import csv
+import unicodedata
 
 # ============================================================
 # CONFIG
@@ -24,6 +26,202 @@ HISTORY_FILE = "fpl_draft_history.json"
 
 DRAFT_BASE = "https://draft.premierleague.com/api"
 CLASSIC_BASE = "https://fantasy.premierleague.com/api"
+
+# ============================================================
+# CSV SOURCE OF TRUTH: DRAFT PLAYER ID -> CLASSIC FPL PLAYER ID
+# ============================================================
+# The Draft API owns roster / transfer / draft IDs; the Classic API owns
+# player metadata, fitness, gameweek stats and projections. Those IDs are
+# NOT guaranteed to identify the same real person.
+# Put manual corrections in draft_player_mapping.csv next to this script.
+# The audit CSV is REGENERATED on each build; never edit it as the source.
+MAPPING_CSV = os.environ.get(
+    "DRAFT_PLAYER_MAPPING_CSV",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "draft_player_mapping.csv"),
+)
+MAPPING_AUDIT_CSV = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "draft_player_mapping_audit.csv"
+)
+
+
+def load_draft_player_mapping(path):
+    if not os.path.isfile(path):
+        print(f"WARNING: {path} not found; using matching numeric IDs. "
+              "Add draft_player_mapping.csv to correct mismatches.")
+        return {}
+    mapping = {}
+    reverse = {}
+    with open(path, newline="", encoding="utf-8-sig") as source:
+        reader = csv.DictReader(source)
+        required = {"draft_player_id", "fpl_player_id"}
+        if not reader.fieldnames or not required.issubset(set(reader.fieldnames)):
+            raise ValueError(f"{path}: CSV requires draft_player_id,fpl_player_id columns")
+        for line, row in enumerate(reader, start=2):
+            draft_text = str(row.get("draft_player_id") or "").strip()
+            fpl_text = str(row.get("fpl_player_id") or "").strip()
+            if not draft_text and not fpl_text:
+                continue  # permit empty template rows
+            try:
+                draft_id, fpl_id = int(draft_text), int(fpl_text)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"{path}:{line}: IDs must both be positive integers") from exc
+            if min(draft_id, fpl_id) < 1:
+                raise ValueError(f"{path}:{line}: IDs must be positive integers")
+            if draft_id in mapping and mapping[draft_id] != fpl_id:
+                raise ValueError(f"{path}:{line}: contradictory mappings for Draft ID {draft_id}")
+            if fpl_id in reverse and reverse[fpl_id] != draft_id:
+                raise ValueError(f"{path}:{line}: FPL ID {fpl_id} mapped to two Draft players")
+            mapping[draft_id] = fpl_id
+            reverse[fpl_id] = draft_id
+    print(f"Loaded {len(mapping)} manual Draft/FPL player ID corrections from {path}")
+    return mapping
+
+
+PLAYER_ID_MAP = load_draft_player_mapping(MAPPING_CSV)
+
+
+def fpl_id_for_draft(draft_id):
+    """Use ONLY for Classic FPL API queries; never mutate Draft ownership IDs."""
+    return PLAYER_ID_MAP.get(int(draft_id), int(draft_id))
+
+
+def make_draft_keyed_elements(classic_by_id, draft_by_id):
+    # Draft bootstrap is the authority for the IDs available in the Draft
+    # player pool; fallback to Classic when Draft bootstrap is unavailable.
+    pool_ids = set(draft_by_id) if draft_by_id else set(classic_by_id)
+    pool_ids.update(PLAYER_ID_MAP)
+    result = {}
+    for draft_id in sorted(pool_ids):
+        classic_id = fpl_id_for_draft(draft_id)
+        source = classic_by_id.get(classic_id)
+        if source is None:
+            # No Classic record: keep Draft identity as a last-resort label,
+            # but never silently borrow another player's Classic statistics.
+            source = draft_by_id.get(draft_id, {})
+            if not source:
+                print(f"WARNING: Draft ID {draft_id} -> FPL ID {classic_id} "
+                      "does not exist in either current API")
+            if draft_id in PLAYER_ID_MAP:
+                print(f"WARNING: mapped FPL ID {classic_id} for Draft ID "
+                      f"{draft_id} not found in Classic API; no stats to attach")
+        player = dict(source)
+        player["id"] = draft_id
+        player["draft_player_id"] = draft_id
+        player["fpl_player_id"] = classic_id
+        # Explicitly mapped historical IDs may no longer exist in today's
+        # Draft player pool. Keep them for the archive, not free-agent offers.
+        player["draft_active"] = not draft_by_id or draft_id in draft_by_id
+        result[draft_id] = player
+    return result
+
+
+def _normalise_player_name(name):
+    name = unicodedata.normalize("NFKD", str(name or "").casefold())
+    return "".join(c for c in name if c.isalnum())
+
+
+def _api_player_name(row):
+    return (row.get("web_name") or
+            " ".join(filter(None, (row.get("first_name"), row.get("second_name")))) or
+            row.get("name") or "")
+
+
+def export_player_mapping_audit(draft_by_id, classic_by_id, path):
+    """Show ALL Draft IDs and plausible name matches; suggestions never apply automatically."""
+    from collections import defaultdict as _defaultdict
+    names = _defaultdict(list)
+    for classic_id, row in classic_by_id.items():
+        key = _normalise_player_name(_api_player_name(row))
+        if key:
+            names[key].append(int(classic_id))
+    explicit_targets = {v: k for k, v in PLAYER_ID_MAP.items()}
+    with open(path, "w", newline="", encoding="utf-8-sig") as output:
+        writer = csv.DictWriter(output, fieldnames=[
+            "draft_player_id", "draft_player_name", "current_fpl_player_id",
+            "current_fpl_player_name", "suggested_fpl_player_id", "suggested_fpl_player_name",
+            "status", "manual_override", "notes",
+        ])
+        writer.writeheader()
+        for did in sorted(set(draft_by_id) | set(PLAYER_ID_MAP)):
+            draft_row = draft_by_id.get(did, {})
+            draft_name = _api_player_name(draft_row)
+            fid = fpl_id_for_draft(did)
+            fpl_row = classic_by_id.get(fid, {})
+            fpl_name = _api_player_name(fpl_row)
+            matches = names.get(_normalise_player_name(draft_name), []) if draft_name else []
+            suggested = next((x for x in matches if x != fid), None) if len(matches) == 1 else None
+            if fid not in classic_by_id:
+                status = "MISSING FPL ID"
+            elif did not in PLAYER_ID_MAP and fid in explicit_targets and explicit_targets[fid] != did:
+                status = "POSSIBLE ID COLLISION - CHECK BOTH DRAFT PLAYERS"
+            elif draft_name and _normalise_player_name(draft_name) != _normalise_player_name(fpl_name):
+                status = "NAME MISMATCH - CHECK"
+            elif did in PLAYER_ID_MAP:
+                status = "MANUAL OVERRIDE"
+            else:
+                status = "MATCH / UNVERIFIED"
+            writer.writerow({
+                "draft_player_id": did, "draft_player_name": draft_name,
+                "current_fpl_player_id": fid, "current_fpl_player_name": fpl_name,
+                "suggested_fpl_player_id": suggested or "",
+                "suggested_fpl_player_name": _api_player_name(classic_by_id.get(suggested, {})),
+                "status": status, "manual_override": "yes" if did in PLAYER_ID_MAP else "no",
+                "notes": "Suggestions use unique exact normalized names ONLY; verify manually.",
+            })
+    print(f"Draft/FPL ID audit written: {path}")
+
+
+def sync_manual_mapping_with_history(data, player_lookup, team_names, position_names):
+    """Correct old frozen pick identities, without losing their Draft roster IDs."""
+    applied = data.setdefault("manual_player_id_mapping_applied", {})
+    backups = data.setdefault("manual_player_mapping_pick_backups", {})
+    pinned_scores = data.setdefault("player_scores", {})
+    for draft_id in set(map(int, applied)) | set(PLAYER_ID_MAP):
+        previous = applied.get(str(draft_id))
+        now = PLAYER_ID_MAP.get(draft_id)
+        if (previous is not None and previous != now) or (previous is None and now is not None):
+            # Bad old Classic stats are pinned under the Draft ID. Removing just
+            # these pins forces the correct Classic ID to be re-read below.
+            pinned_scores.pop(str(draft_id), None)
+            print(f"Invalidating stale score pins: Draft ID {draft_id} -> {now or 'default'}")
+
+    corrected = 0
+    for gw, snapshot in data.get("gameweeks", {}).items():
+        for entry_id, squad in snapshot.get("teams", {}).items():
+            for pick in squad.get("starters", []) + squad.get("bench", []):
+                try:
+                    draft_id = int(pick.get("element_id"))
+                except (ValueError, TypeError):
+                    continue
+                key = f"{gw}:{entry_id}:{draft_id}"
+                if draft_id in PLAYER_ID_MAP:
+                    meta = player_lookup.get(draft_id, {})
+                    if not meta or meta.get("fpl_player_id") != PLAYER_ID_MAP[draft_id]:
+                        continue
+                    if key not in backups:
+                        backups[key] = {field: pick.get(field) for field in
+                                        ("web_name", "team", "position", "points", "minutes", "in_dreamteam")}
+                    old_name = str(pick.get("web_name") or "")
+                    new_name = meta.get("web_name") or _api_player_name(meta)
+                    if new_name:
+                        pick["web_name"] = new_name
+                    # Preserve the club on genuine historical transfers where
+                    # the player identity already matched in that gameweek.
+                    if (_normalise_player_name(old_name) != _normalise_player_name(new_name)
+                            or not pick.get("team")):
+                        pick["team"] = team_names.get(meta.get("team"), pick.get("team", ""))
+                    pick["position"] = position_names.get(meta.get("element_type"), pick.get("position", ""))
+                    pick["fpl_player_id"] = PLAYER_ID_MAP[draft_id]
+                    corrected += 1
+                elif key in backups and str(draft_id) in applied:
+                    # If a line is deleted from the CSV, restore the original
+                    # historical label rather than leaving the manual override.
+                    for field, value in backups[key].items():
+                        pick[field] = value
+                    pick.pop("fpl_player_id", None)
+                    del backups[key]
+    data["manual_player_id_mapping_applied"] = {str(k): v for k, v in PLAYER_ID_MAP.items()}
+    print(f"Applied CSV mappings to {corrected} historical/current roster picks")
 
 session = requests.Session()
 session.headers.update({
@@ -67,10 +265,24 @@ if classic_static is None:
     raise RuntimeError("Could not fetch FPL classic API data.")
 
 
-elements = {
-    p["id"]: p
-    for p in classic_static["elements"]
+classic_elements_by_fpl_id = {
+    int(p["id"]): p for p in classic_static["elements"]
 }
+draft_bootstrap = fetch_json(f"{DRAFT_BASE}/bootstrap-static") or {}
+draft_elements_by_id = {
+    int(row["id"]): row for row in draft_bootstrap.get("elements", [])
+    if isinstance(row, dict) and row.get("id") is not None
+}
+elements = make_draft_keyed_elements(classic_elements_by_fpl_id, draft_elements_by_id)
+# The audit is exported below, after historical Draft player IDs are available.
+_reverse_effective = {}
+for _did in elements:
+    _fid = fpl_id_for_draft(_did)
+    if _fid in _reverse_effective:
+        print(f"WARNING: possible duplicate Classic player {_fid} mapped from Draft "
+              f"IDs {_reverse_effective[_fid]} and {_did}. Check audit CSV.")
+    else:
+        _reverse_effective[_fid] = _did
 
 teams_lookup = {
     t["id"]: t["name"]
@@ -271,7 +483,12 @@ print(
 # 3. PER-GAMEWEEK LIVE PLAYER DATA
 # ============================================================
 
+_LIVE_GW_CACHE = {}
+
+
 def get_live_gw_data(gw):
+    if gw in _LIVE_GW_CACHE:
+        return _LIVE_GW_CACHE[gw]
 
     data = fetch_json(
         f"{CLASSIC_BASE}/event/{gw}/live/"
@@ -280,15 +497,23 @@ def get_live_gw_data(gw):
     if not data:
         return {}
 
-    return {
-        el["id"]: {
+    classic_live = {
+        int(el["id"]): {
             "points": el["stats"]["total_points"],
             "in_dreamteam": el["stats"]["in_dreamteam"],
             "minutes": el["stats"]["minutes"],
         }
-
-        for el in data["elements"]
+        for el in data.get("elements", [])
     }
+    # Return DRAFT-ID keys throughout the existing dashboard so ownership,
+    # lineups and player analytics continue to share the same keys.
+    mapped_live = {
+        draft_id: classic_live[fpl_id_for_draft(draft_id)]
+        for draft_id in elements
+        if fpl_id_for_draft(draft_id) in classic_live
+    }
+    _LIVE_GW_CACHE[gw] = mapped_live
+    return mapped_live
 
 
 # ============================================================
@@ -348,6 +573,22 @@ history["league_entry_id_to_name"] = (
 history["standings_latest"] = standings_now
 
 history["matches"] = enriched_matches
+# Include players from frozen seasons who have vanished from the current Draft
+# pool in the audit. Their archived name helps identify the right FPL ID.
+_audit_draft_rows = dict(draft_elements_by_id)
+for _old_snapshot in history.get("gameweeks", {}).values():
+    for _old_squad in _old_snapshot.get("teams", {}).values():
+        for _old_pick in _old_squad.get("starters", []) + _old_squad.get("bench", []):
+            try:
+                _old_did = int(_old_pick["element_id"])
+            except (KeyError, ValueError, TypeError):
+                continue
+            _audit_draft_rows.setdefault(_old_did, {
+                "id": _old_did, "web_name": _old_pick.get("web_name", "")
+            })
+export_player_mapping_audit(_audit_draft_rows, classic_elements_by_fpl_id, MAPPING_AUDIT_CSV)
+sync_manual_mapping_with_history(history, elements, teams_lookup, positions_lookup)
+history["draft_player_id_to_fpl_player_id"] = {str(k): v for k, v in PLAYER_ID_MAP.items()}
 
 
 # ============================================================
@@ -630,6 +871,7 @@ for gw in gws_to_capture:
 
             pick_info = {
                 "element_id": el_id,
+                "fpl_player_id": fpl_id_for_draft(el_id),
 
                 "web_name": web_name,
 
@@ -913,13 +1155,10 @@ if bootstrap is None:
     )
 
 
-elements = {
-    p["id"]: p
-    for p in bootstrap.get(
-        "elements",
-        []
-    )
+classic_elements_by_fpl_id = {
+    int(p["id"]): p for p in bootstrap.get("elements", [])
 }
+elements = make_draft_keyed_elements(classic_elements_by_fpl_id, draft_elements_by_id)
 
 
 teams_lookup = {
@@ -979,15 +1218,7 @@ for _old_stamp in sorted(_availability_snapshots)[:-180]:
 OFFICIAL_DRAFT_WEIGHT = 0.40
 MCDRAFT_DRAFT_WEIGHT = 0.60
 
-draft_bootstrap = fetch_json(
-    f"{DRAFT_BASE}/bootstrap-static"
-) or {}
-
-draft_elements_by_id = {
-    int(row.get("id")): row
-    for row in draft_bootstrap.get("elements", [])
-    if isinstance(row, dict) and row.get("id") is not None
-}
+# Cached above: this same Draft bootstrap defined the canonical Draft pool.
 
 official_fpl_draft_rank = history.setdefault("official_fpl_draft_rank", {})
 for _pid, _row in draft_elements_by_id.items():
@@ -1536,7 +1767,7 @@ for index, player_id in enumerate(
 ):
 
     data = fetch_json(
-        f"{CLASSIC_BASE}/element-summary/{player_id}/"
+        f"{CLASSIC_BASE}/element-summary/{fpl_id_for_draft(player_id)}/"
     )
 
     if not data:
@@ -1552,71 +1783,36 @@ for index, player_id in enumerate(
     opponent_by_gw = {}
     was_home_by_gw = {}
 
+    from collections import defaultdict as _defaultdict
+    _round_rows = _defaultdict(list)
     for row in history_data:
+        if row.get("round") is not None:
+            _round_rows[int(row["round"])].append(row)
 
-        round_number = row.get(
-            "round"
-        )
-
-        if round_number is None:
-            continue
-
-        gw = int(
-            round_number
-        )
-
-        pinned = get_pinned_player_gw_record(
-            player_id,
-            gw
-        )
-
+    for gw, fixture_rows in _round_rows.items():
+        pinned = get_pinned_player_gw_record(player_id, gw)
         if pinned is not None:
-
             points_by_gw[gw] = pinned["points"]
             minutes_by_gw[gw] = pinned["minutes"]
-            opponent_by_gw[gw] = pinned["opponent"]
-            was_home_by_gw[gw] = pinned["was_home"]
-
+            opponent_by_gw[gw] = pinned.get("opponent", "")
+            was_home_by_gw[gw] = pinned.get("was_home", False)
         else:
-
-            points_by_gw[gw] = row.get(
-                "total_points",
-                0
+            # A double GW has multiple element-summary rows; sum them rather
+            # than silently using just the last fixture's score.
+            points_by_gw[gw] = sum(int(row.get("total_points", 0) or 0) for row in fixture_rows)
+            minutes_by_gw[gw] = sum(int(row.get("minutes", 0) or 0) for row in fixture_rows)
+            opponent_by_gw[gw] = " + ".join(
+                teams_lookup.get(row.get("opponent_team"), "")
+                for row in fixture_rows
             )
+            was_home_by_gw[gw] = fixture_rows[0].get("was_home", False)
 
-            minutes_by_gw[gw] = row.get(
-                "minutes",
-                0
-            )
-
-            opponent_team_id = row.get(
-                "opponent_team"
-            )
-
-            opponent_by_gw[gw] = (
-                teams_lookup.get(
-                    opponent_team_id,
-                    ""
-                )
-            )
-
-            was_home_by_gw[gw] = row.get(
-                "was_home",
-                False
-            )
-
-        # Persist this gameweek's record so it's available to pin
-        # against on future runs once it's finished. Harmless to
-        # re-write while still in progress - it'll keep being
-        # refreshed until finished_gws locks it in above.
-        player_scores.setdefault(
-            str(player_id),
-            {}
-        )[str(gw)] = {
+        player_scores.setdefault(str(player_id), {})[str(gw)] = {
             "points": points_by_gw[gw],
             "minutes": minutes_by_gw[gw],
             "opponent": opponent_by_gw[gw],
             "was_home": was_home_by_gw[gw],
+            "fpl_player_id": fpl_id_for_draft(player_id),
         }
 
     player_form[player_id] = (
@@ -1641,6 +1837,44 @@ for index, player_id in enumerate(
 print(
     "Player history loaded."
 )
+
+# Repair scores and minutes in frozen historical picks for MANUALLY mapped
+# players. Match winners / Draft official live_points remain authoritative.
+_corrected_picks = 0
+_mapped_live_cache = {}
+for _gw_text, _snapshot in history.get("gameweeks", {}).items():
+    _gw = int(_gw_text)
+    for _squad in _snapshot.get("teams", {}).values():
+        _changed = False
+        for _pick in _squad.get("starters", []) + _squad.get("bench", []):
+            _did = int(_pick.get("element_id") or 0)
+            if _did not in PLAYER_ID_MAP:
+                continue
+            _resolved = player_history.get(_did, {})
+            if _gw not in _resolved.get("points", {}):
+                # Correct identity remains visible; do not replace unavailable
+                # historical stats with an invented zero.
+                continue
+            _pick["points"] = _resolved["points"][_gw]
+            _pick["minutes"] = _resolved["minutes"].get(_gw, _pick.get("minutes", 0))
+            _historical_live = get_live_gw_data(_gw)
+            if _did in _historical_live:
+                _pick["in_dreamteam"] = _historical_live[_did].get("in_dreamteam", False)
+            _pick["fpl_player_id"] = PLAYER_ID_MAP[_did]
+            _changed = True
+            _corrected_picks += 1
+        if _changed:
+            _squad["gw_points"] = sum(
+                float(p.get("points", 0) or 0) * (2 if p.get("is_captain") else 1)
+                for p in _squad.get("starters", [])
+            )
+            _squad["bench_points"] = sum(
+                float(p.get("points", 0) or 0) for p in _squad.get("bench", [])
+            )
+            _squad["dreamteam_starters"] = sum(
+                bool(p.get("in_dreamteam")) for p in _squad.get("starters", [])
+            )
+print(f"Reconciled {_corrected_picks} mapped historical player appearances")
 
 
 # Persist the newly-pinned player_scores back to disk. The scraper
@@ -3987,8 +4221,11 @@ for player_id, player_meta in elements.items():
         "id":
             player_id,
 
+        "fpl_id":
+            fpl_id_for_draft(player_id),
+
         "name":
-            info["name"],
+            elements.get(player_id, {}).get("web_name", info["name"]) if player_id in PLAYER_ID_MAP else info["name"],
 
         "owners":
             sorted(
@@ -4320,6 +4557,8 @@ def build_free_agent_recommendations(manager):
     candidates = []
 
     for player_id, meta in elements.items():
+        if not meta.get("draft_active", True):
+            continue
         if player_id in owned_ids or player_id in league_owned_ids:
             continue
         if meta.get("status") not in (None, "", "a"):
@@ -6921,7 +7160,7 @@ for _gw_key, _snapshot in sorted(
                 _old_id = int(_pick.get('element_id'))
             except (ValueError, TypeError):
                 continue
-            if _old_id in elements:
+            if _old_id in elements and fpl_id_for_draft(_old_id) in classic_elements_by_fpl_id:
                 continue
             _departed_by_id[_old_id] = {
                 'id': _old_id,
@@ -7621,7 +7860,11 @@ def _live_element_stats_lookup():
             "points": float(stats.get("total_points", 0) or 0),
             "minutes": float(stats.get("minutes", 0) or 0),
         }
-    return out
+    return {
+        draft_id: out[fpl_id_for_draft(draft_id)]
+        for draft_id in elements
+        if fpl_id_for_draft(draft_id) in out
+    }
 
 
 def _club_fixture_remaining_fraction(club_id):
@@ -8509,6 +8752,8 @@ def _dashboard_current_free_agents(limit=8):
     candidates = []
 
     for player_id, meta in elements.items():
+        if not meta.get("draft_active", True):
+            continue
         owner = current_owner_by_player.get(int(player_id))
 
         if owner not in (None, "", 0, "0"):
