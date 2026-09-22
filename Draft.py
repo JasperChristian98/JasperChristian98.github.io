@@ -11218,6 +11218,185 @@ def _availability_impact_charts():
     )
 
 
+# ---------------------------- Player Relationship Graph ----------------------------
+# All network identities remain Draft-ID keyed; the corrected CSV-backed
+# `elements` lookup supplies the display identity/statistics independently.
+def _player_relationship_payload():
+    from itertools import combinations
+
+    roster_ids = {manager: set(map(int, pids)) for manager, pids in _trade_rosters.items()}
+    owner_now = {int(pid): owner for pid, owner in _analytics_owner_by_id.items()}
+    current_links = {}
+    for manager, pids in roster_ids.items():
+        for a, b in combinations(sorted(pids), 2):
+            current_links[(a, b)] = {"team": manager}
+
+    # GW snapshots are the evidence of actual shared time on a manager's squad.
+    # Do not fabricate a relationship from sequential ownership alone.
+    historical = {}
+    observed_players = set(owner_now)
+    for gw_str, snapshot in (history.get("gameweeks") or {}).items():
+        if not snapshot.get("finished"):
+            continue
+        try:
+            gw = int(gw_str)
+        except (TypeError, ValueError):
+            continue
+        for squad in (snapshot.get("teams") or {}).values():
+            manager = squad.get("manager")
+            if not manager:
+                continue
+            pids = set()
+            for pick in (squad.get("starters") or []) + (squad.get("bench") or []):
+                try:
+                    pids.add(int(pick["element_id"]))
+                except (TypeError, ValueError, KeyError):
+                    continue
+            observed_players.update(pids)
+            for a, b in combinations(sorted(pids), 2):
+                row = historical.setdefault((a, b), {"gws": set(), "teams": set()})
+                row["gws"].add(gw)
+                row["teams"].add(manager)
+
+    trade_links = {}
+    trade_by_player = defaultdict(list)
+    for trade in normalised_trades:
+        if str(trade.get("status", "")).casefold() != "processed":
+            continue
+        offered = set()
+        received = set()
+        for item in trade.get("player_ids1", []):
+            try:
+                offered.add(int(item))
+            except (TypeError, ValueError):
+                continue
+        for item in trade.get("player_ids2", []):
+            try:
+                received.add(int(item))
+            except (TypeError, ValueError):
+                continue
+        if not offered or not received:
+            continue
+        observed_players.update(offered | received)
+        trade_meta = {
+            "gw": trade.get("gw"),
+            "date": trade.get("date"),
+            "offered_by": trade.get("manager1"),
+            "received_by": trade.get("manager2"),
+            "offered_ids": sorted(offered),
+            "received_ids": sorted(received),
+        }
+        for pid in offered | received:
+            trade_by_player[pid].append(trade_meta)
+        for a in offered:
+            for b in received:
+                if a == b:
+                    continue  # malformed self-trades cannot link a player to itself
+                key = tuple(sorted((a, b)))
+                row = trade_links.setdefault(key, {"count": 0, "gws": set(), "teams": set()})
+                row["count"] += 1
+                if str(trade.get("gw") or "").isdigit():
+                    row["gws"].add(int(trade["gw"]))
+                row["teams"].update([trade.get("manager1"), trade.get("manager2")])
+
+    # Historical/current squads and executed trades can reference former Draft
+    # players absent from today's bootstrap. Prefer snapshot-pinned names then.
+    past_names = {}
+    for gw_str in sorted((history.get("gameweeks") or {}), key=lambda k: int(k) if str(k).isdigit() else 0):
+        for squad in ((history["gameweeks"].get(gw_str) or {}).get("teams") or {}).values():
+            for pick in (squad.get("starters") or []) + (squad.get("bench") or []):
+                try:
+                    pid = int(pick.get("element_id"))
+                except (TypeError, ValueError):
+                    continue
+                if pick.get("web_name"):
+                    past_names[pid] = pick["web_name"]
+
+    # Historical ownership can include departed or waived players with no
+    # completed-snapshot data yet (legacy history imports).
+    observed_players.update(int(pid) for pid in player_ownership)
+    total_points = {
+        int(row["id"]): int(row.get("season_points", 0) or 0)
+        for row in player_form_stats if row.get("id") is not None
+    }
+    draft = history.get("original_draft_rank", {}) or {}
+    nodes = []
+    for pid in sorted(observed_players):
+        meta = elements.get(pid) or {}
+        position = positions_lookup.get(meta.get("element_type"), "—")
+        club = teams_lookup.get(meta.get("team"), "—")
+        draft_row = draft.get(str(pid), {}) or {}
+        pick = draft_row.get("overall_pick")
+        nodes.append({
+            "id": pid,
+            "name": meta.get("web_name") or past_names.get(pid) or player_ownership.get(pid, {}).get("name") or f"Draft player #{pid}",
+            "owner": owner_now.get(pid) or "Free Agent",
+            "club": club,
+            "position": position,
+            "points": total_points.get(pid, int(meta.get("total_points", 0) or 0)),
+            "draft_pick": pick if isinstance(pick, int) and 1 <= pick <= DRAFTED_PLAYER_COUNT else None,
+            "fpl_id": meta.get("fpl_player_id", fpl_id_for_draft(pid)),
+        })
+    edges = []
+    keys = set(current_links) | set(historical) | set(trade_links)
+    for a, b in sorted(keys):
+        shared = historical.get((a, b), {})
+        swap = trade_links.get((a, b), {})
+        edges.append({
+            "a": a, "b": b,
+            "current": (a, b) in current_links,
+            "current_team": (current_links.get((a, b)) or {}).get("team"),
+            "shared_gws": len(shared.get("gws", [])),
+            "shared_teams": sorted(shared.get("teams", [])),
+            "trade_count": swap.get("count", 0),
+            "trade_gws": sorted(swap.get("gws", [])),
+        })
+    return {
+        "nodes": nodes, "edges": edges,
+        "trades": {str(pid): rows for pid, rows in trade_by_player.items()},
+        "summary": {
+            "players": len(nodes),
+            "current": len(current_links),
+            "historical": len(historical),
+            "traded": len(trade_links),
+        },
+    }
+
+
+player_relationships_json = json.dumps(_player_relationship_payload(), ensure_ascii=False, separators=(",", ":"))
+
+
+def player_relationship_html():
+    return '''<div class="card relationship-intro">
+      <div><span class="relationship-eyebrow">PLAYER CONNECTIONS · LIVE ROSTERS + ARCHIVE</span>
+      <h2>Player Relationship Graph</h2>
+      <p class="card-description">See who shares a squad today, who played together in completed gameweeks, and who was exchanged in a <b>processed trade</b>. Nodes use current McDraft owner colours; grey means free agent. Click a player to uncover their entire network.</p></div>
+      <div class="relationship-mode-controls" role="group" aria-label="Relationship type">
+        <button class="relationship-mode active" type="button" data-rel-mode="current" onclick="setRelationshipMode('current')">Current squadmates</button>
+        <button class="relationship-mode" type="button" data-rel-mode="history" onclick="setRelationshipMode('history')">Shared history</button>
+        <button class="relationship-mode" type="button" data-rel-mode="trades" onclick="setRelationshipMode('trades')">Trade connections</button>
+        <button class="relationship-mode" type="button" data-rel-mode="all" onclick="setRelationshipMode('all')">All relationships</button>
+      </div>
+      <div class="relationship-controls">
+        <label>Show owner<select id="relationship-owner" onchange="setRelationshipOwner(this.value)"><option value="all">All selected managers</option></select></label>
+        <label>Find a player<input id="relationship-search" type="search" list="relationship-players" placeholder="Search any player…" onkeydown="if(event.key==='Enter')focusRelationshipSearch()" onchange="focusRelationshipSearch()"><datalist id="relationship-players"></datalist></label>
+        <label>Minimum shared GWs<select id="relationship-weeks" onchange="setRelationshipWeeks(this.value)"><option value="1">1+ GW</option><option value="2">2+ GWs</option><option value="3">3+ GWs</option><option value="5">5+ GWs</option><option value="10">10+ GWs</option></select></label>
+        <label class="relationship-check"><input id="relationship-full-links" type="checkbox" onchange="setRelationshipAllLinks(this.checked)"> Show all links</label>
+        <button class="relationship-reset" type="button" onclick="resetRelationshipFocus()">Clear focus</button>
+      </div>
+      <div id="relationship-stats" class="relationship-stats" aria-live="polite"></div>
+      <div class="relationship-main">
+        <div class="relationship-graph-panel">
+          <div class="relationship-graph-toolbar"><span id="relationship-caption">Select a player or explore the squads</span><div><button type="button" onclick="zoomRelationship(0.8)" aria-label="Zoom in">＋</button><button type="button" onclick="zoomRelationship(1.25)" aria-label="Zoom out">－</button><button type="button" onclick="zoomRelationship(1, true)">Reset view</button></div></div>
+          <svg id="relationship-svg" role="img" aria-label="Interactive McDraft player relationship network" viewBox="0 0 960 590" preserveAspectRatio="xMidYMid meet"><title>Player relationships, click a node to explore</title></svg>
+          <div id="relationship-empty" class="notice" hidden></div>
+          <div class="relationship-legend"><span><i style="background:#60a5fa"></i> Current teammates</span><span><i style="background:#34d399"></i> Shared completed GWs</span><span><i style="background:#fb923c"></i> Exchanged in processed trade</span><span><i style="background:#64748b"></i> Free agents</span></div>
+        </div>
+        <aside class="relationship-detail" id="relationship-detail"><h3>Explore the network</h3><p>Select a player to see their current owner, former squadmates, shared gameweeks and trade connections.</p></aside>
+      </div>
+      <p class="relationship-footnote" id="relationship-footnote">Default view shows the strongest connections to avoid a wall of lines. Use “Show all links” to see the full network. The shared Analytics manager filter applies here too.</p>
+    </div>'''
+
 # ---------------------------- Analytics Lab ----------------------------
 def _bar_chart_html(title, values, description="", value_suffix="", reverse=False, x_label="Manager", y_label="Value"):
     items = [(m, float(values.get(m,0) or 0)) for m in current_standings]
@@ -12715,6 +12894,7 @@ def analytics_page_html():
         <button class="analytics-subtab active" type="button" onclick="showAnalyticsSubtab('insights', this)">McDraft Insights <span>{len(insight_rows[:13])}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('matrices', this)">Matrix Lab <span>{len(_matrix_cards)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('player', this)">Player Analytics <span>{len(player_charts)}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('relationships', this)">Player Relationships <span>NEW</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('club', this)">Club Analytics <span>{len(club_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-strength', this)">Squad Strength <span>{len(squad_strength_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-build', this)">Squad Construction <span>{len(squad_construction_charts)}</span></button>
@@ -12725,7 +12905,7 @@ def analytics_page_html():
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('league-stats', this)">League Stats</button>
     </div>
     <div class="card analytics-manager-filter-card">
-        <div class="analytics-manager-filter-head"><div><h2>Manager filter</h2><p class="card-description">Select multiple managers to filter every manager-based chart, including the Matrix Lab and currently-owned players in Player Analytics. Use Top 5, All or None for quick selections. Free agents affect Player Analytics only; Premier League club charts remain league-wide.</p></div><span id="analytics-manager-count" class="muted"></span></div>
+        <div class="analytics-manager-filter-head"><div><h2>Manager filter</h2><p class="card-description">Select multiple managers to filter every manager-based chart, including the Matrix Lab and currently-owned players in Player Analytics. Use Top 5, All or None for quick selections. Free agents affect Player Analytics and Player Relationships; Premier League club charts remain league-wide.</p></div><span id="analytics-manager-count" class="muted"></span></div>
         <div id="analytics-manager-chips" class="chart-chip-row analytics-manager-chip-row"></div>
         <label class="analytics-average-toggle"><input id="analytics-average-toggle" type="checkbox" onchange="toggleAnalyticsLeagueAverage(this.checked)"> Compare with league average</label>
     </div>
@@ -12735,6 +12915,7 @@ def analytics_page_html():
         <div class="analytics-player-summary"><p class="card-description">Use the shared Manager filter above to choose one or more current fantasy owners. Player dots and bars retain each team’s colour; free agents are grey. League-wide positional-scarcity comparisons remain unchanged.</p><span id="analytics-player-count" class="muted" aria-live="polite"></span></div>
         <div class="analytics-chart-grid">{''.join(player_charts)}</div>
     </div>
+    <div class="analytics-subpage" id="analytics-sub-relationships">{player_relationship_html()}</div>
     <div class="analytics-subpage" id="analytics-sub-club"><div class="analytics-chart-grid">{''.join(club_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-squad-strength"><div class="analytics-chart-grid">{''.join(squad_strength_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-squad-build"><div class="analytics-chart-grid">{''.join(squad_construction_charts)}</div></div>
@@ -15188,6 +15369,51 @@ tbody tr:hover {
 # JAVASCRIPT
 # ============================================================
 
+relationship_css = r"""
+/* v48 — Player Relationship Graph */
+.relationship-intro{margin-bottom:18px;min-width:0}
+.relationship-eyebrow{display:block;font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:900;color:var(--accent);margin-bottom:9px}
+.relationship-intro h2{font-size:24px;margin:0 0 9px}.relationship-intro .card-description{max-width:950px;line-height:1.6;margin-bottom:18px}
+.relationship-mode-controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.relationship-mode{background:rgba(128,145,168,.10);color:var(--text);border:1px solid var(--border);padding:10px 13px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer}
+.relationship-mode.active{border-color:var(--accent);background:rgba(56,189,248,.17);box-shadow:inset 0 -2px 0 var(--accent)}
+.relationship-controls{display:flex;align-items:end;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.relationship-controls>label{font-size:11px;font-weight:850;color:var(--muted);display:flex;flex-direction:column;gap:6px;min-width:125px;flex:1 1 160px}
+.relationship-controls input[type=search],.relationship-controls select{width:100%;min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);padding:10px;font-size:12px;min-height:41px}
+.relationship-controls>label:has(input[type=search]){flex:2 1 220px}
+.relationship-controls>.relationship-check{flex:0 1 122px;display:flex;flex-direction:row;align-items:center;padding:10px 0;color:var(--text);line-height:1.3}
+.relationship-check input{accent-color:var(--accent);width:15px;height:15px}
+.relationship-reset{background:#22334a;border:1px solid var(--border);color:var(--text);border-radius:9px;padding:11px;min-height:41px;cursor:pointer;font-weight:800}
+.relationship-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0 15px}
+.relationship-stats>div{border:1px solid var(--border);border-radius:11px;background:rgba(128,145,168,.065);padding:12px 13px;display:flex;flex-direction:column;gap:4px}
+.relationship-stats strong{font-size:22px;font-weight:950;line-height:1.2}.relationship-stats span{font-size:11px;color:var(--muted)}
+.relationship-main{display:grid;grid-template-columns:minmax(0,3fr) minmax(255px,1fr);gap:12px;align-items:start}
+.relationship-graph-panel{min-width:0;border:1px solid var(--border);border-radius:13px;overflow:hidden;background:radial-gradient(ellipse at 50% 50%,rgba(56,189,248,.035),transparent 60%),rgba(8,16,30,.60)}
+.relationship-graph-toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 13px;border-bottom:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:800}
+.relationship-graph-toolbar>div{display:flex;gap:5px}.relationship-graph-toolbar button{background:rgba(128,145,168,.12);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+#relationship-svg{width:100%;height:auto;display:block;aspect-ratio:960/590;touch-action:pan-y;min-height:220px}
+.relationship-link{stroke-linecap:round;stroke-opacity:.37;pointer-events:stroke}.relationship-link-current{stroke:#60a5fa}.relationship-link-history{stroke:#34d399}.relationship-link-trade{stroke:#fb923c}
+.relationship-node{cursor:pointer;outline:none}.relationship-node circle{stroke:#e2e8f0;stroke-opacity:.92;stroke-width:1.6;transition:stroke-width .15s,stroke-opacity .15s}
+.relationship-node:hover circle,.relationship-node:focus circle,.relationship-node.focused circle{stroke:#fff;stroke-width:3.2;stroke-opacity:1}
+.relationship-node text{fill:#e9f1ff;stroke:#071322;stroke-width:2.4px;paint-order:stroke;stroke-linejoin:round;font-size:10.5px;font-weight:800;pointer-events:none;text-shadow:0 1px 3px #071322}
+.relationship-node.focused text{font-size:13px}.relationship-node:focus-visible{outline:2px solid var(--accent)}
+.relationship-legend{display:flex;gap:8px 14px;flex-wrap:wrap;padding:10px 13px;border-top:1px solid var(--border);color:var(--muted);font-size:10px}
+.relationship-legend span{display:inline-flex;align-items:center;gap:5px}.relationship-legend i{height:8px;width:8px;border-radius:50%;display:inline-block}
+.relationship-detail{border:1px solid var(--border);border-radius:13px;padding:15px;min-width:0;background:rgba(128,145,168,.045);max-height:700px;overflow-y:auto}
+.relationship-detail h3{margin:6px 0 6px;font-size:19px}.relationship-detail h4{margin:17px 0 10px;font-size:12px;letter-spacing:.04em;text-transform:uppercase}.relationship-detail p{font-size:12px;color:var(--muted);line-height:1.5}
+.relationship-detail-owner{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:900;color:var(--muted)}.relationship-avatar{height:10px;width:10px;border-radius:50%;flex:0 0 auto;display:inline-block}
+.relationship-detail-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:14px 0}
+.relationship-detail-metrics>div{border:1px solid var(--border);padding:9px;border-radius:9px;min-width:0}.relationship-detail-metrics strong{font-size:18px;display:block}.relationship-detail-metrics small{font-size:10px;color:var(--muted);display:block}
+.relationship-neighbour{display:flex;width:100%;align-items:center;gap:9px;text-align:left;background:rgba(128,145,168,.035);border:0;border-bottom:1px solid var(--border);padding:9px 0;cursor:pointer;color:var(--text);font:inherit}
+.relationship-neighbour:hover,.relationship-neighbour:focus-visible{background:rgba(128,145,168,.14);outline-offset:2px}.relationship-neighbour>span:nth-child(2){flex:1;min-width:0}.relationship-neighbour b{font-size:11px;display:block}.relationship-neighbour small{color:var(--muted);display:block;font-size:10px;line-height:1.35;padding-top:3px}.relationship-arrow{font-size:17px;color:var(--accent)}
+.relationship-trade-list{padding-left:15px;margin:0}.relationship-trade-list li{font-size:11px;line-height:1.5;color:var(--muted);margin-bottom:9px}.relationship-trade-list b{color:var(--text)}
+.relationship-footnote{font-size:11px;color:var(--muted);line-height:1.5;margin:13px 0 0}
+#relationship-empty:not([hidden]){margin:0 12px 10px;padding:10px;font-size:11px}
+@media(max-width:1050px){.relationship-main{grid-template-columns:minmax(0,1fr)}.relationship-detail{max-height:390px}.relationship-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.relationship-intro h2{font-size:20px}.relationship-mode-controls{gap:5px}.relationship-mode{flex:1 1 45%;font-size:10px;padding:9px 5px}.relationship-controls>label{flex:1 1 46%}.relationship-controls>label:has(input[type=search]){flex:1 1 100%}.relationship-stats strong{font-size:18px}.relationship-graph-toolbar{font-size:10px}.relationship-legend{font-size:9px}}
+
+"""
+
 javascript = r"""
 /* ============================================================
    MY TEAM SELECTOR
@@ -15539,13 +15765,13 @@ function renderAnalyticsManagerChips() {
     freeAgents.className = 'chart-chip' + (analyticsManagerState.includeFreeAgents ? ' active' : '');
     freeAgents.style.setProperty('--chip-color','#64748b');
     freeAgents.textContent = 'Free agents';
-    freeAgents.title = 'Include free agents in Player Analytics (does not affect other charts)';
+    freeAgents.title = 'Include free agents in Player Analytics and Player Relationships';
     freeAgents.setAttribute('aria-pressed',String(analyticsManagerState.includeFreeAgents));
     freeAgents.addEventListener('click',toggleAnalyticsFreeAgents);
     container.appendChild(freeAgents);
     const count = document.getElementById("analytics-manager-count");
     if (count) count.textContent = analyticsManagerState.visible.size + " of " + MANAGER_ORDER.length +
-        " managers selected" + (analyticsManagerState.includeFreeAgents ? ' · free agents included in Player Analytics' : '');
+        " managers selected" + (analyticsManagerState.includeFreeAgents ? ' · free agents included in player views' : '');
 }
 
 function applyAnalyticsManagerFilter() {
@@ -15555,6 +15781,7 @@ function applyAnalyticsManagerFilter() {
     });
     applyPlayerAnalyticsFilter();
     refreshMatrixManagerState();
+    renderPlayerRelationshipGraph();
 }
 
 function toggleAnalyticsLeagueAverage(enabled) {
@@ -15714,6 +15941,259 @@ function showDraftCentreSubtab(name, button) {
     if(button) button.classList.add('active');
 }
 
+/* v48 — Player Relationship Graph. 100% self-contained SVG; no CDN dependency. */
+const PLAYER_RELATIONSHIPS = __PLAYER_RELATIONSHIPS__;
+const relationshipNodeById = new Map((PLAYER_RELATIONSHIPS.nodes || []).map(n => [n.id,n]));
+const relationshipState = {mode:'current', owner:'all', focus:null, minWeeks:1, allLinks:false,
+    zoom:1, viewX:0, viewY:0, positions:new Map(), latestEdges:[]};
+const relationshipSVG_NS='http://www.w3.org/2000/svg';
+function relationshipEscape(str){return String(str??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function relationshipColour(owner){return owner==='Free Agent'?'#64748b':(MANAGER_COLORS[owner] || '#94a3b8');}
+function initPlayerRelationships(){
+    const panel=document.getElementById('analytics-sub-relationships');
+    if(!panel)return;
+    const picker=document.getElementById('relationship-owner');
+    if(picker){
+        const prev=picker.value;
+        picker.querySelectorAll('option:not([value="all"])').forEach(o=>o.remove());
+        MANAGER_ORDER.forEach(manager=>{
+            const option=document.createElement('option');option.value=manager;option.textContent=manager;picker.appendChild(option);
+        });
+        relationshipState.owner=MANAGER_ORDER.includes('Kamararama FC')?'Kamararama FC':'all';
+        if(prev&&prev!=='all'&&MANAGER_ORDER.includes(prev))relationshipState.owner=prev;
+        picker.value=relationshipState.owner;
+    }
+    const choices=document.getElementById('relationship-players');
+    if(choices){
+        choices.replaceChildren();
+        (PLAYER_RELATIONSHIPS.nodes||[]).slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(node=>{
+            const o=document.createElement('option');o.value=relationshipPlayerLabel(node);choices.appendChild(o);
+        });
+    }
+    // Rendering only after the tab becomes visible avoids a zero-width SVG.
+}
+function relationshipPlayerLabel(node){return node.name+' — '+node.owner+' [Draft #'+node.id+']';}
+function setRelationshipMode(mode){
+    if(!['current','history','trades','all'].includes(mode))return;
+    relationshipState.mode=mode;
+    document.querySelectorAll('[data-rel-mode]').forEach(b=>b.classList.toggle('active',b.dataset.relMode===mode));
+    renderPlayerRelationshipGraph();
+}
+function setRelationshipOwner(owner){relationshipState.owner=owner;relationshipState.focus=null;
+    const search=document.getElementById('relationship-search');if(search)search.value='';
+    renderPlayerRelationshipGraph();}
+function setRelationshipWeeks(raw){relationshipState.minWeeks=Math.max(1,Number(raw)||1);renderPlayerRelationshipGraph();}
+function setRelationshipAllLinks(checked){relationshipState.allLinks=!!checked;renderPlayerRelationshipGraph();}
+function focusRelationshipSearch(){
+    const input=document.getElementById('relationship-search');if(!input)return;
+    const value=input.value.trim().toLowerCase();if(!value){resetRelationshipFocus();return;}
+    const nodes=PLAYER_RELATIONSHIPS.nodes||[];
+    // Match the complete datalist value first: duplicate surnames remain safe.
+    let found=nodes.find(n=>relationshipPlayerLabel(n).toLowerCase()===value);
+    if(!found){const hits=nodes.filter(n=>n.name.toLowerCase()===value);if(hits.length===1)found=hits[0];}
+    if(!found){const hits=nodes.filter(n=>n.name.toLowerCase().includes(value));if(hits.length===1)found=hits[0];}
+    if(!found){const el=document.getElementById('relationship-empty');if(el){el.hidden=false;el.textContent='Choose a player from the suggestions. Multiple players may share the same surname.';}return;}
+    focusRelationshipPlayer(found.id);
+}
+function focusRelationshipPlayer(pid){
+    pid=Number(pid);if(!relationshipNodeById.has(pid))return;
+    relationshipState.focus=pid;relationshipState.owner='all';
+    const picker=document.getElementById('relationship-owner');if(picker)picker.value='all';
+    const search=document.getElementById('relationship-search');if(search)search.value=relationshipPlayerLabel(relationshipNodeById.get(pid));
+    renderPlayerRelationshipGraph();
+}
+function resetRelationshipFocus(){relationshipState.focus=null;
+    const search=document.getElementById('relationship-search');if(search)search.value='';
+    renderPlayerRelationshipGraph();}
+function relationshipEdgeMatches(e,mode){
+    if(mode==='current')return e.current;
+    if(mode==='history')return e.shared_gws>=relationshipState.minWeeks;
+    if(mode==='trades')return e.trade_count>0;
+    return e.current||e.shared_gws>=relationshipState.minWeeks||e.trade_count>0;
+}
+function relationshipEdgeWeight(e){return (e.trade_count||0)*8+(e.current?7:0)+Math.min(e.shared_gws||0,12);}
+function relationshipEdgeKind(e){
+    if(relationshipState.mode==='trades'||(relationshipState.mode==='all'&&e.trade_count))return 'trade';
+    if(relationshipState.mode==='history'||(relationshipState.mode==='all'&&!e.current))return 'history';
+    return 'current';
+}
+function relationshipVisibleOwners(){return analyticsManagerState.visible;}
+function relationshipAssemble(){
+    const allowed=relationshipVisibleOwners();
+    const ownerChoice=relationshipState.owner;
+    const eligible=new Map((PLAYER_RELATIONSHIPS.nodes||[]).filter(n=>
+        (n.owner==='Free Agent'?analyticsManagerState.includeFreeAgents:allowed.has(n.owner))&&
+        (ownerChoice==='all'||n.owner===ownerChoice)).map(n=>[n.id,n]));
+    if(relationshipState.focus!==null){
+        // Search can select a player hidden by the global filter. Don't leak
+        // that owner's data into a filtered view: show a clear empty message.
+        const focus=eligible.get(relationshipState.focus);
+        if(!focus)return {nodes:[],edges:[],message:'This player is hidden by the shared Analytics manager filter. Select their current owner above (or enable Free agents).'};
+        const adjacent=(PLAYER_RELATIONSHIPS.edges||[]).filter(e=>relationshipEdgeMatches(e,relationshipState.mode)&&
+            (e.a===focus.id||e.b===focus.id)&&eligible.has(e.a)&&eligible.has(e.b))
+            .sort((a,b)=>relationshipEdgeWeight(b)-relationshipEdgeWeight(a));
+        const maxNeighbours=relationshipState.allLinks?64:35;
+        const selected=new Set([focus.id]);
+        for(const edge of adjacent){if(selected.size>maxNeighbours)break;selected.add(edge.a);selected.add(edge.b);}
+        const full=(PLAYER_RELATIONSHIPS.edges||[]).filter(e=>selected.has(e.a)&&selected.has(e.b)&&relationshipEdgeMatches(e,relationshipState.mode));
+        const limit=relationshipState.allLinks?700:Math.min(110,Math.max(40,selected.size*3));
+        const edges=full.sort((a,b)=>relationshipEdgeWeight(b)-relationshipEdgeWeight(a)).slice(0,limit);
+        return {nodes:[...selected].map(id=>eligible.get(id)).filter(Boolean),edges,message:adjacent.length?'':'No connections of this type for this player within the current manager filter.'};
+    }
+    const byOwner=new Map();
+    for(const n of eligible.values()){
+        if(!byOwner.has(n.owner))byOwner.set(n.owner,[]);
+        byOwner.get(n.owner).push(n);
+    }
+    const allOwners=ownerChoice==='all';
+    const selected=new Map();
+    for(const [owner,rows] of byOwner){
+        rows.sort((a,b)=>b.points-a.points||a.name.localeCompare(b.name));
+        const limit=allOwners?(owner==='Free Agent'?5:6):40;
+        rows.slice(0,limit).forEach(n=>selected.set(n.id,n));
+    }
+    // In trade mode, substitute players with actual links so the overview
+    // doesn't become empty just because the highest scorers weren't traded.
+    if(relationshipState.mode==='trades'&&selected.size){
+        selected.clear();
+        const scores=new Map();
+        for(const e of PLAYER_RELATIONSHIPS.edges||[]){
+            if(!e.trade_count||!eligible.has(e.a)||!eligible.has(e.b))continue;
+            scores.set(e.a,(scores.get(e.a)||0)+e.trade_count);
+            scores.set(e.b,(scores.get(e.b)||0)+e.trade_count);
+        }
+        const ids=[...scores].sort((a,b)=>b[1]-a[1]).slice(0,65);
+        ids.forEach(([id])=>selected.set(id,eligible.get(id)));
+    }
+    const candidate=(PLAYER_RELATIONSHIPS.edges||[]).filter(e=>selected.has(e.a)&&selected.has(e.b)&&relationshipEdgeMatches(e,relationshipState.mode))
+      .sort((a,b)=>relationshipEdgeWeight(b)-relationshipEdgeWeight(a));
+    // For current teammates a full clique drowns out the players. Strongest
+    // links make a readable skeleton, with an explicit all-links toggle.
+    const maxEdges=relationshipState.allLinks?800:Math.min(150,Math.max(30,selected.size*2));
+    const edges=candidate.slice(0,maxEdges);
+    return {nodes:[...selected.values()],edges,message:selected.size?'':'No players match the shared manager filters.'};
+}
+function relationshipLayout(nodes,focus){
+    const pos=new Map();
+    const sorted=nodes.slice().sort((a,b)=>a.owner.localeCompare(b.owner)||b.points-a.points||a.name.localeCompare(b.name));
+    if(focus!==null&&sorted.some(n=>n.id===focus)){
+        pos.set(focus,{x:480,y:292});
+        const rest=sorted.filter(n=>n.id!==focus);
+        rest.forEach((n,i)=>{
+            const ownerAngle=(Math.abs([...n.owner].reduce((v,ch)=>v*31+ch.charCodeAt(0),0))%360)*Math.PI/180;
+            const angle=2*Math.PI*(i+.37)/Math.max(rest.length,1)+(ownerAngle*.10);
+            const ring=rest.length>17?(i<17?165:242):Math.min(215,110+rest.length*4);
+            pos.set(n.id,{x:480+Math.cos(angle)*ring,y:292+Math.sin(angle)*ring*.89});
+        });
+        return pos;
+    }
+    const groups=new Map();
+    sorted.forEach(n=>{if(!groups.has(n.owner))groups.set(n.owner,[]);groups.get(n.owner).push(n);});
+    const owners=[...groups.keys()];
+    if(owners.length===1){
+        const group=groups.get(owners[0]);
+        group.forEach((n,i)=>{const angle=2*Math.PI*i/group.length-Math.PI/2;
+            const ring=group.length<=7?145:group.length<=17?205:230;
+            pos.set(n.id,{x:480+Math.cos(angle)*ring,y:292+Math.sin(angle)*ring*.90});});
+        return pos;
+    }
+    owners.forEach((owner,g)=>{
+        const cols=owners.length<=4?2:owners.length<=9?3:4;
+        const rows=Math.ceil(owners.length/cols);
+        const cx=(g%cols+.5)*960/cols,cy=(Math.floor(g/cols)+.5)*590/rows;
+        const players=groups.get(owner);
+        const radius=Math.min(77,cols<=2?94:75);
+        players.forEach((n,i)=>{
+            const angle=2*Math.PI*i/players.length-Math.PI/2;
+            pos.set(n.id,{x:cx+Math.cos(angle)*radius,y:cy+Math.sin(angle)*radius});
+        });
+    });
+    return pos;
+}
+function relationshipSvgElement(tag,attrs){const el=document.createElementNS(relationshipSVG_NS,tag);
+    Object.entries(attrs||{}).forEach(([k,v])=>el.setAttribute(k,String(v)));return el;}
+function relationshipApplyView(){const svg=document.getElementById('relationship-svg');if(!svg)return;
+    const w=960*relationshipState.zoom,h=590*relationshipState.zoom;
+    svg.setAttribute('viewBox',[relationshipState.viewX+(960-w)/2,relationshipState.viewY+(590-h)/2,w,h].join(' '));}
+function zoomRelationship(factor,reset){if(reset){relationshipState.zoom=1;relationshipState.viewX=0;relationshipState.viewY=0;}
+    else relationshipState.zoom=Math.max(.5,Math.min(3.5,relationshipState.zoom*factor));relationshipApplyView();}
+function renderRelationshipDetail(focus,visibleEdges){
+    const target=document.getElementById('relationship-detail');if(!target)return;
+    if(!focus){target.innerHTML='<h3>Explore the network</h3><p>Click any player to centre their squadmate and trade network. Use the mode buttons to switch the relationship you’re investigating.</p>';return;}
+    const owner=focus.owner;
+    const connected=visibleEdges.filter(e=>e.a===focus.id||e.b===focus.id).sort((a,b)=>relationshipEdgeWeight(b)-relationshipEdgeWeight(a));
+    const links=connected.slice(0,14).map(e=>{
+        const other=relationshipNodeById.get(e.a===focus.id?e.b:e.a);if(!other)return '';
+        const descriptions=[];
+        if(e.current)descriptions.push('Current squadmates');
+        if(e.shared_gws)descriptions.push(e.shared_gws+' shared completed GW'+(e.shared_gws===1?'':'s'));
+        if(e.trade_count)descriptions.push(e.trade_count+' processed trade'+(e.trade_count===1?'':'s'));
+        return '<button type="button" class="relationship-neighbour" data-rel-focus="'+other.id+'"><span class="relationship-avatar" style="background:'+relationshipColour(other.owner)+'"></span><span><b>'+relationshipEscape(other.name)+'</b><small>'+relationshipEscape(descriptions.join(' · '))+'</small></span><span class="relationship-arrow">↗</span></button>';
+    }).join('');
+    const trades=(PLAYER_RELATIONSHIPS.trades[String(focus.id)]||[]).slice().sort((a,b)=>(Number(b.gw)||0)-(Number(a.gw)||0));
+    const tradeList=trades.slice(0,6).map(t=>{
+        const offered=(t.offered_ids||[]).map(id=>relationshipNodeById.get(id)?.name||'#'+id).join(', ');
+        const received=(t.received_ids||[]).map(id=>relationshipNodeById.get(id)?.name||'#'+id).join(', ');
+        return '<li><b>GW'+relationshipEscape(t.gw)+'</b> · '+relationshipEscape(t.offered_by||'Unknown')+' sent '+relationshipEscape(offered)+' ↔ '+relationshipEscape(t.received_by||'Unknown')+' sent '+relationshipEscape(received)+'</li>';
+    }).join('');
+    target.innerHTML='<div class="relationship-detail-owner"><span class="relationship-avatar" style="background:'+relationshipColour(owner)+'"></span>'+relationshipEscape(owner)+'</div>'+ 
+        '<h3>'+relationshipEscape(focus.name)+'</h3><p>'+relationshipEscape(focus.club)+' · '+relationshipEscape(focus.position)+'</p>'+ 
+        '<div class="relationship-detail-metrics"><div><strong>'+focus.points+'</strong><small>Season points</small></div><div><strong>'+(focus.draft_pick?'#'+focus.draft_pick:'—')+'</strong><small>Original pick</small></div><div><strong>'+connected.length+'</strong><small>Shown links</small></div></div>'+ 
+        '<h4>Closest connections</h4>'+(links||'<p class="muted">No links of this type in the current filter.</p>')+
+        (trades.length?'<h4>Processed trade history</h4><ul class="relationship-trade-list">'+tradeList+'</ul>':'');
+    target.querySelectorAll('[data-rel-focus]').forEach(btn=>btn.addEventListener('click',()=>focusRelationshipPlayer(Number(btn.dataset.relFocus))));
+}
+function renderPlayerRelationshipGraph(){
+    const page=document.getElementById('analytics-sub-relationships');if(!page||!page.classList.contains('active'))return;
+    const svg=document.getElementById('relationship-svg'),empty=document.getElementById('relationship-empty');if(!svg)return;
+    const assembled=relationshipAssemble();const nodes=assembled.nodes,links=assembled.edges;
+    const selected=relationshipState.focus!==null?relationshipNodeById.get(relationshipState.focus):null;
+    const positions=relationshipLayout(nodes,selected?.id??null);
+    relationshipState.positions=positions;relationshipState.latestEdges=links;
+    const label={current:'Current squadmates',history:'Shared squad history',trades:'Processed trade exchanges',all:'All relationships'}[relationshipState.mode];
+    const caption=document.getElementById('relationship-caption');if(caption)caption.textContent=selected?selected.name+' · '+label:label+' · '+(relationshipState.owner==='all'?'Selected McDraft teams':relationshipState.owner);
+    const stats=document.getElementById('relationship-stats');
+    if(stats)stats.innerHTML='<div><strong>'+nodes.length+'</strong><span>Players shown</span></div><div><strong>'+links.length+'</strong><span>Links shown</span></div><div><strong>'+PLAYER_RELATIONSHIPS.summary.traded+'</strong><span>League-wide traded pairs</span></div><div><strong>'+PLAYER_RELATIONSHIPS.summary.historical+'</strong><span>Pairs sharing a completed GW</span></div>';
+    const foot=document.getElementById('relationship-footnote');if(foot)foot.textContent=(relationshipState.allLinks?'All eligible links are shown up to the display safety cap. ':'Strongest links shown for clarity; enable Show all links to reveal more. ')+
+        (relationshipState.owner==='all'&&!selected?'Overview limits each manager to six leading players. Select one owner or focus a player to see more. ':'')+
+        'Historical links use completed-GW roster snapshots only. Trade links use processed trades only.';
+    svg.replaceChildren();svg.appendChild(relationshipSvgElement('title',{})).textContent='McDraft player relationship network';
+    if(empty){empty.hidden=!!nodes.length&&(!assembled.message||!!links.length);empty.textContent=assembled.message||'';}
+    if(!nodes.length){renderRelationshipDetail(selected,[]);return;}
+    const lineLayer=relationshipSvgElement('g',{'class':'relationship-link-layer'}),nodeLayer=relationshipSvgElement('g',{'class':'relationship-node-layer'});
+    const refs=[];links.forEach(e=>{
+        const a=positions.get(e.a),b=positions.get(e.b);if(!a||!b)return;
+        const kind=relationshipEdgeKind(e);
+        const line=relationshipSvgElement('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,'class':'relationship-link relationship-link-'+kind,
+             'stroke-width':Math.min(4,1.0+Math.log2(1+Math.max(e.trade_count,e.shared_gws,1))*.65)});
+        const tip=relationshipSvgElement('title');tip.textContent=[e.current?'Current: '+e.current_team:'',e.shared_gws?e.shared_gws+' shared GW(s) with '+(e.shared_teams||[]).join(', '):'',e.trade_count?e.trade_count+' processed trade exchange(s)'+(e.trade_gws?.length?' in GW'+e.trade_gws.join(', GW'):''):''].filter(Boolean).join(' · ');
+        line.appendChild(tip);lineLayer.appendChild(line);refs.push({e,line});
+    });
+    nodes.forEach(n=>{
+        const p=positions.get(n.id);if(!p)return;
+        const g=relationshipSvgElement('g',{'class':'relationship-node'+(selected?.id===n.id?' focused':''),transform:'translate('+p.x+','+p.y+')',tabindex:0,role:'button','aria-label':n.name+', '+n.owner+', click to focus'});
+        const circle=relationshipSvgElement('circle',{r:selected?.id===n.id?19:12,fill:relationshipColour(n.owner)});
+        g.appendChild(circle);
+        const text=relationshipSvgElement('text',{x:0,y:selected?.id===n.id?33:25,'text-anchor':'middle'});
+        text.textContent=n.name.length>19?n.name.slice(0,18)+'…':n.name;g.appendChild(text);
+        const title=relationshipSvgElement('title');title.textContent=n.name+' · '+n.owner+' · '+n.club+' · '+n.points+' pts';g.appendChild(title);
+        g.addEventListener('click',ev=>{ev.stopPropagation();if(!g.dataset.dragged)focusRelationshipPlayer(n.id);else delete g.dataset.dragged;});
+        g.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();focusRelationshipPlayer(n.id);}});
+        let start=null;
+        g.addEventListener('pointerdown',ev=>{if(ev.button!==0)return;start={x:ev.clientX,y:ev.clientY,ox:p.x,oy:p.y};g.setPointerCapture(ev.pointerId);});
+        g.addEventListener('pointermove',ev=>{if(!start)return;
+            const rect=svg.getBoundingClientRect();const dx=(ev.clientX-start.x)*960*relationshipState.zoom/Math.max(1,rect.width),dy=(ev.clientY-start.y)*590*relationshipState.zoom/Math.max(1,rect.height);
+            if(Math.abs(ev.clientX-start.x)+Math.abs(ev.clientY-start.y)>5)g.dataset.dragged='1';
+            p.x=start.ox+dx;p.y=start.oy+dy;g.setAttribute('transform','translate('+p.x+','+p.y+')');
+            refs.forEach(({e,line})=>{if(e.a===n.id){line.setAttribute('x1',p.x);line.setAttribute('y1',p.y);}if(e.b===n.id){line.setAttribute('x2',p.x);line.setAttribute('y2',p.y);}});
+        });
+        g.addEventListener('pointerup',()=>{start=null;});g.addEventListener('pointercancel',()=>{start=null;});
+        nodeLayer.appendChild(g);
+    });
+    svg.appendChild(lineLayer);svg.appendChild(nodeLayer);relationshipApplyView();
+    renderRelationshipDetail(selected,links);
+}
+
 function showAnalyticsSubtab(name, button) {
     document.querySelectorAll('.analytics-subpage').forEach(function(page) { page.classList.remove('active'); });
     document.querySelectorAll('#page-analytics .analytics-subtab').forEach(function(tab) { tab.classList.remove('active'); });
@@ -15722,6 +16202,7 @@ function showAnalyticsSubtab(name, button) {
     if (button) button.classList.add('active');
     // The shared Manager filter stays visible on every Analytics subtab.
     if(name==='player') applyPlayerAnalyticsFilter();
+    if(name==='relationships') requestAnimationFrame(renderPlayerRelationshipGraph);
 }
 
 function showPage(
@@ -17710,6 +18191,7 @@ function initialiseDashboard() {
 
     safeInit("Analytics manager filters", function() {
         initAnalyticsManagerFilter();
+        initPlayerRelationships();
 if ((SEASON_TIMELINE_DATA||[]).length) renderSeasonTimeline(SEASON_TIMELINE_DATA.length-1);
     });
 
@@ -18634,6 +19116,7 @@ replacements = {
 
     "__ANALYTICS_PAGE__":
         analytics_page_html(),
+    "__PLAYER_RELATIONSHIPS__": safe_js_json(player_relationships_json),
     "__HEALTH_OWNER_OPTIONS__": "".join(f'<option value="{escape_html(m)}">{escape_html(m)}</option>' for m in managers),
     "__HEALTH_CLUB_OPTIONS__": "".join(f'<option value="{escape_html(t)}">{escape_html(t)}</option>' for t in sorted(set(teams_lookup.values()))),
 
@@ -18775,7 +19258,7 @@ replacements = {
         fun_stats_html,
 
     "__CSS__":
-        css + radar_health_css,
+        css + radar_health_css + relationship_css,
 
     "__JAVASCRIPT__":
         javascript.replace("__HEALTH_ANALYTICS__", safe_js_json(json.dumps(health_analytics_data, ensure_ascii=False))).replace(
