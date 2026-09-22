@@ -13752,27 +13752,55 @@ function showTransferSubtab(name, button) {
 }
 const TRADE_SIMULATOR_DATA = __TRADE_SIMULATOR_DATA__;
 function renderTradeSimulator(){const a=document.getElementById('trade-sim-manager-a'),b=document.getElementById('trade-sim-manager-b'),ra=document.getElementById('trade-sim-roster-a'),rb=document.getElementById('trade-sim-roster-b');if(!a||!b||!ra||!rb)return;const ma=a.value,mb=b.value;document.getElementById('trade-sim-title-a').textContent=(ma||'Manager A')+' gives';document.getElementById('trade-sim-title-b').textContent=(mb||'Manager B')+' gives';if(!ma||!mb||ma===mb){ra.innerHTML=rb.innerHTML='<div class="notice">Choose two different managers.</div>';evaluateTradeSimulator();return;}ra.innerHTML=tradeSimRosterHtml(ma,'a');rb.innerHTML=tradeSimRosterHtml(mb,'b');evaluateTradeSimulator();}
-function tradeSimRosterHtml(manager,side){return(TRADE_SIMULATOR_DATA[manager]||[]).map(p=>'<label class="trade-sim-player" data-side="'+side+'" data-position="'+p.position+'" onclick="tradeSimPlayerClicked(event, \''+side+'\', \''+p.position+'\')"><input type="checkbox" class="trade-sim-check" data-side="'+side+'" data-id="'+p.id+'" onchange="tradeSimSelectionChanged(\''+side+'\')"><span><b>'+escapePlayerHTML(p.name)+'</b><small><button type="button" class="trade-sim-position" onclick="highlightOpposingTradePosition(event, \''+side+'\', \''+p.position+'\')">'+p.position+'</button> · '+escapePlayerHTML(p.club)+' · '+p.points+' pts · form '+Number(p.form).toFixed(1)+'</small></span><span class="trade-sim-player-value"><b>'+Number(p.value).toFixed(1)+'</b><span>value</span></span></label>').join('');}
+function tradeSimRosterHtml(manager,side){return(TRADE_SIMULATOR_DATA[manager]||[]).map(p=>'<label class="trade-sim-player" data-side="'+side+'" data-position="'+p.position+'"><input type="checkbox" class="trade-sim-check" data-side="'+side+'" data-id="'+p.id+'" data-position="'+p.position+'" onchange="tradeSimSelectionChanged(\''+side+'\', \''+p.position+'\')"><span><b>'+escapePlayerHTML(p.name)+'</b><small><button type="button" class="trade-sim-position" onclick="tradeSimPositionClicked(event, \''+side+'\', \''+p.position+'\')">'+p.position+'</button> · '+escapePlayerHTML(p.club)+' · '+p.points+' pts · form '+Number(p.form).toFixed(1)+'</small></span><span class="trade-sim-player-value"><b>'+Number(p.value).toFixed(1)+'</b><span>value</span></span></label>').join('');}
 function tradeSimSelectedCount(side){return document.querySelectorAll('.trade-sim-check[data-side="'+side+'"]:checked').length;}
 function clearTradePositionHighlights(){document.querySelectorAll('.trade-sim-player.position-match').forEach(el=>el.classList.remove('position-match'));}
-function tradeSimSelectionChanged(side){
-    evaluateTradeSimulator();
-    if(tradeSimSelectedCount(side)>=2){clearTradePositionHighlights();}
+function tradeSelectedPositionCounts(side){
+    const counts={GKP:0,DEF:0,MID:0,FWD:0};
+    document.querySelectorAll('.trade-sim-check[data-side="'+side+'"]:checked').forEach(el=>{
+        const pos=el.dataset.position;
+        if(Object.prototype.hasOwnProperty.call(counts,pos)) counts[pos]++;
+    });
+    return counts;
 }
-function tradeSimPlayerClicked(event, side, position){
-    // Once two players have been chosen from a side, stop nudging the user with
-    // positional highlights. Multi-player trades remain possible; the visual
-    // prompt simply gets out of the way after the second selection.
-    if(event && event.target && event.target.classList && event.target.classList.contains('trade-sim-position')) return;
-    if(tradeSimSelectedCount(side)>=2){clearTradePositionHighlights();return;}
-    highlightOpposingTradePosition(null, side, position);
-}
-function highlightOpposingTradePosition(event, side, position){
-    if(event){event.preventDefault();event.stopPropagation();}
-    if(tradeSimSelectedCount(side)>=2){clearTradePositionHighlights();return;}
+function highlightTradeNeed(side, position){
     clearTradePositionHighlights();
+    document.querySelectorAll('.trade-sim-player[data-side="'+side+'"][data-position="'+position+'"]').forEach(el=>el.classList.add('position-match'));
+}
+function refreshTradePositionHighlights(changedSide, changedPosition){
+    clearTradePositionHighlights();
+    const a=tradeSelectedPositionCounts('a'), b=tradeSelectedPositionCounts('b');
+    const diff={GKP:a.GKP-b.GKP,DEF:a.DEF-b.DEF,MID:a.MID-b.MID,FWD:a.FWD-b.FWD};
+
+    // First honour the position the user just changed. If one side now has an
+    // unmatched player in that position, highlight exactly what the other side
+    // needs to pair with it. This also makes deselection behave naturally.
+    if(changedPosition && diff[changedPosition]!==0){
+        highlightTradeNeed(diff[changedPosition]>0?'b':'a', changedPosition);
+        return;
+    }
+
+    // If the position just changed is now balanced, move on to any other
+    // outstanding positional mismatch. Once every selected position is paired,
+    // highlighting disappears completely.
+    const order=['GKP','DEF','MID','FWD'];
+    for(const pos of order){
+        if(diff[pos]!==0){
+            highlightTradeNeed(diff[pos]>0?'b':'a', pos);
+            return;
+        }
+    }
+}
+function tradeSimSelectionChanged(side, position){
+    evaluateTradeSimulator();
+    refreshTradePositionHighlights(side, position);
+}
+function tradeSimPositionClicked(event, side, position){
+    if(event){event.preventDefault();event.stopPropagation();}
+    // Position chips are a manual hint only. The next checkbox change will
+    // immediately restore the true unmatched-position state.
     const opposingSide=side==='a'?'b':'a';
-    document.querySelectorAll('.trade-sim-player[data-side="'+opposingSide+'"][data-position="'+position+'"]').forEach(el=>el.classList.add('position-match'));
+    highlightTradeNeed(opposingSide, position);
 }
 function selectedTradePlayers(side,manager){const ids=Array.from(document.querySelectorAll('.trade-sim-check[data-side="'+side+'"]:checked')).map(el=>Number(el.dataset.id));return(TRADE_SIMULATOR_DATA[manager]||[]).filter(p=>ids.includes(Number(p.id)));}
 function tradePositionSignature(players){const c={GKP:0,DEF:0,MID:0,FWD:0};players.forEach(p=>{if(c[p.position]!==undefined)c[p.position]++});return c;} function samePositionSignature(a,b){return['GKP','DEF','MID','FWD'].every(pos=>a[pos]===b[pos]);}
