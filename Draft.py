@@ -9500,7 +9500,11 @@ def _scatter_chart_html(title, xvals, yvals, description="", x_label="X", y_labe
         cy=PT+((y-ymin)/(ymax-ymin)*ph if invert_y else (ymax-y)/(ymax-ymin)*ph)
         try: color=manager_color(m)
         except Exception: color=f"hsl({(idx*47)%360} 70% 62%)"
-        dots += f'<g class="analytics-manager-mark" data-analytics-manager="{escape_html(m)}"><circle cx="{cx:.1f}" cy="{cy:.1f}" r="7" fill="{color}"><title>{escape_html(m)}: {x:.1f}, {y:.1f}</title></circle><text class="trend-chart-axis-label" x="{cx+9:.1f}" y="{cy+4:.1f}">{escape_html(m[:12])}</text></g>'
+        if m in managers:
+            group_attrs = f'class="analytics-manager-mark" data-analytics-manager="{escape_html(m)}"'
+        else:
+            group_attrs = 'class="analytics-entity-mark"'
+        dots += f'<g {group_attrs}><circle cx="{cx:.1f}" cy="{cy:.1f}" r="7" fill="{color}"><title>{escape_html(m)}: {x:.1f}, {y:.1f}</title></circle><text class="trend-chart-axis-label" x="{cx+9:.1f}" y="{cy+4:.1f}">{escape_html(m[:18])}</text></g>'
     axis_titles=(f'<text class="analytics-svg-axis-title" x="{PL+pw/2:.1f}" y="{H-3}" text-anchor="middle">{escape_html(x_label)}</text>'
                  f'<text class="analytics-svg-axis-title" transform="translate(14 {PT+ph/2:.1f}) rotate(-90)" text-anchor="middle">{escape_html(y_label)}</text>')
     return f'''<div class="card analytics-chart-card"><h2>{escape_html(title)}</h2>{f'<p class="card-description">{escape_html(description)}</p>' if description else ''}<div class="trend-chart-svg-wrap"><svg viewBox="0 0 {W} {H}">{grid}{labels}{dots}{axis_titles}</svg></div></div>'''
