@@ -10678,6 +10678,236 @@ sell_high_candidates={m:build_sell_high_candidates(m) for m in current_standings
 sell_high_candidates_json=json.dumps(sell_high_candidates,ensure_ascii=False)
 
 
+# ---------------------------- Availability impact ----------------------------
+def _availability_impact_charts():
+    """Build current-team availability impact from official FPL flags.
+
+    Next-GW 'points at risk' is full-availability model projection minus the
+    availability-adjusted projection. It is NOT realized historical points lost;
+    GW histories do not record a reliable reason for every player's absence.
+    """
+    from collections import defaultdict
+
+    clubs = sorted(set(teams_lookup.values()))
+    owner_by_id = {
+        int(pid): manager
+        for manager, ids in _trade_rosters.items()
+        for pid in ids
+    }
+    original_board = history.get('original_draft_rank', {}) or {}
+
+    # Avoid attributing a newly re-used FPL element ID to a departed original
+    # draftee. If we pinned a GW1 identity, it must still match the current one.
+    original_identities = {}
+    gw1 = history.get('gameweeks', {}).get('1', {})
+    for squad in (gw1.get('teams', {}) or {}).values():
+        for pick in (squad.get('starters', []) or []) + (squad.get('bench', []) or []):
+            if pick.get('element_id') is not None and pick.get('web_name'):
+                original_identities[int(pick['element_id'])] = str(pick['web_name']).casefold().strip()
+
+    def original_draft_entry(pid):
+        entry = original_board.get(str(pid), {}) or {}
+        if not entry:
+            return None
+        try:
+            rank = int(entry.get('overall_pick', 9999))
+        except (TypeError, ValueError):
+            return None
+        if not 1 <= rank <= DRAFTED_PLAYER_COUNT:
+            return None
+        if pid in original_identities:
+            now_name = str(elements.get(pid, {}).get('web_name') or '').casefold().strip()
+            if now_name != original_identities[pid]:
+                return None
+        return entry
+
+    team_risk = {m: 0.0 for m in managers}
+    injury_risk = {m: 0.0 for m in managers}
+    suspension_risk = {m: 0.0 for m in managers}
+    team_absent = {m: 0 for m in managers}
+    team_injured = {m: 0 for m in managers}
+    team_suspended = {m: 0 for m in managers}
+    team_doubtful = {m: 0 for m in managers}
+    team_drafted_out = {m: 0 for m in managers}
+    original_manager_losses = {m: 0 for m in managers}
+    club_risk = {c: 0.0 for c in clubs}
+    club_absent = {c: 0 for c in clubs}
+    club_drafted_out = {c: 0 for c in clubs}
+    club_owned_flagged = {c: 0 for c in clubs}
+    club_doubt = {c: 0 for c in clubs}
+    club_new = {c: 0 for c in clubs}
+    absent_statuses = {'i', 's', 'u', 'n'}
+    affected_owned = set()
+    original_out_owned = set()
+
+    for row in injury_list_rows:
+        pid = int(row.get('id') or 0)
+        meta = elements.get(pid, {})
+        club = teams_lookup.get(meta.get('team')) or row.get('team') or 'Unknown'
+        manager = owner_by_id.get(pid)
+        status = str(row.get('status') or 'a')
+        risk = max(0.0, float(row.get('points_at_risk') or 0))
+        draft = original_draft_entry(pid)
+        club_risk[club] = club_risk.get(club, 0) + risk
+        if status in absent_statuses:
+            club_absent[club] = club_absent.get(club, 0) + 1
+            if draft:
+                club_drafted_out[club] = club_drafted_out.get(club, 0) + 1
+                original_manager = draft.get('manager')
+                if original_manager in original_manager_losses:
+                    original_manager_losses[original_manager] += 1
+        if status == 'd':
+            club_doubt[club] = club_doubt.get(club, 0) + 1
+        if manager not in team_risk:
+            continue  # PL chart includes free agents; fantasy chart excludes them.
+        team_risk[manager] += risk
+        if status == 'i':
+            injury_risk[manager] += risk
+            team_injured[manager] += 1
+        elif status == 's':
+            suspension_risk[manager] += risk
+            team_suspended[manager] += 1
+        elif status == 'd':
+            team_doubtful[manager] += 1
+        if status in absent_statuses:
+            affected_owned.add(pid)
+            team_absent[manager] += 1
+            if draft:
+                team_drafted_out[manager] += 1
+                original_out_owned.add(pid)
+        if status != 'a' or risk > 0:
+            club_owned_flagged[club] = club_owned_flagged.get(club, 0) + 1
+
+    for row in new_health_events:
+        club = row.get('team') or 'Unknown'
+        club_new[club] = club_new.get(club, 0) + 1
+
+    # Percent-of-roster comparison prevents a 3-player injury problem looking
+    # the same for a team missing 3 starters vs a team missing fringe options.
+    healthy_by_team = {m: 0.0 for m in managers}
+    for manager, ids in _trade_rosters.items():
+        if manager not in healthy_by_team:
+            continue
+        healthy_by_team[manager] = sum(
+            _player_weekly_projection(int(pid), _global_position_baselines,
+                                      _global_league_player_mean,
+                                      target_gw=dashboard_target_gw,
+                                      apply_availability=False)
+            for pid in ids if int(pid) in elements
+        )
+    risk_share = {
+        m: round(100 * team_risk[m] / healthy_by_team[m], 1)
+        if healthy_by_team[m] > 0 else 0.0
+        for m in managers
+    }
+
+    # Illustrative five-week trend, regenerates each build. Future health
+    # probabilities regress toward 100%; this is NOT a confirmed return date.
+    future_gws = [int(e['id']) for e in bootstrap.get('events', [])
+                  if e.get('id') is not None
+                  and dashboard_target_gw <= int(e['id']) < dashboard_target_gw + 5]
+    flagged_by_id = {int(row['id']): row for row in injury_list_rows}
+    projected_risk_by_gw = {}
+    for manager, ids in _trade_rosters.items():
+        if manager not in managers:
+            continue
+        projected_risk_by_gw[manager] = []
+        for gw in future_gws:
+            projected_loss = 0.0
+            for pid in ids:
+                pid = int(pid)
+                if pid not in flagged_by_id or pid not in elements:
+                    continue
+                healthy = _player_weekly_projection(
+                    pid, _global_position_baselines, _global_league_player_mean,
+                    target_gw=gw, apply_availability=False)
+                projected_loss += healthy * (1.0 - _availability_factor(pid, gw))
+            projected_risk_by_gw[manager].append((gw, round(projected_loss, 2)))
+
+    kpis = [
+        ('Next GW points at risk', f'{sum(team_risk.values()):.1f}',
+         'Across currently owned McDraft squads'),
+        ('Currently unavailable', str(len(affected_owned)),
+         'Injured, suspended, unavailable or ineligible'),
+        ('Drafted assets unavailable', str(len(original_out_owned)),
+         'Originally drafted players on current rosters'),
+        ('Fantasy squads affected', str(sum(bool(team_absent[m] or team_doubtful[m]) for m in managers)),
+         'At least one unavailable or doubtful player'),
+    ]
+    summary = ''.join(
+        f'<div class="stat-card"><div class="stat-label">{escape_html(label)}</div>'
+        f'<div class="stat-value">{escape_html(value)}</div>'
+        f'<div class="stat-description">{escape_html(note)}</div></div>'
+        for label, value, note in kpis
+    )
+    fantasy_charts = [
+        _bar_chart_html('Estimated next-GW points at risk by fantasy team', team_risk,
+            'Healthy-squad projected points minus availability-adjusted projections. Current McDraft owners only.',
+            x_label='McDraft manager', y_label='Projected points at risk'),
+        _bar_chart_html('Injury-specific points at risk', injury_risk,
+            'Current injured players only. An estimate, not actual points previously lost.',
+            x_label='McDraft manager', y_label='Projected next-GW points'),
+        _bar_chart_html('Unavailable players per fantasy squad', team_absent,
+            'FPL statuses: injured, suspended, unavailable and ineligible; doubtful players shown separately.',
+            x_label='McDraft manager', y_label='Players'),
+        _bar_chart_html('Original draft picks currently unavailable', team_drafted_out,
+            'Originally drafted assets now unavailable on each CURRENT squad, regardless of who drafted them.',
+            x_label='Current manager', y_label='Drafted players'),
+        _bar_chart_html('Draft-night picks now unavailable by original drafter', original_manager_losses,
+            'Attributed to whoever drafted each player, even if that player has since been traded or released.',
+            x_label='Original drafting manager', y_label='Players'),
+        _bar_chart_html('Percentage of squad projection at risk', risk_share,
+            'Estimated unavailable output relative to the whole current squad if everyone were fully available.',
+            value_suffix='%', x_label='McDraft manager', y_label='Projected points at risk'),
+        _bar_chart_html('Injured players per fantasy squad', team_injured,
+            x_label='McDraft manager', y_label='Players'),
+        _bar_chart_html('Suspended players per fantasy squad', team_suspended,
+            x_label='McDraft manager', y_label='Players'),
+        _bar_chart_html('Doubtful players per fantasy squad', team_doubtful,
+            x_label='McDraft manager', y_label='Players'),
+    ]
+    if future_gws:
+        fantasy_charts.append(_line_chart_html('Projected availability drag: next five GWs',
+            projected_risk_by_gw,
+            'Illustrative forecast at current ownership. Future availability regresses toward healthy; no medical return date is assumed.',
+            x_label='Upcoming gameweek', y_label='Projected points at risk'))
+    club_charts = [
+        _category_bar_chart_html('Estimated next-GW points at risk by Premier League club',
+            list(club_risk.items()), 'Includes free agents and McDraft-owned players.',
+            x_label='Premier League club', y_label='Projected next-GW points', limit=20),
+        _category_bar_chart_html('Unavailable players by Premier League club',
+            list(club_absent.items()), 'Injured, suspended, unavailable and ineligible.',
+            x_label='Premier League club', y_label='Players', limit=20),
+        _category_bar_chart_html('Originally drafted players currently unavailable by club',
+            list(club_drafted_out.items()), 'Current club and availability of original McDraft selections, including released assets.',
+            x_label='Premier League club', y_label='Drafted players', limit=20),
+        _category_bar_chart_html('Flagged McDraft-owned assets by Premier League club',
+            list(club_owned_flagged.items()), 'Players on CURRENT McDraft squads with a flag or reduced next-GW availability.',
+            x_label='Premier League club', y_label='Owned players', limit=20),
+        _category_bar_chart_html('Doubtful players by Premier League club',
+            list(club_doubt.items()), x_label='Premier League club', y_label='Players', limit=20),
+        _category_bar_chart_html('New or changed reports by Premier League club',
+            list(club_new.items()), 'Since the last successful dashboard build. First run establishes a baseline.',
+            x_label='Premier League club', y_label='Reports', limit=20),
+    ]
+    return (
+        '<div class="card analytics-impact-intro"><h2>Availability impact · McDraft & PL clubs</h2>'
+        '<p class="card-description">How current injuries, suspensions and doubtful players affect '
+        'fantasy rosters and Premier League clubs. Points at risk are estimated for the NEXT gameweek '
+        'from full-availability versus availability-adjusted projections; they are not confirmed historical '
+        'points lost. Original draft metrics only include identities still matching their pinned history.</p>'
+        f'<div class="stats-grid">{summary}</div>'
+        f'<p class="health-data-note">Latest official FPL flags · GW{dashboard_target_gw} · '
+        f'{escape_html(health_analytics_data["generated_at"])}</p></div>'
+        '<h2 class="analytics-impact-group-title">McDraft fantasy-team impact</h2>'
+        f'<div class="analytics-chart-grid">{"".join(fantasy_charts)}</div>'
+        '<h2 class="analytics-impact-group-title">Premier League club impact</h2>'
+        f'<div class="analytics-chart-grid">{"".join(club_charts)}</div>'
+        '<p class="health-data-note">For individual players, changes in injury reports and '
+        'departures, use Players → Availability &amp; Departures.</p>'
+    )
+
+
 # ---------------------------- Analytics Lab ----------------------------
 def _bar_chart_html(title, values, description="", value_suffix="", reverse=False, x_label="Manager", y_label="Value"):
     items = [(m, float(values.get(m,0) or 0)) for m in current_standings]
@@ -11570,7 +11800,7 @@ def analytics_page_html():
     ]
     return f'''<div class="analytics-subtabs" role="tablist" aria-label="Analytics sections">
         <button class="analytics-subtab active" type="button" onclick="showAnalyticsSubtab('insights', this)">McDraft Insights <span>{len(insight_rows[:13])}</span></button>
-        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('medical', this); healthAnalyticsRender()">Availability &amp; Departures</button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('availability-impact', this)">Availability Impact</button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('player', this)">Player Analytics <span>{len(player_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('club', this)">Club Analytics <span>{len(club_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-strength', this)">Squad Strength <span>{len(squad_strength_charts)}</span></button>
@@ -11586,24 +11816,7 @@ def analytics_page_html():
         <label class="analytics-average-toggle"><input id="analytics-average-toggle" type="checkbox" onchange="toggleAnalyticsLeagueAverage(this.checked)"> Compare with league average</label>
     </div>
     <div class="analytics-subpage active" id="analytics-sub-insights"><div class="card analytics-hero"><h2>McDraft Insights</h2><p class="card-description">Generated from the latest captured league, squad, fixture and transfer data.</p><div class="analytics-insight-grid">{insights}</div></div></div>
-    <div class="analytics-subpage" id="analytics-sub-medical"><div class="card">
-      <h2>Availability &amp; departures · club vs fantasy team</h2>
-      <p class="card-description">Side-by-side Premier League club and McDraft fantasy-team analytics, sourced from official FPL status flags. Click any bar to inspect its players. Removals mean absent from the current FPL player pool; they do not prove a transfer out of the Premier League.</p>
-      <div class="health-metric-switch" role="group" aria-label="Availability metric">
-        <button type="button" class="health-metric-btn active" data-health-view="flags" aria-pressed="true" onclick="healthSetView('flags')">Current flags</button>
-        <button type="button" class="health-metric-btn" data-health-view="risk" aria-pressed="false" onclick="healthSetView('risk')">GW points at risk</button>
-        <button type="button" class="health-metric-btn" data-health-view="new" aria-pressed="false" onclick="healthSetView('new')">New / updated reports</button>
-        <button type="button" class="health-metric-btn" data-health-view="removed" aria-pressed="false" onclick="healthSetView('removed')">Departures / removals</button>
-      </div>
-      <div class="player-filter-grid health-filters">
-        <select id="health-club-filter" class="player-filter" onchange="healthFiltersChanged()" aria-label="Filter Premier League club"><option value="">All Premier League clubs</option>__HEALTH_CLUB_OPTIONS__</select>
-        <select id="health-owner" class="player-filter" onchange="healthFiltersChanged()" aria-label="Filter McDraft fantasy team"><option value="">All fantasy teams</option><option value="Free Agent">Free agents</option>__HEALTH_OWNER_OPTIONS__</select>
-        <select id="health-status-filter" class="player-filter" onchange="healthFiltersChanged()" aria-label="Filter injury or suspension status"><option value="">All official statuses</option><option value="i">Injured</option><option value="s">Suspended</option><option value="d">Doubtful</option><option value="u">Unavailable</option><option value="n">Not eligible</option><option value="a">Available with news</option></select>
-        <input id="health-query" class="player-search-box" type="search" placeholder="Search player, PL club or fantasy team…" aria-label="Search availability data" oninput="healthFiltersChanged()">
-      </div>
-      <label class="health-free-agent-toggle"><input type="checkbox" id="health-free-agent-chart" onchange="healthFiltersChanged()"> Include free agents in fantasy-team chart</label>
-      <div id="analytics-health-root" aria-live="polite"></div>
-    </div></div>
+    <div class="analytics-subpage" id="analytics-sub-availability-impact">{_availability_impact_charts()}</div>
     <div class="analytics-subpage" id="analytics-sub-player"><div class="analytics-chart-grid">{''.join(player_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-club"><div class="analytics-chart-grid">{''.join(club_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-squad-strength"><div class="analytics-chart-grid">{''.join(squad_strength_charts)}</div></div>
@@ -14079,7 +14292,11 @@ function buildDashboardSearchIndex(){
     (MANAGER_ORDER||[]).forEach(m=>results.push({type:'manager',label:m,value:m,meta:'Manager'}));
     Object.values(CLUB_EXPLORER_DATA||{}).forEach(c=>results.push({type:'club',label:c.name,value:String(c.id),meta:'Premier League club'}));
     (playerSearchData||[]).forEach(p=>results.push({type:'player',label:p.name,value:String(p.id),meta:(p.position||'')+' · '+(p.team||'')}));
-    results.push({type:'page',label:'Injuries & Suspensions',value:'players',meta:'Players · Injury list'});
+    document.querySelectorAll('#page-players .player-page-tab').forEach(btn=>{
+        const label=(btn.textContent||'').trim();
+        const m=(btn.getAttribute('onclick')||'').match(/showPlayerSubtab\('([^']+)'/);
+        if(label&&m)results.push({type:'player-subtab',label:label,value:m[1],meta:'Players section'});
+    });
 
     let idx=0;
     document.querySelectorAll('#page-season-summary .season-summary-tab').forEach(btn=>{
@@ -14103,7 +14320,8 @@ function buildDashboardSearchIndex(){
         const targetId=ensureSearchTargetId(card,idx++);
         const sub=card.closest('.analytics-subpage');
         const seasonSub=card.closest('.season-summary-subpage');
-        const analyticsSub=sub ? (sub.id||'').replace(/^analytics-sub-/,'') : (seasonSub ? (seasonSub.id||'').replace(/^season-summary-sub-/,'') : '');
+        const playerSub=card.closest('.player-subpage');
+        const analyticsSub=sub ? (sub.id||'').replace(/^analytics-sub-/,'') : (seasonSub ? (seasonSub.id||'').replace(/^season-summary-sub-/,'') : (playerSub ? (playerSub.id||'').replace(/^player-sub-/,'') : ''));
         results.push({type:'section',label:label,value:targetId,page:pageName,subtab:analyticsSub,meta:(pageName==='analytics'?'Analytics chart/section':'Section')});
     });
     return results;
@@ -14115,6 +14333,11 @@ function globalSearchSelect(type,value,label,pageName,subtab){
     if(type==='page'){showPage(value);return;}
     if(type==='manager'){showPage('myteam');const select=document.getElementById('my-team-select');if(select){for(let i=0;i<select.options.length;i++){if(select.options[i].text===label){select.value=String(i);changeMyTeam();break;}}}return;}
     if(type==='player'){showPage('players');showPlayerSubtab('directory',document.querySelectorAll('.player-page-tab')[1]);const p=document.getElementById('player-search');if(p){p.value=label;filterPlayers();}return;}
+    if(type==='player-subtab'){
+        showPage('players');
+        const btn=Array.from(document.querySelectorAll('.player-page-tab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+value+"'"));
+        showPlayerSubtab(value,btn||null);return;
+    }
     if(type==='club'){showPage('clubs');const sel=document.getElementById('club-explorer-select');if(sel){sel.value=String(value);renderClubExplorer();}showClubSubtab('overview',document.querySelector('.club-explorer-tab'));return;}
     if(type==='season-subtab'){showPage('season-summary');const btn=Array.from(document.querySelectorAll('.season-summary-tab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+value+"'"));showSeasonSummarySubtab(value,btn||null);return;}
     if(type==='analytics-subtab'){
@@ -14129,6 +14352,10 @@ function globalSearchSelect(type,value,label,pageName,subtab){
         if(pageName==='season-summary'&&subtab){
             const btn=Array.from(document.querySelectorAll('.season-summary-tab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+subtab+"'"));
             showSeasonSummarySubtab(subtab,btn||null);
+        }
+        if(pageName==='players'&&subtab){
+            const btn=Array.from(document.querySelectorAll('.player-page-tab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+subtab+"'"));
+            showPlayerSubtab(subtab,btn||null);
         }
         if(pageName==='analytics'&&subtab){
             const btn=Array.from(document.querySelectorAll('#page-analytics .analytics-subtab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+subtab+"'"));
@@ -14330,6 +14557,7 @@ function showPlayerSubtab(name, button) {
     if(button) button.classList.add('active');
     if(name==='directory' && typeof filterPlayers==='function') requestAnimationFrame(filterPlayers);
     if(name==='injuries') requestAnimationFrame(renderInjuryList);
+    if(name==='availability') requestAnimationFrame(healthAnalyticsRender);
 }
 
 function showMyTeamSubtab(name, button) {
@@ -16408,6 +16636,11 @@ window.addEventListener("resize", function() {
 
 radar_health_css = r"""
 
+/* v41: summary-first analytics, detailed explorer under Players. */
+.analytics-impact-intro{margin-bottom:22px}
+.analytics-impact-group-title{margin:25px 0 12px;font-size:1.18rem;letter-spacing:-.01em}
+#player-sub-availability .health-chart-pair{max-width:100%}
+@media(max-width:560px){.analytics-impact-intro .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* v40: both dimensions visible at once; all team bars drill to players. */
 .health-metric-switch{display:flex;gap:7px;flex-wrap:wrap;margin:17px 0 13px}
 .health-metric-btn{font:inherit;font-size:.82rem;font-weight:800;color:var(--muted);border:1px solid var(--border);background:var(--bg-secondary);border-radius:9px;padding:10px 12px;cursor:pointer}
@@ -16686,6 +16919,8 @@ __CSS__
                 <div id="my-team-cards">__MY_TEAM_CARDS__</div>
             </div>
 
+            <div class="card"><h2>Squad Performance Radar</h2><p class="card-description">Live squad profile, benchmarked within each player's Premier League position.</p><div id="myteam-radar"></div></div>
+
             <div class="analytics-subtabs myteam-tabs" role="tablist" aria-label="My Team sections">
                 <button type="button" class="analytics-subtab myteam-tab active" onclick="showMyTeamSubtab('squad',this)">Squad</button>
                 <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('planner',this)">Five-GW Planner</button>
@@ -16695,7 +16930,6 @@ __CSS__
                 <button type="button" class="analytics-subtab myteam-tab" onclick="showMyTeamSubtab('stats',this)">Stats</button>
             </div>
 
-            <div class="card"><h2>Squad Performance Radar</h2><p class="card-description">Live squad profile, benchmarked within each player's Premier League position.</p><div id="myteam-radar"></div></div>
             <div class="myteam-subpage active" id="myteam-sub-squad">
                 <div class="card">
                     <h2>Squad By Gameweek</h2>
@@ -16987,6 +17221,7 @@ __CSS__
                 <button type="button" class="analytics-subtab player-page-tab active" onclick="showPlayerSubtab('leaders',this)">Leaders &amp; Form</button>
                 <button type="button" class="analytics-subtab player-page-tab" onclick="showPlayerSubtab('directory',this)">Player Directory</button>
                 <button type="button" class="analytics-subtab player-page-tab" onclick="showPlayerSubtab('injuries',this)">Injuries &amp; Suspensions</button>
+                <button type="button" class="analytics-subtab player-page-tab" onclick="showPlayerSubtab('availability',this)">Availability &amp; Departures</button>
             </div>
 
             <div class="player-subpage active" id="player-sub-leaders">
@@ -17022,6 +17257,24 @@ __CSS__
                 <div id="injury-list-results"></div>
               </div>
             </div>
+    <div class="player-subpage" id="player-sub-availability"><div class="card">
+      <h2>Availability &amp; departures · club vs fantasy team</h2>
+      <p class="card-description">Side-by-side Premier League club and McDraft fantasy-team analytics, sourced from official FPL status flags. Click any bar to inspect its players. Removals mean absent from the current FPL player pool; they do not prove a transfer out of the Premier League.</p>
+      <div class="health-metric-switch" role="group" aria-label="Availability metric">
+        <button type="button" class="health-metric-btn active" data-health-view="flags" aria-pressed="true" onclick="healthSetView('flags')">Current flags</button>
+        <button type="button" class="health-metric-btn" data-health-view="risk" aria-pressed="false" onclick="healthSetView('risk')">GW points at risk</button>
+        <button type="button" class="health-metric-btn" data-health-view="new" aria-pressed="false" onclick="healthSetView('new')">New / updated reports</button>
+        <button type="button" class="health-metric-btn" data-health-view="removed" aria-pressed="false" onclick="healthSetView('removed')">Departures / removals</button>
+      </div>
+      <div class="player-filter-grid health-filters">
+        <select id="health-club-filter" class="player-filter" onchange="healthFiltersChanged()" aria-label="Filter Premier League club"><option value="">All Premier League clubs</option>__HEALTH_CLUB_OPTIONS__</select>
+        <select id="health-owner" class="player-filter" onchange="healthFiltersChanged()" aria-label="Filter McDraft fantasy team"><option value="">All fantasy teams</option><option value="Free Agent">Free agents</option>__HEALTH_OWNER_OPTIONS__</select>
+        <select id="health-status-filter" class="player-filter" onchange="healthFiltersChanged()" aria-label="Filter injury or suspension status"><option value="">All official statuses</option><option value="i">Injured</option><option value="s">Suspended</option><option value="d">Doubtful</option><option value="u">Unavailable</option><option value="n">Not eligible</option><option value="a">Available with news</option></select>
+        <input id="health-query" class="player-search-box" type="search" placeholder="Search player, PL club or fantasy team…" aria-label="Search availability data" oninput="healthFiltersChanged()">
+      </div>
+      <label class="health-free-agent-toggle"><input type="checkbox" id="health-free-agent-chart" onchange="healthFiltersChanged()"> Include free agents in fantasy-team chart</label>
+      <div id="analytics-health-root" aria-live="polite"></div>
+    </div></div>
 
         </section>
 
