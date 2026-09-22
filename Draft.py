@@ -6312,18 +6312,18 @@ def _build_season_prediction(simulations=7500, seed=17288):
             + (0.15 * league_mean)
         )
         completed_count = len(scores)
-        evidence_weight = min(1.0, max(0.0, completed_count / 14.0))
-        # Even at full maturity retain a little league regression; early on the
-        # model is deliberately much flatter between managers.
+        evidence_weight = min(1.0, max(0.0, completed_count / 10.0))
+        # Keep a modest league-mean anchor early, but let genuine squad/form
+        # strength separate teams sooner. Strong teams should look strong; the
+        # model just should not become certain after a handful of GWs.
         expected = (
-            ((0.35 + (0.55 * evidence_weight)) * raw_expected)
-            + ((0.65 - (0.55 * evidence_weight)) * league_mean)
+            ((0.55 + (0.40 * evidence_weight)) * raw_expected)
+            + ((0.45 - (0.40 * evidence_weight)) * league_mean)
         )
 
-        # Fantasy scoring is extremely noisy early. Use a wider early-season
-        # distribution and taper it gradually; by ~GW14 this is mostly the
-        # team's observed volatility rather than our uncertainty premium.
-        early_uncertainty = 1.0 + (0.75 * max(0, 14 - completed_count) / 13.0)
+        # Retain an early uncertainty premium, but not enough to wash out clear
+        # differences in squad strength and scoring profile.
+        early_uncertainty = 1.0 + (0.45 * max(0, 10 - completed_count) / 9.0)
         base_volatility = max((0.55 * team_sd) + (0.45 * league_sd), 7.0)
         volatility = base_volatility * early_uncertainty
         scoring_profile[manager] = {
@@ -6400,7 +6400,7 @@ def _build_season_prediction(simulations=7500, seed=17288):
         # far more certain than five or six completed GWs justify. The model
         # earns the right to become decisive gradually through the season.
         completed_count = len(historical_scores.get(m, []))
-        probability_evidence = min(1.0, max(0.0, (completed_count / 14.0) ** 1.15))
+        probability_evidence = min(1.0, max(0.0, completed_count / 10.0))
         uniform_pos = 100.0 / max(len(managers), 1)
         calibrated_position_pct = {
             pos: (probability_evidence * raw_position_pct[pos]) + ((1.0 - probability_evidence) * uniform_pos)
@@ -6897,7 +6897,7 @@ def season_prediction_table():
 <td>{p["bottom3_pct"]:.1f}%</td>
 </tr>'''
     return f'''
-<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Current squad strength and recent form still drive the forecast, but early-season weekly expectations are deliberately regressed hard towards the league mean and score volatility is widened. Finishing probabilities are then <b>calibrated back towards the league baseline</b> until enough gameweeks have been played, so five good weeks cannot create fake certainty. The calibration gradually fades through roughly the first 14 completed GWs. Squad strength still uses the best legal projected XI, recent/season output and original McDraft rank as a decaying prior. <b>Confidence badges</b> describe how much evidence the forecast currently has; they are not another prediction. Forecast Range is the central 80% of simulated finishes and remains separate from mathematical Possible Finish.</div>
+<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Current squad strength and recent form still drive the forecast, but early-season weekly expectations are deliberately regressed hard towards the league mean and score volatility is widened. Finishing probabilities are then <b>calibrated back towards the league baseline</b> until enough gameweeks have been played, so five good weeks cannot create fake certainty. The calibration now fades through roughly the first 10 completed GWs, so stronger teams separate earlier while early-season confidence remains restrained. Squad strength still uses the best legal projected XI, recent/season output and original McDraft rank as a decaying prior. <b>Confidence badges</b> describe how much evidence the forecast currently has; they are not another prediction. Forecast Range is the central 80% of simulated finishes and remains separate from mathematical Possible Finish.</div>
 <div class="table-wrap"><table>
 <thead><tr><th>Pred.</th><th>Manager</th><th>Now</th><th>Exp. League Pts</th><th>Exp. W-D-L</th><th>Exp. Pts For</th><th>Squad XI</th><th>Draft Rank Total ↓</th><th>Pick Eff.</th><th>Forecast Range</th><th>1st</th><th>Top 3</th><th>Bottom 3</th></tr></thead>
 <tbody>{rows}</tbody></table></div>'''
@@ -13748,16 +13748,25 @@ function showTransferSubtab(name, button) {
 }
 const TRADE_SIMULATOR_DATA = __TRADE_SIMULATOR_DATA__;
 function renderTradeSimulator(){const a=document.getElementById('trade-sim-manager-a'),b=document.getElementById('trade-sim-manager-b'),ra=document.getElementById('trade-sim-roster-a'),rb=document.getElementById('trade-sim-roster-b');if(!a||!b||!ra||!rb)return;const ma=a.value,mb=b.value;document.getElementById('trade-sim-title-a').textContent=(ma||'Manager A')+' gives';document.getElementById('trade-sim-title-b').textContent=(mb||'Manager B')+' gives';if(!ma||!mb||ma===mb){ra.innerHTML=rb.innerHTML='<div class="notice">Choose two different managers.</div>';evaluateTradeSimulator();return;}ra.innerHTML=tradeSimRosterHtml(ma,'a');rb.innerHTML=tradeSimRosterHtml(mb,'b');evaluateTradeSimulator();}
-function tradeSimRosterHtml(manager,side){return(TRADE_SIMULATOR_DATA[manager]||[]).map(p=>'<label class="trade-sim-player" data-side="'+side+'" data-position="'+p.position+'" onclick="tradeSimPlayerClicked(event, \''+side+'\', \''+p.position+'\')"><input type="checkbox" class="trade-sim-check" data-side="'+side+'" data-id="'+p.id+'" onchange="evaluateTradeSimulator()"><span><b>'+escapePlayerHTML(p.name)+'</b><small><button type="button" class="trade-sim-position" onclick="highlightOpposingTradePosition(event, \''+side+'\', \''+p.position+'\')">'+p.position+'</button> · '+escapePlayerHTML(p.club)+' · '+p.points+' pts · form '+Number(p.form).toFixed(1)+'</small></span><span class="trade-sim-player-value"><b>'+Number(p.value).toFixed(1)+'</b><span>value</span></span></label>').join('');}
+function tradeSimRosterHtml(manager,side){return(TRADE_SIMULATOR_DATA[manager]||[]).map(p=>'<label class="trade-sim-player" data-side="'+side+'" data-position="'+p.position+'" onclick="tradeSimPlayerClicked(event, \''+side+'\', \''+p.position+'\')"><input type="checkbox" class="trade-sim-check" data-side="'+side+'" data-id="'+p.id+'" onchange="tradeSimSelectionChanged(\''+side+'\')"><span><b>'+escapePlayerHTML(p.name)+'</b><small><button type="button" class="trade-sim-position" onclick="highlightOpposingTradePosition(event, \''+side+'\', \''+p.position+'\')">'+p.position+'</button> · '+escapePlayerHTML(p.club)+' · '+p.points+' pts · form '+Number(p.form).toFixed(1)+'</small></span><span class="trade-sim-player-value"><b>'+Number(p.value).toFixed(1)+'</b><span>value</span></span></label>').join('');}
+function tradeSimSelectedCount(side){return document.querySelectorAll('.trade-sim-check[data-side="'+side+'"]:checked').length;}
+function clearTradePositionHighlights(){document.querySelectorAll('.trade-sim-player.position-match').forEach(el=>el.classList.remove('position-match'));}
+function tradeSimSelectionChanged(side){
+    evaluateTradeSimulator();
+    if(tradeSimSelectedCount(side)>=2){clearTradePositionHighlights();}
+}
 function tradeSimPlayerClicked(event, side, position){
-    // Clicking anywhere on a player row highlights every like-for-like option
-    // on the opposing roster. Do not prevent the label's checkbox behaviour.
+    // Once two players have been chosen from a side, stop nudging the user with
+    // positional highlights. Multi-player trades remain possible; the visual
+    // prompt simply gets out of the way after the second selection.
     if(event && event.target && event.target.classList && event.target.classList.contains('trade-sim-position')) return;
+    if(tradeSimSelectedCount(side)>=2){clearTradePositionHighlights();return;}
     highlightOpposingTradePosition(null, side, position);
 }
 function highlightOpposingTradePosition(event, side, position){
     if(event){event.preventDefault();event.stopPropagation();}
-    document.querySelectorAll('.trade-sim-player.position-match').forEach(el=>el.classList.remove('position-match'));
+    if(tradeSimSelectedCount(side)>=2){clearTradePositionHighlights();return;}
+    clearTradePositionHighlights();
     const opposingSide=side==='a'?'b':'a';
     document.querySelectorAll('.trade-sim-player[data-side="'+opposingSide+'"][data-position="'+position+'"]').forEach(el=>el.classList.add('position-match'));
 }
