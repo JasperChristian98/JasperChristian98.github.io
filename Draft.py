@@ -6226,6 +6226,49 @@ def _build_current_squad_strength():
 
 current_squad_strength = _build_current_squad_strength()
 
+def _prediction_confidence_meta(completed_count=None, forecast_range_width=None):
+    """Human-readable confidence for season/fixture forecasts.
+
+    Confidence is deliberately conservative early in the season. It uses the
+    amount of completed evidence first, then nudges down one level when a
+    manager's simulated finish range is especially wide.
+    """
+    if completed_count is None:
+        completed_count = len(finished_gws)
+    completed_count = max(0, int(completed_count or 0))
+
+    if completed_count <= 3:
+        level, cls, score = "Very low", "very-low", 20
+    elif completed_count <= 6:
+        level, cls, score = "Low", "low", 35
+    elif completed_count <= 10:
+        level, cls, score = "Moderate", "moderate", 55
+    elif completed_count <= 18:
+        level, cls, score = "Good", "good", 75
+    else:
+        level, cls, score = "High", "high", 90
+
+    if forecast_range_width is not None:
+        try:
+            width = float(forecast_range_width)
+        except (TypeError, ValueError):
+            width = None
+        if width is not None and width >= max(5, len(managers) * 0.5):
+            order = [("Very low", "very-low", 20), ("Low", "low", 35), ("Moderate", "moderate", 55), ("Good", "good", 75), ("High", "high", 90)]
+            idx = next((i for i, row in enumerate(order) if row[0] == level), 0)
+            level, cls, score = order[max(0, idx - 1)]
+
+    return {"label": level, "class": cls, "score": score}
+
+
+def _confidence_badge(meta):
+    if not meta:
+        return ''
+    label = escape_html(meta.get("label", "Low"))
+    cls = escape_html(meta.get("class", "low"))
+    return f'<span class="confidence-badge confidence-{cls}">{label} confidence</span>'
+
+
 def _build_season_prediction(simulations=7500, seed=17288):
     if not managers:
         return {}, []
@@ -6259,23 +6302,29 @@ def _build_season_prediction(simulations=7500, seed=17288):
         squad = current_squad_strength.get(manager, {})
         squad_score = float(squad.get("managed_xi", recent_mean) or recent_mean)
 
-        # Less-sticky forecast: current squad + very recent form dominate.
-        # Season-long scoring is now only a light anchor, so a major result or
-        # squad change can materially move probabilities after the next refresh.
+        # Build a responsive raw forecast, then heavily regress it towards the
+        # league mean while the sample is tiny. Five GWs should move the needle,
+        # not convince us anybody has already conquered the known universe.
+        raw_expected = (
+            (0.40 * squad_score)
+            + (0.30 * recent_mean)
+            + (0.15 * season_mean)
+            + (0.15 * league_mean)
+        )
+        completed_count = len(scores)
+        evidence_weight = min(1.0, max(0.0, completed_count / 14.0))
+        # Even at full maturity retain a little league regression; early on the
+        # model is deliberately much flatter between managers.
         expected = (
-            (0.45 * squad_score)
-            + (0.35 * recent_mean)
-            + (0.10 * season_mean)
-            + (0.10 * league_mean)
+            ((0.35 + (0.55 * evidence_weight)) * raw_expected)
+            + ((0.65 - (0.55 * evidence_weight)) * league_mean)
         )
 
-        # Fantasy scoring is noisy, especially early in the season. Inflate
-        # uncertainty when the sample is small, then taper towards the observed
-        # team/league volatility by GW10. This prevents early leaders becoming
-        # implausibly certain favourites after only a handful of results.
-        completed_count = len(scores)
-        early_uncertainty = 1.0 + (0.35 * max(0, 10 - completed_count) / 9.0)
-        base_volatility = max((0.60 * team_sd) + (0.40 * league_sd), 6.0)
+        # Fantasy scoring is extremely noisy early. Use a wider early-season
+        # distribution and taper it gradually; by ~GW14 this is mostly the
+        # team's observed volatility rather than our uncertainty premium.
+        early_uncertainty = 1.0 + (0.75 * max(0, 14 - completed_count) / 13.0)
+        base_volatility = max((0.55 * team_sd) + (0.45 * league_sd), 7.0)
         volatility = base_volatility * early_uncertainty
         scoring_profile[manager] = {
             "expected_score": expected,
@@ -6344,18 +6393,39 @@ def _build_season_prediction(simulations=7500, seed=17288):
         p10 = max(1, int(round(_prediction_percentile(finishes, 0.10))))
         p90 = min(len(managers), int(round(_prediction_percentile(finishes, 0.90))))
         lo, hi = min(p10, p90), max(p10, p90)
+        raw_position_pct = {pos: 100.0 * counts.get(pos, 0) / simulations for pos in range(1, len(managers) + 1)}
+
+        # Calibrate early-season probabilities back towards an uninformative
+        # league baseline. This stops raw Monte Carlo frequencies from looking
+        # far more certain than five or six completed GWs justify. The model
+        # earns the right to become decisive gradually through the season.
+        completed_count = len(historical_scores.get(m, []))
+        probability_evidence = min(1.0, max(0.0, (completed_count / 14.0) ** 1.15))
+        uniform_pos = 100.0 / max(len(managers), 1)
+        calibrated_position_pct = {
+            pos: (probability_evidence * raw_position_pct[pos]) + ((1.0 - probability_evidence) * uniform_pos)
+            for pos in range(1, len(managers) + 1)
+        }
+        champion_pct = calibrated_position_pct.get(1, 0.0)
+        top3_pct = sum(calibrated_position_pct.get(pos, 0.0) for pos in range(1, min(3, len(managers)) + 1))
+        bottom3_pct = sum(calibrated_position_pct.get(pos, 0.0) for pos in range(max(1, len(managers) - 2), len(managers) + 1))
+        confidence = _prediction_confidence_meta(completed_count, hi - lo + 1)
+
         prediction[m] = {
             "median_finish": median_finish,
             "forecast_range_text": f"{_ordinal_text(lo)}–{_ordinal_text(hi)}",
-            "position_pct": {pos: 100.0 * counts.get(pos, 0) / simulations for pos in range(1, len(managers) + 1)},
+            "position_pct": calibrated_position_pct,
+            "raw_position_pct": raw_position_pct,
+            "probability_evidence": probability_evidence,
+            "confidence": confidence,
             "expected_league_points": statistics.mean(lp_samples[m]),
             "expected_points_for": statistics.mean(pf_samples[m]),
             "expected_wins": statistics.mean(w_samples[m]),
             "expected_draws": statistics.mean(d_samples[m]),
             "expected_losses": statistics.mean(l_samples[m]),
-            "champion_pct": 100.0 * counts.get(1, 0) / simulations,
-            "top3_pct": 100.0 * sum(counts.get(pos, 0) for pos in range(1, min(3, len(managers)) + 1)) / simulations,
-            "bottom3_pct": 100.0 * sum(counts.get(pos, 0) for pos in range(max(1, len(managers) - 2), len(managers) + 1)) / simulations,
+            "champion_pct": champion_pct,
+            "top3_pct": top3_pct,
+            "bottom3_pct": bottom3_pct,
             "model_weekly_score": scoring_profile[m]["expected_score"],
             "model_volatility": scoring_profile[m]["volatility"],
             "squad_score": scoring_profile[m]["squad_score"],
@@ -6411,10 +6481,25 @@ def _fixture_odds_for_match(team1, team2, simulations=10000, seed=17288):
         else:
             draws += 1
 
+    raw_team1_win = 100.0 * wins1 / simulations
+    raw_draw = 100.0 * draws / simulations
+    raw_team2_win = 100.0 * wins2 / simulations
+    completed_count = len(finished_gws)
+    evidence = min(1.0, max(0.0, (completed_count / 12.0) ** 1.20))
+    # Fixture odds keep a draw-aware neutral prior. As evidence grows, the raw
+    # simulated matchup frequencies increasingly take over.
+    neutral_win, neutral_draw = 42.5, 15.0
+    team1_win = (evidence * raw_team1_win) + ((1.0 - evidence) * neutral_win)
+    draw_pct = (evidence * raw_draw) + ((1.0 - evidence) * neutral_draw)
+    team2_win = (evidence * raw_team2_win) + ((1.0 - evidence) * neutral_win)
+    total = max(team1_win + draw_pct + team2_win, 0.001)
+    scale = 100.0 / total
+
     return {
-        "team1_win": 100.0 * wins1 / simulations,
-        "draw": 100.0 * draws / simulations,
-        "team2_win": 100.0 * wins2 / simulations,
+        "team1_win": team1_win * scale,
+        "draw": draw_pct * scale,
+        "team2_win": team2_win * scale,
+        "confidence": _prediction_confidence_meta(completed_count),
         "team1_mean": statistics.mean(score1_samples),
         "team2_mean": statistics.mean(score2_samples),
         "team1_low": _prediction_percentile(score1_samples, 0.10),
@@ -6449,11 +6534,12 @@ def projected_fixture_odds_table():
 <td class="manager-name">{escape_html(t2)}</td>
 <td>{odds["team1_mean"]:.1f}–{odds["team2_mean"]:.1f}</td>
 <td>{odds["team1_low"]:.0f}–{odds["team1_high"]:.0f} / {odds["team2_low"]:.0f}–{odds["team2_high"]:.0f}</td>
+<td>{_confidence_badge(odds.get("confidence"))}</td>
 </tr>'''
 
     return f'''
 <div class="table-wrap"><table>
-<thead><tr><th>Team</th><th>Win</th><th>Draw</th><th>Win</th><th>Team</th><th>Avg Score</th><th>80% Score Range</th></tr></thead>
+<thead><tr><th>Team</th><th>Win</th><th>Draw</th><th>Win</th><th>Team</th><th>Avg Score</th><th>80% Score Range</th><th>Confidence</th></tr></thead>
 <tbody>{rows}</tbody></table></div>'''
 
 
@@ -6805,13 +6891,13 @@ def season_prediction_table():
 <td>{p["squad_score"]:.1f}</td>
 <td><b>{p["squad_draft_rank_total"]}</b></td>
 <td>{p["selection_efficiency"]:.1f}%</td>
-<td>{p["forecast_range_text"]}</td>
+<td>{p["forecast_range_text"]}<br>{_confidence_badge(p.get("confidence"))}</td>
 <td>{p["champion_pct"]:.1f}%</td>
 <td>{p["top3_pct"]:.1f}%</td>
 <td>{p["bottom3_pct"]:.1f}%</td>
 </tr>'''
     return f'''
-<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Weekly scoring expectation is 45% current squad strength, 35% exponentially weighted last-three form, 10% season team scoring and 10% regression to the league mean. The latest result carries twice the weight of the oldest result in that three-GW window, and early-season score volatility is deliberately inflated before tapering towards observed levels by GW10. Squad strength builds the best legal projected XI from each player's recent/season output plus their <b>original McDraft pick</b> as a decaying pre-season prior. Original picks retain ranks 1–150 and every undrafted player is rank <b>151</b>. <b>Draft Rank Total</b> sums the current roster's ranks, so lower indicates stronger pre-season pedigree. The XI is then discounted by that manager's historically observed selection efficiency; bench depth adds only a small resilience bonus. Waivers and trades therefore move the forecast immediately, while a player's original draft prior follows them to their new team. Forecast Range is the central 80% of simulated finishes and is separate from mathematical Possible Finish.</div>
+<div class="power-formula"><b>Model:</b> 7,500 Monte Carlo simulations using the real remaining H2H schedule. Current squad strength and recent form still drive the forecast, but early-season weekly expectations are deliberately regressed hard towards the league mean and score volatility is widened. Finishing probabilities are then <b>calibrated back towards the league baseline</b> until enough gameweeks have been played, so five good weeks cannot create fake certainty. The calibration gradually fades through roughly the first 14 completed GWs. Squad strength still uses the best legal projected XI, recent/season output and original McDraft rank as a decaying prior. <b>Confidence badges</b> describe how much evidence the forecast currently has; they are not another prediction. Forecast Range is the central 80% of simulated finishes and remains separate from mathematical Possible Finish.</div>
 <div class="table-wrap"><table>
 <thead><tr><th>Pred.</th><th>Manager</th><th>Now</th><th>Exp. League Pts</th><th>Exp. W-D-L</th><th>Exp. Pts For</th><th>Squad XI</th><th>Draft Rank Total ↓</th><th>Pick Eff.</th><th>Forecast Range</th><th>1st</th><th>Top 3</th><th>Bottom 3</th></tr></thead>
 <tbody>{rows}</tbody></table></div>'''
@@ -6841,7 +6927,7 @@ def position_probability_table():
 </tr>'''
 
     return f'''
-<div class="power-formula"><b>How to read it:</b> each row sums to roughly 100%. These are model probabilities from the same 7,500 schedule-aware simulations — unlike Possible Finish, which is purely mathematical.</div>
+<div class="power-formula"><b>How to read it:</b> each row sums to roughly 100%. These are <b>calibrated</b> model probabilities from the same 7,500 schedule-aware simulations. Early in the season they are intentionally pulled towards an even 10-team baseline instead of presenting raw simulation frequencies as certainty. Unlike Possible Finish, this is probabilistic rather than purely mathematical.</div>
 <div class="table-wrap"><table>
 <thead><tr><th>Manager</th>{header_positions}</tr></thead>
 <tbody>{rows}</tbody></table></div>'''
@@ -8017,6 +8103,117 @@ def season_summary_html():
     return ''.join(blocks)
 
 
+
+def _event_month_label(gw):
+    event = next((e for e in bootstrap.get("events", []) if int(e.get("id", 0) or 0) == int(gw)), {})
+    raw = event.get("deadline_time") or ""
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        return dt.strftime("%B %Y")
+    except Exception:
+        return f"Through GW{gw}"
+
+
+def manager_of_month_html():
+    if not finished_gws:
+        return '<div class="notice">No completed months yet.</div>'
+    month_gws = defaultdict(list)
+    for gw in finished_gws:
+        month_gws[_event_month_label(gw)].append(int(gw))
+    cards=[]
+    for month,gws in month_gws.items():
+        lp={m:0 for m in managers}; pf={m:0 for m in managers}; wins={m:0 for m in managers}; played={m:0 for m in managers}
+        for match in matches_sorted:
+            gw=int(match.get("event",0) or 0)
+            if gw not in gws: continue
+            a=match.get("entry_1_name"); b=match.get("entry_2_name")
+            pa=int(match.get("entry_1_points",0) or 0); pb=int(match.get("entry_2_points",0) or 0)
+            if a in lp: pf[a]+=pa; played[a]+=1
+            if b in lp: pf[b]+=pb; played[b]+=1
+            if pa>pb:
+                if a in lp: lp[a]+=3; wins[a]+=1
+            elif pb>pa:
+                if b in lp: lp[b]+=3; wins[b]+=1
+            else:
+                if a in lp: lp[a]+=1
+                if b in lp: lp[b]+=1
+        ranked=sorted(managers,key=lambda m:(-lp[m],-pf[m],-wins[m],m))
+        if not ranked: continue
+        winner=ranked[0]
+        avg=(pf[winner]/played[winner]) if played[winner] else 0
+        cards.append(f'<div class="motm-card"><div class="eyebrow">{escape_html(month)}</div><h3>{escape_html(winner)}</h3><div class="motm-stat">{wins[winner]}W · {lp[winner]} league pts · {pf[winner]} scored</div><p>{avg:.1f} points per matchup across GW{min(gws)}–GW{max(gws)}.</p></div>')
+    return ''.join(cards) if cards else '<div class="notice">No completed months yet.</div>'
+
+
+def season_milestones_html():
+    if not finished_gws:
+        return '<div class="notice">No milestones yet.</div>'
+    events=[]
+    cum_pf={m:0 for m in managers}; cum_lp={m:0 for m in managers}; streak={m:0 for m in managers}
+    hit_pf={m:set() for m in managers}; hit_lp={m:set() for m in managers}; hit_score={m:set() for m in managers}; hit_streak={m:set() for m in managers}
+    pf_thresholds=(100,250,500,750,1000,1250,1500,2000)
+    lp_thresholds=(10,20,30,40,50,60,75,90)
+    score_thresholds=(50,60,70,80,90)
+    streak_thresholds=(3,5,7,10)
+    for gw in sorted(finished_gws):
+        result={}
+        for match in [m for m in matches_sorted if int(m.get('event',0) or 0)==int(gw)]:
+            a=match.get('entry_1_name'); b=match.get('entry_2_name')
+            pa=int(match.get('entry_1_points',0) or 0); pb=int(match.get('entry_2_points',0) or 0)
+            for m,score in ((a,pa),(b,pb)):
+                if m not in cum_pf: continue
+                cum_pf[m]+=score
+                for threshold in score_thresholds:
+                    if score>=threshold and threshold not in hit_score[m]:
+                        hit_score[m].add(threshold); events.append((gw,m,f"First {threshold}+ score",f"{score} points in GW{gw}"))
+                for threshold in pf_thresholds:
+                    if cum_pf[m]>=threshold and threshold not in hit_pf[m]:
+                        hit_pf[m].add(threshold); events.append((gw,m,f"{threshold} points scored",f"Reached {cum_pf[m]} cumulative points in GW{gw}"))
+            if pa>pb:
+                result[a]='W'; result[b]='L'; cum_lp[a]+=3
+            elif pb>pa:
+                result[b]='W'; result[a]='L'; cum_lp[b]+=3
+            else:
+                result[a]=result[b]='D'; cum_lp[a]+=1; cum_lp[b]+=1
+        for m in managers:
+            for threshold in lp_thresholds:
+                if cum_lp[m]>=threshold and threshold not in hit_lp[m]:
+                    hit_lp[m].add(threshold); events.append((gw,m,f"{threshold} league points",f"Reached the mark after GW{gw}"))
+            streak[m]=streak[m]+1 if result.get(m)=='W' else 0
+            for threshold in streak_thresholds:
+                if streak[m]>=threshold and threshold not in hit_streak[m]:
+                    hit_streak[m].add(threshold); events.append((gw,m,f"{threshold}-win streak",f"Completed in GW{gw}"))
+    events.sort(key=lambda x:(-x[0],x[1],x[2]))
+    if not events:
+        return '<div class="notice">No major milestones yet — give it a week or two.</div>'
+    return ''.join(f'<div class="milestone-row"><div class="milestone-gw">GW{gw}</div><div><strong>{escape_html(manager)}</strong><span>{escape_html(title)}</span><small>{escape_html(detail)}</small></div></div>' for gw,manager,title,detail in events)
+
+
+def season_evolution_data():
+    out=[]; lp={m:0 for m in managers}; pf={m:0 for m in managers}; pa={m:0 for m in managers}; w={m:0 for m in managers}; d={m:0 for m in managers}; l={m:0 for m in managers}
+    for gw in sorted(finished_gws):
+        scores={}
+        for match in [x for x in matches_sorted if int(x.get('event',0) or 0)==int(gw)]:
+            a=match.get('entry_1_name'); b=match.get('entry_2_name'); sa=int(match.get('entry_1_points',0) or 0); sb=int(match.get('entry_2_points',0) or 0)
+            scores[a]=sa; scores[b]=sb
+            for m,own,opp in ((a,sa,sb),(b,sb,sa)):
+                if m in pf: pf[m]+=own; pa[m]+=opp
+            if sa>sb: lp[a]+=3; w[a]+=1; l[b]+=1
+            elif sb>sa: lp[b]+=3; w[b]+=1; l[a]+=1
+            else: lp[a]+=1; lp[b]+=1; d[a]+=1; d[b]+=1
+        order=sorted(managers,key=lambda m:(-lp[m],-pf[m],m))
+        rows=[{'rank':i+1,'manager':m,'league_points':lp[m],'pf':pf[m],'pa':pa[m],'record':f"{w[m]}-{d[m]}-{l[m]}",'gw_score':scores.get(m,0)} for i,m in enumerate(order)]
+        vals=list(scores.values())
+        out.append({'gw':gw,'rows':rows,'high_score':max(vals) if vals else 0,'average_score':round(statistics.mean(vals),1) if vals else 0,'leader':order[0] if order else ''})
+    return out
+
+
+def season_timeline_explorer_html():
+    if not finished_gws:
+        return '<div class="notice">No completed gameweeks yet.</div>'
+    return f'<div class="season-slider-head"><div><h2>Season evolution</h2><p class="card-description">Scrub through completed gameweeks and watch the table take shape.</p></div><strong id="season-slider-label">GW{max(finished_gws)}</strong></div><input id="season-gw-slider" class="season-gw-slider" type="range" min="0" max="{len(finished_gws)-1}" value="{len(finished_gws)-1}" step="1" oninput="renderSeasonTimeline(this.value)"><div id="season-slider-summary" class="season-slider-summary"></div><div id="season-slider-table" class="table-wrap"></div>'
+
+
 def future_fixture_sections():
     last_finished = max(finished_gws) if finished_gws else 0
     future_gws = [gw for gw in range(1, 39) if gw > last_finished]
@@ -9134,11 +9331,14 @@ def _bar_chart_html(title, values, description="", value_suffix="", reverse=Fals
     items = [(m, float(values.get(m,0) or 0)) for m in current_standings]
     items.sort(key=lambda x:x[1], reverse=not reverse)
     maximum = max([abs(v) for _,v in items] + [1.0])
+    league_avg = statistics.mean([v for _, v in items]) if items else 0.0
+    avg_pct = max(0.0, min(100.0, abs(league_avg) / maximum * 100.0))
     bars = ""
     for m,v in items:
         width = max(2.0, abs(v)/maximum*100.0)
-        bars += f'''<div class="analytics-bar-row" data-analytics-manager="{escape_html(m)}"><div class="analytics-bar-label">{escape_html(m)}</div><div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:{width:.1f}%"></div></div><div class="analytics-bar-value">{v:.1f}{value_suffix}</div></div>'''
-    return f'''<div class="card analytics-chart-card"><h2>{escape_html(title)}</h2>{f'<p class="card-description">{escape_html(description)}</p>' if description else ''}<div class="analytics-axis-title analytics-axis-y">{escape_html(y_label)}</div><div class="analytics-bar-chart">{bars}</div><div class="analytics-axis-title analytics-axis-x">{escape_html(x_label)}</div></div>'''
+        delta = v - league_avg
+        bars += f'''<div class="analytics-bar-row" data-analytics-manager="{escape_html(m)}"><div class="analytics-bar-label">{escape_html(m)}</div><div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:{width:.1f}%"></div><div class="analytics-average-marker" style="left:{avg_pct:.1f}%" title="League average: {league_avg:.1f}{value_suffix}"></div></div><div class="analytics-bar-value">{v:.1f}{value_suffix}<span class="analytics-average-delta"> ({delta:+.1f} vs avg)</span></div></div>'''
+    return f'''<div class="card analytics-chart-card analytics-average-capable" data-league-average="{league_avg:.3f}"><h2>{escape_html(title)}</h2>{f'<p class="card-description">{escape_html(description)}</p>' if description else ''}<div class="analytics-axis-title analytics-axis-y">{escape_html(y_label)}</div><div class="analytics-bar-chart">{bars}</div><div class="analytics-average-key">League average: {league_avg:.1f}{value_suffix}</div><div class="analytics-axis-title analytics-axis-x">{escape_html(x_label)}</div></div>'''
 
 
 def _category_bar_chart_html(title, rows, description="", value_suffix="", x_label="Player", y_label="Value", limit=20, reverse=False):
@@ -9205,6 +9405,18 @@ def _line_chart_html(title, series_map, description="", x_label="Gameweek", y_la
         x,_=xy(g,min_v)
         labels += f'<text class="trend-chart-axis-label" x="{x:.1f}" y="{H-24}" text-anchor="middle">GW{g}</text>'
     paths=""
+    by_gw = defaultdict(list)
+    for _m, _pts in series_map.items():
+        for _gw, _v in _pts:
+            try:
+                by_gw[int(_gw)].append(float(_v or 0))
+            except Exception:
+                pass
+    avg_pts = [(g, statistics.mean(vals)) for g, vals in sorted(by_gw.items()) if vals]
+    if avg_pts:
+        avg_coords=[xy(g,v) for g,v in avg_pts]
+        avg_d=" ".join(("M" if i==0 else "L")+f" {x:.1f} {y:.1f}" for i,(x,y) in enumerate(avg_coords))
+        paths += f'<path class="trend-chart-line analytics-average-series" d="{avg_d}" />'
     for idx,(m,pts) in enumerate(series_map.items()):
         pts=sorted(pts)
         if not pts: continue
@@ -9914,6 +10126,7 @@ def analytics_page_html():
     <div class="card analytics-manager-filter-card">
         <div class="analytics-manager-filter-head"><div><h2>Manager filter</h2><p class="card-description">Filter manager-based Analytics charts. Player and Premier League club charts stay unchanged.</p></div><span id="analytics-manager-count" class="muted"></span></div>
         <div id="analytics-manager-chips" class="chart-chip-row analytics-manager-chip-row"></div>
+        <label class="analytics-average-toggle"><input id="analytics-average-toggle" type="checkbox" onchange="toggleAnalyticsLeagueAverage(this.checked)"> Compare with league average</label>
     </div>
     <div class="analytics-subpage active" id="analytics-sub-player"><div class="analytics-chart-grid">{''.join(player_charts)}</div></div>
     <div class="analytics-subpage" id="analytics-sub-club"><div class="analytics-chart-grid">{''.join(club_charts)}</div></div>
@@ -10181,6 +10394,40 @@ input {
 .global-search-result:hover { background:#172033; }
 .global-search-result strong { color:white; font-size:13px; }
 .global-search-result span { color:var(--muted); font-size:11px; text-align:right; }
+.search-hit { outline:2px solid var(--accent); outline-offset:3px; transition:outline .2s ease; }
+.global-search-tabs { display:flex; gap:5px; padding-top:6px; }
+.global-search-tab { border:1px solid var(--border); background:#0f172a; color:var(--muted); border-radius:999px; padding:5px 9px; font-size:10px; font-weight:800; cursor:pointer; }
+.global-search-tab.active { color:white; border-color:var(--accent); background:#172033; }
+.analytics-average-toggle { display:inline-flex; align-items:center; gap:8px; margin-top:12px; color:var(--muted); font-size:12px; font-weight:800; cursor:pointer; }
+.analytics-average-marker { display:none; position:absolute; top:-2px; bottom:-2px; width:2px; background:#f8fafc; opacity:.75; z-index:3; }
+.analytics-bar-track { position:relative; }
+.analytics-average-delta,.analytics-average-key,.analytics-average-series { display:none; }
+#page-analytics.show-league-average .analytics-average-marker,
+#page-analytics.show-league-average .analytics-average-delta,
+#page-analytics.show-league-average .analytics-average-key { display:block; }
+#page-analytics.show-league-average .analytics-average-series { display:block; fill:none; stroke:#f8fafc; stroke-width:3; stroke-dasharray:8 6; opacity:.85; }
+.analytics-average-key { color:var(--muted); font-size:11px; margin-top:8px; }
+.analytics-average-delta { color:var(--muted); font-size:10px; white-space:nowrap; }
+.motm-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
+.motm-card { border:1px solid var(--border); background:#0f172a; border-radius:12px; padding:15px; }
+.motm-card h3 { margin:5px 0 6px; }
+.motm-card p { margin:7px 0 0; color:var(--muted); font-size:12px; }
+.motm-stat { font-weight:800; color:#e2e8f0; font-size:12px; }
+.milestone-list { display:flex; flex-direction:column; gap:8px; max-height:520px; overflow:auto; }
+.milestone-row { display:grid; grid-template-columns:58px 1fr; gap:10px; align-items:start; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:#0f172a; }
+.milestone-gw { color:var(--accent); font-weight:900; font-size:12px; }
+.milestone-row strong,.milestone-row span,.milestone-row small { display:block; }
+.milestone-row span { color:#e2e8f0; font-weight:800; }
+.milestone-row small { color:var(--muted); margin-top:2px; }
+.season-slider-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+.season-slider-head h2 { margin-bottom:4px; }
+.season-gw-slider { width:100%; accent-color:var(--accent); margin:10px 0 16px; }
+.season-slider-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-bottom:14px; }
+.season-slider-summary div { background:#0f172a; border:1px solid var(--border); border-radius:10px; padding:10px; }
+.season-slider-summary span,.season-slider-summary strong { display:block; }
+.season-slider-summary span { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.05em; }
+.season-slider-summary strong { margin-top:3px; }
+
 
 .nav {
     max-width: 1500px;
@@ -10303,6 +10550,18 @@ input {
     color: var(--muted);
     margin: 10px 0;
 }
+
+.confidence-badge {
+    display:inline-flex; align-items:center; gap:5px; margin-top:5px; padding:3px 8px;
+    border-radius:999px; font-size:10px; font-weight:800; letter-spacing:.02em;
+    border:1px solid rgba(255,255,255,.12); white-space:nowrap;
+}
+.confidence-very-low { background:rgba(239,68,68,.12); }
+.confidence-low { background:rgba(245,158,11,.12); }
+.confidence-moderate { background:rgba(234,179,8,.12); }
+.confidence-good { background:rgba(34,197,94,.12); }
+.confidence-high { background:rgba(16,185,129,.18); }
+
 
 .muted {
     color: var(--muted);
@@ -12244,22 +12503,73 @@ function initialiseMyTeam() {
    GLOBAL SEARCH
    ============================================================ */
 const GLOBAL_PAGES=[['Overview','overview'],['My Team','myteam'],['Gameweeks','gameweeks'],['Fixtures','fixtures'],['Players','players'],['Transfers','transfers'],['Analytics','analytics'],['Draft Centre','draft-centre'],['Season Summary','season-summary']];
-function globalSearchSelect(type,value,label){
- const box=document.getElementById('global-search-results'),input=document.getElementById('global-search');
- if(box){box.classList.remove('active');box.innerHTML='';} if(input)input.value='';
- if(type==='page'){showPage(value);return;}
- if(type==='manager'){showPage('myteam');const select=document.getElementById('my-team-select');if(select){for(let i=0;i<select.options.length;i++){if(select.options[i].text===label){select.value=String(i);changeMyTeam();break;}}}return;}
- if(type==='player'){showPage('players');const p=document.getElementById('player-search');if(p){p.value=label;filterPlayers();}}
+
+function ensureSearchTargetId(el, idx){
+    if(!el.id) el.id='global-search-target-'+idx;
+    return el.id;
 }
+
+function buildDashboardSearchIndex(){
+    const results=[];
+    GLOBAL_PAGES.forEach(r=>results.push({type:'page',label:r[0],value:r[1],meta:'Page'}));
+    (MANAGER_ORDER||[]).forEach(m=>results.push({type:'manager',label:m,value:m,meta:'Manager'}));
+    (playerSearchData||[]).forEach(p=>results.push({type:'player',label:p.name,value:String(p.id),meta:(p.position||'')+' · '+(p.team||'')}));
+
+    let idx=0;
+    document.querySelectorAll('.analytics-subtab').forEach(btn=>{
+        const label=(btn.textContent||'').replace(/\s+\d+\s*$/,'').trim();
+        const m=(btn.getAttribute('onclick')||'').match(/showAnalyticsSubtab\('([^']+)'/);
+        if(label&&m) results.push({type:'analytics-subtab',label:label,value:m[1],meta:'Analytics section'});
+    });
+
+    document.querySelectorAll('.page .card h2, .page .card h3').forEach(h=>{
+        const label=(h.textContent||'').trim();
+        if(!label) return;
+        const card=h.closest('.card');
+        const page=h.closest('.page');
+        if(!card||!page) return;
+        const pageName=(page.id||'').replace(/^page-/,'');
+        const targetId=ensureSearchTargetId(card,idx++);
+        const sub=card.closest('.analytics-subpage');
+        const analyticsSub=sub ? (sub.id||'').replace(/^analytics-sub-/,'') : '';
+        results.push({type:'section',label:label,value:targetId,page:pageName,subtab:analyticsSub,meta:(pageName==='analytics'?'Analytics chart/section':'Section')});
+    });
+    return results;
+}
+
+function globalSearchSelect(type,value,label,pageName,subtab){
+    const box=document.getElementById('global-search-results'),input=document.getElementById('global-search');
+    if(box){box.classList.remove('active');box.innerHTML='';} if(input)input.value='';
+    if(type==='page'){showPage(value);return;}
+    if(type==='manager'){showPage('myteam');const select=document.getElementById('my-team-select');if(select){for(let i=0;i<select.options.length;i++){if(select.options[i].text===label){select.value=String(i);changeMyTeam();break;}}}return;}
+    if(type==='player'){showPage('players');const p=document.getElementById('player-search');if(p){p.value=label;filterPlayers();}return;}
+    if(type==='analytics-subtab'){
+        showPage('analytics');
+        const btn=Array.from(document.querySelectorAll('.analytics-subtab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+value+"'"));
+        showAnalyticsSubtab(value,btn||null);
+        return;
+    }
+    if(type==='section'){
+        showPage(pageName||'overview');
+        if(pageName==='analytics'&&subtab){
+            const btn=Array.from(document.querySelectorAll('.analytics-subtab')).find(b=>(b.getAttribute('onclick')||'').includes("'"+subtab+"'"));
+            showAnalyticsSubtab(subtab,btn||null);
+        }
+        setTimeout(()=>{const el=document.getElementById(value); if(el){el.scrollIntoView({behavior:'smooth',block:'start'}); el.classList.add('search-hit'); setTimeout(()=>el.classList.remove('search-hit'),1600);}},60);
+    }
+}
+
 function runGlobalSearch(){
- const input=document.getElementById('global-search'),box=document.getElementById('global-search-results'); if(!input||!box)return;
- const q=input.value.trim().toLowerCase(); if(!q){box.classList.remove('active');box.innerHTML='';return;}
- const results=[]; GLOBAL_PAGES.forEach(r=>{if(r[0].toLowerCase().includes(q))results.push({type:'page',label:r[0],value:r[1],meta:'Page'});});
- (MANAGER_ORDER||[]).forEach(m=>{if(String(m).toLowerCase().includes(q))results.push({type:'manager',label:m,value:m,meta:'Manager'});});
- (playerSearchData||[]).forEach(p=>{if(String(p.name||'').toLowerCase().includes(q))results.push({type:'player',label:p.name,value:String(p.id),meta:(p.position||'')+' · '+(p.team||'')});});
- const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); const visible=results.slice(0,12);
- box.innerHTML=visible.length?visible.map(r=>'<div class="global-search-result" data-type="'+r.type+'" data-value="'+esc(r.value)+'" data-label="'+esc(r.label)+'"><strong>'+esc(r.label)+'</strong><span>'+esc(r.meta)+'</span></div>').join(''):'<div class="global-search-result"><strong>No matches</strong><span>Try another search</span></div>';
- box.classList.add('active'); box.querySelectorAll('[data-type]').forEach(el=>el.addEventListener('click',()=>globalSearchSelect(el.dataset.type,el.dataset.value,el.dataset.label)));
+    const input=document.getElementById('global-search'),box=document.getElementById('global-search-results'); if(!input||!box)return;
+    const q=input.value.trim().toLowerCase(); if(!q){box.classList.remove('active');box.innerHTML='';return;}
+    const results=buildDashboardSearchIndex().filter(r=>((r.label||'')+' '+(r.meta||'')).toLowerCase().includes(q));
+    const seen=new Set();
+    const visible=[];
+    for(const r of results){const key=r.type+'|'+r.label+'|'+(r.page||'')+'|'+(r.subtab||''); if(seen.has(key))continue; seen.add(key); visible.push(r); if(visible.length>=18)break;}
+    const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    box.innerHTML=visible.length?visible.map(r=>'<div class="global-search-result" data-type="'+esc(r.type)+'" data-value="'+esc(r.value)+'" data-label="'+esc(r.label)+'" data-page="'+esc(r.page||'')+'" data-subtab="'+esc(r.subtab||'')+'"><strong>'+esc(r.label)+'</strong><span>'+esc(r.meta)+'</span></div>').join(''):'<div class="global-search-result"><strong>No matches</strong><span>Try a chart, player, manager, page or section</span></div>';
+    box.classList.add('active');
+    box.querySelectorAll('[data-type]').forEach(el=>el.addEventListener('click',()=>globalSearchSelect(el.dataset.type,el.dataset.value,el.dataset.label,el.dataset.page,el.dataset.subtab)));
 }
 document.addEventListener('click',event=>{const wrap=document.querySelector('.global-search-wrap'),box=document.getElementById('global-search-results');if(wrap&&box&&!wrap.contains(event.target))box.classList.remove('active');});
 
@@ -12356,6 +12666,22 @@ function applyAnalyticsManagerFilter() {
         const manager = el.getAttribute("data-analytics-manager");
         el.classList.toggle("analytics-manager-hidden", !analyticsManagerState.visible.has(manager));
     });
+}
+
+function toggleAnalyticsLeagueAverage(enabled) {
+    const page=document.getElementById('page-analytics');
+    if(page) page.classList.toggle('show-league-average', !!enabled);
+}
+
+const SEASON_TIMELINE_DATA = __SEASON_TIMELINE_DATA__;
+function renderSeasonTimeline(index) {
+    const data=SEASON_TIMELINE_DATA||[]; if(!data.length)return;
+    const i=Math.max(0,Math.min(data.length-1,Number(index)||0)), snap=data[i];
+    const label=document.getElementById('season-slider-label'); if(label)label.textContent='GW'+snap.gw;
+    const summary=document.getElementById('season-slider-summary');
+    if(summary) summary.innerHTML='<div><span>Leader</span><strong>'+snap.leader+'</strong></div><div><span>GW high</span><strong>'+snap.high_score+'</strong></div><div><span>GW average</span><strong>'+Number(snap.average_score).toFixed(1)+'</strong></div>';
+    const wrap=document.getElementById('season-slider-table'); if(!wrap)return;
+    wrap.innerHTML='<table><thead><tr><th>#</th><th>Manager</th><th>Record</th><th>LP</th><th>PF</th><th>PA</th><th>GW'+snap.gw+'</th></tr></thead><tbody>'+snap.rows.map(r=>'<tr><td>'+r.rank+'</td><td class="manager-name">'+r.manager+'</td><td>'+r.record+'</td><td><strong>'+r.league_points+'</strong></td><td>'+r.pf+'</td><td>'+r.pa+'</td><td>'+r.gw_score+'</td></tr>').join('')+'</tbody></table>';
 }
 
 function showAnalyticsSubtab(name, button) {
@@ -13897,6 +14223,7 @@ function initialiseDashboard() {
 
     safeInit("Analytics manager filters", function() {
         initAnalyticsManagerFilter();
+if ((SEASON_TIMELINE_DATA||[]).length) renderSeasonTimeline(SEASON_TIMELINE_DATA.length-1);
     });
 
     safeInit("My Team recommendations", function() {
@@ -13977,7 +14304,7 @@ __CSS__
 
 
             <div class="global-search-wrap">
-                <input id="global-search" class="global-search-input" type="search" placeholder="Search player, manager or page…" autocomplete="off" oninput="runGlobalSearch()" onfocus="runGlobalSearch()">
+                <input id="global-search" class="global-search-input" type="search" placeholder="Search everything — players, managers, charts, pages…" autocomplete="off" oninput="runGlobalSearch()" onfocus="runGlobalSearch()">
                 <div id="global-search-results" class="global-search-results"></div>
             </div>
 
@@ -14497,6 +14824,9 @@ __CSS__
                 <h1>Season Summary</h1>
                 <p>The story of McDraft, one completed gameweek at a time.</p>
             </div>
+            <div class="card">__SEASON_TIMELINE_EXPLORER__</div>
+            <div class="card"><h2>Manager of the Month</h2><p class="card-description">Calendar-month honours based on H2H league points, with points scored and wins as tiebreakers. The archive grows through the season.</p><div class="motm-grid">__MANAGERS_OF_MONTH__</div></div>
+            <div class="card"><h2>Milestones</h2><p class="card-description">Firsts, scoring landmarks, league-point landmarks and winning streaks. Newest first.</p><div class="milestone-list">__SEASON_MILESTONES__</div></div>
             <div class="card">
                 <h2>Season Diary</h2>
                 <p class="card-description">Newest first. Each chunky weekly column is built from results, table movement, rivalries, trades, player performances, luck and the following week's fixtures.</p>
@@ -14886,6 +15216,18 @@ replacements = {
 
     "__HOME_GAME_STATE_PANEL__":
         homepage_game_state_html(),
+
+    "__SEASON_TIMELINE_EXPLORER__":
+        season_timeline_explorer_html(),
+
+    "__MANAGERS_OF_MONTH__":
+        manager_of_month_html(),
+
+    "__SEASON_MILESTONES__":
+        season_milestones_html(),
+
+    "__SEASON_TIMELINE_DATA__":
+        json.dumps(season_evolution_data(), ensure_ascii=False),
 
     "__SEASON_SUMMARY__":
         season_summary_html(),
