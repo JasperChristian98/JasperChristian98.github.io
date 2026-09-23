@@ -5,7 +5,7 @@ on:
   # Every 30 minutes from noon to midnight UTC.
   schedule:
     # Every 10 minutes Friday to Monday (UTC)
-    - cron: '*/10 * * * 5,6,0,1'
+    - cron: '*/5 * * * 5,6,0,1'
 
     # Every 20 minutes Tuesday to Thursday (UTC)
     - cron: '*/20 * * * 2-4'
