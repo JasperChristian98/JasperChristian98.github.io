@@ -4,8 +4,11 @@ on:
   # Every 2 hours from midnight to before noon UTC.
   # Every 30 minutes from noon to midnight UTC.
   schedule:
-    - cron: '0 0-10/2 * * *'
-    - cron: '*/30 12-23 * * *'
+    # Every 10 minutes Friday to Monday (UTC)
+    - cron: '*/10 * * * 5,6,0,1'
+
+    # Every 20 minutes Tuesday to Thursday (UTC)
+    - cron: '*/20 * * * 2-4'
 
   # Allow you to run it manually from the Actions tab.
   workflow_dispatch:
