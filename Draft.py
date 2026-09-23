@@ -13380,6 +13380,125 @@ def _analytics_observations():
 
 
 # ============================================================
+# SQUAD TIME MACHINE — HISTORIC FIFA-STYLE SQUAD RATINGS
+# ============================================================
+def _historic_pedigree_line_score(players, position, starters, gw, fallback=45):
+    """Historic positional unit using the player rating recorded/estimated for that GW."""
+    scores = []
+    for player in players:
+        if player.get('position') != position:
+            continue
+        try:
+            pid = int(player.get('id'))
+        except (TypeError, ValueError):
+            continue
+        snap = (_rating_archive.get(str(pid), {}) or {}).get(str(gw), {}) or {}
+        rating = snap.get('rating')
+        if rating is None:
+            continue
+        scores.append(float(rating))
+    scores.sort(reverse=True)
+    top = scores[:starters]
+    first = (sum(top) + fallback * max(0, starters - len(top))) / float(starters)
+    depth = statistics.mean(scores[starters:]) if len(scores) > starters else first
+    return round(0.85 * first + 0.15 * depth, 1)
+
+
+def _squad_time_machine_series():
+    """Rebuild every manager's DEF/MID/ATT/OVR from their actual roster in each completed GW."""
+    out = {m: [] for m in managers}
+    for gw in sorted(set(int(g) for g in finished_gws)):
+        snapshot = (history.get('gameweeks', {}).get(str(gw), {}) or {}).get('teams', {}) or {}
+        for squad in snapshot.values():
+            manager = squad.get('manager')
+            if manager not in out:
+                continue
+            players = []
+            for pick in (squad.get('starters', []) or []) + (squad.get('bench', []) or []):
+                try:
+                    pid = int(pick.get('element_id'))
+                except (TypeError, ValueError):
+                    continue
+                position = pick.get('position') or positions_lookup.get(elements.get(pid, {}).get('element_type'), '')
+                players.append({'id': pid, 'position': position})
+            if not players:
+                continue
+            gk = _historic_pedigree_line_score(players, 'GKP', 1, gw)
+            defenders = _historic_pedigree_line_score(players, 'DEF', 4, gw)
+            mid = _historic_pedigree_line_score(players, 'MID', 4, gw)
+            att = _historic_pedigree_line_score(players, 'FWD', 2, gw)
+            defense = round(0.80 * defenders + 0.20 * gk, 1)
+            ovr = round(0.34 * defense + 0.38 * mid + 0.28 * att, 1)
+            out[manager].append({'gw': gw, 'ovr': ovr, 'def': defense, 'mid': mid, 'att': att})
+    return out
+
+
+def _squad_time_machine_line_svg(series, metric, title, description):
+    rows = [(m, pts) for m, pts in series.items() if pts]
+    if not rows:
+        return f'<div class="card analytics-chart-card"><h2>{escape_html(title)}</h2><div class="notice">Not enough rating history yet.</div></div>'
+    gws = sorted({int(p['gw']) for _, pts in rows for p in pts})
+    if not gws:
+        return ''
+    W,H,PL,PR,PT,PB=920,360,50,22,24,48
+    pw,ph=W-PL-PR,H-PT-PB
+    min_gw,max_gw=min(gws),max(gws)
+    vals=[float(p[metric]) for _,pts in rows for p in pts]
+    lo=max(30, min(vals)-4); hi=min(100, max(vals)+4)
+    if hi-lo < 20:
+        mid=(hi+lo)/2; lo=max(30,mid-10); hi=min(100,mid+10)
+    def x(g): return PL + (float(g)-min_gw)/max(1,max_gw-min_gw)*pw
+    def y(v): return PT + (hi-float(v))/max(1e-9,hi-lo)*ph
+    grid=''
+    for i in range(5):
+        v=lo+(hi-lo)*i/4
+        yy=y(v)
+        grid += f'<line class="matrix-grid" x1="{PL}" x2="{W-PR}" y1="{yy:.1f}" y2="{yy:.1f}"/><text class="matrix-tick" x="{PL-8}" y="{yy+4:.1f}" text-anchor="end">{v:.0f}</text>'
+    for gw in gws:
+        xx=x(gw)
+        grid += f'<text class="matrix-tick" x="{xx:.1f}" y="{H-18}" text-anchor="middle">GW{gw}</text>'
+    marks=''; legend=''
+    for manager, pts in rows:
+        clean=sorted(pts,key=lambda r:r['gw'])
+        colour=manager_color(manager)
+        path=' '.join(('M' if i==0 else 'L')+f'{x(p["gw"]):.1f},{y(p[metric]):.1f}' for i,p in enumerate(clean))
+        marks += f'<g class="analytics-manager-mark time-machine-manager" data-analytics-manager="{escape_html(manager)}"><path d="{path}" fill="none" stroke="{colour}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+        for p in clean:
+            tooltip=f'{manager} · GW{p["gw"]} · {metric.upper()} {p[metric]:.1f}'
+            marks += f'<circle cx="{x(p["gw"]):.1f}" cy="{y(p[metric]):.1f}" r="3.8" fill="{colour}" stroke="#0f172a" stroke-width="1.2"><title>{escape_html(tooltip)}</title></circle>'
+        marks += '</g>'
+        legend += f'<span class="time-machine-key analytics-manager-mark" data-analytics-manager="{escape_html(manager)}"><i style="background:{colour}"></i>{escape_html(manager)}</span>'
+    return (f'<div class="card analytics-chart-card time-machine-card"><h2>{escape_html(title)}</h2>'
+            f'<p class="card-description">{escape_html(description)}</p><div class="time-machine-svg-wrap"><svg class="time-machine-svg" viewBox="0 0 {W} {H}" role="img" aria-label="{escape_html(title)}">{grid}{marks}</svg></div>'
+            f'<div class="time-machine-legend">{legend}</div></div>')
+
+
+def squad_time_machine_html():
+    series = _squad_time_machine_series()
+    changes=[]
+    for manager, pts in series.items():
+        if len(pts) < 2:
+            continue
+        pts=sorted(pts,key=lambda r:r['gw'])
+        changes.append((manager, round(pts[-1]['ovr']-pts[0]['ovr'],1)))
+    changes.sort(key=lambda r:-r[1])
+    change_chart = _category_bar_chart_html(
+        'Squad rating change since first captured GW', changes,
+        'Current historic squad OVR minus the first available OVR for that manager. Positive means the squad has improved on the dynamic rating model.',
+        value_suffix=' pts', y_label='OVR change') if changes else ''
+    cards = [
+        _squad_time_machine_line_svg(series,'ovr','League Rating Race','Every manager’s FIFA-style squad OVR through completed gameweeks, using the players they actually owned and those players’ rating at that point in time.'),
+        _squad_time_machine_line_svg(series,'def','Defence rating race','Historic DEF strength, including the goalkeeper contribution used by Squad Pedigree.'),
+        _squad_time_machine_line_svg(series,'mid','Midfield rating race','Historic MID strength from the best starting midfield assets plus squad depth.'),
+        _squad_time_machine_line_svg(series,'att','Attack rating race','Historic ATT strength from the forward unit and its depth.'),
+        change_chart,
+    ]
+    return ('<div class="card time-machine-intro"><div><h2>Squad Time Machine</h2>'
+            '<p class="card-description">Track how each McDraft squad has strengthened or weakened as transfers, waivers, player form, output and Premier League club form changed. Reconstructed early player ratings remain estimates; observed snapshots stay frozen once captured.</p></div></div>'
+            '<div class="analytics-chart-grid time-machine-grid">'+''.join(c for c in cards if c)+'</div>')
+
+
+# ============================================================
 # RATING LAB — CURRENT PLAYER / SQUAD RATING ANALYTICS
 # ============================================================
 def rating_lab_html():
@@ -13460,6 +13579,7 @@ def rating_lab_html():
     return f'''<div class="card rating-lab-intro"><div><h2>Player Rating Lab</h2>
         <p class="card-description">{escape_html(intro)}</p></div>
         <span class="rating-lab-stamp">Last updated {escape_html(format_london_timestamp(history.get('last_updated','')))}</span></div>
+    {squad_time_machine_html()}
     <div class="card rating-lab-trend-card"><h2>Rating evolution · choose up to four players</h2>
         <p class="card-description">End-of-gameweek ratings are fixed when first observed. Earlier missing weeks are reconstructed from historical points, minutes and Premier League results and shown with dashed lines. Historic injuries, unavailable underlying statistics and some old club moves may not be fully recoverable.</p>
         <div class="rating-lab-searchbar"><label for="rating-lab-search">Find player</label>
@@ -14374,10 +14494,10 @@ def analytics_page_html():
     return f'''<div class="analytics-subtabs" role="tablist" aria-label="Analytics sections">
         <button class="analytics-subtab active" type="button" onclick="showAnalyticsSubtab('insights', this)">McDraft Insights <span>{len(insight_rows[:13])}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('matrices', this)">Matrix Lab <span>{len(_matrix_cards)}</span></button>
-        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('ratings', this)">Rating Lab <span>NEW</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('ratings', this)">Rating Lab</button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('player', this)">Player Analytics <span>{len(player_charts)}</span></button>
-        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('relationships', this)">Player Relationships <span>NEW</span></button>
-        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('river-passport', this)">Transfer River + Player Passport <span>NEW</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('relationships', this)">Player Relationships</button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('river-passport', this)">Transfer River + Player Passport</button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('club', this)">Club Analytics <span>{len(club_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-strength', this)">Squad Strength <span>{len(squad_strength_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('squad-build', this)">Squad Construction <span>{len(squad_construction_charts)}</span></button>
@@ -16738,6 +16858,15 @@ tbody tr:hover {
 @keyframes positionPulse{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
 .trade-sim-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; } .trade-sim-score{text-align:right;min-width:110px}.trade-sim-score span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase}.trade-sim-score b{font-size:28px}
 .trade-sim-manager-row{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:end;margin:18px 0}.trade-sim-manager-row label{font-size:12px;color:var(--muted);font-weight:800}.trade-sim-manager-row select{width:100%;margin-top:6px;background:#0b1220;border:1px solid var(--border);color:white;border-radius:9px;padding:10px}.trade-sim-versus{font-size:22px;padding-bottom:9px}.trade-sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.trade-sim-roster{display:grid;gap:7px}.trade-sim-player{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;padding:9px 10px;border:1px solid var(--border);border-radius:9px;background:#0f172a;cursor:pointer}.trade-sim-player small{display:block;color:var(--muted);margin-top:2px}.trade-sim-position{appearance:none;border:0;background:rgba(96,165,250,.12);color:var(--accent);font:inherit;font-size:10px;font-weight:900;padding:2px 6px;border-radius:999px;cursor:pointer;margin-right:3px}.trade-sim-position:hover{background:rgba(96,165,250,.22)}.trade-sim-player.position-match{border-color:var(--accent);box-shadow:0 0 0 2px rgba(96,165,250,.18);background:rgba(96,165,250,.08)}.trade-sim-player-value{text-align:right}.trade-sim-player-value b{display:block}.trade-sim-player-value span{font-size:10px;color:var(--muted)}.trade-sim-result{margin-top:16px}.trade-sim-result.valid{border-color:#2f855a}.trade-sim-result.invalid{border-color:#b45309}.trade-sim-summary{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}.trade-sim-summary p{margin:7px 0 0;color:var(--muted);line-height:1.55}.trade-sim-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}.trade-sim-breakdown>div{background:#0f172a;border:1px solid var(--border);border-radius:9px;padding:10px}.positive-text{color:#86efac}.negative-text{color:#fca5a5}@media(max-width:720px){.trade-sim-manager-row,.trade-sim-grid,.trade-sim-breakdown{grid-template-columns:1fr}.trade-sim-versus{text-align:center;padding:0}}
+
+.time-machine-intro { margin-top:16px; }
+.time-machine-grid { margin-top:14px; }
+.time-machine-card { min-width:0; }
+.time-machine-svg-wrap { width:100%; overflow-x:auto; }
+.time-machine-svg { display:block; width:100%; min-width:620px; height:auto; }
+.time-machine-legend { display:flex; flex-wrap:wrap; gap:7px 12px; margin-top:8px; }
+.time-machine-key { display:inline-flex; align-items:center; gap:6px; color:var(--muted); font-size:11px; font-weight:700; }
+.time-machine-key i { width:9px; height:9px; border-radius:999px; display:inline-block; }
 
 .analytics-subtabs { display:flex; gap:8px; margin:0 0 20px; overflow-x:auto; padding-bottom:3px; }
 .analytics-subtab { border:1px solid var(--border); background:#0f172a; color:var(--muted); border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:800; white-space:nowrap; }
@@ -22181,7 +22310,7 @@ __CSS__
              ================================================== -->
         <section class="page" id="page-transfers">
             <div class="page-heading"><h1>Transfers</h1><p>Waivers, free-agent churn, negotiated deals and a mildly dangerous trade laboratory.</p></div>
-            <div class="transfer-subtabs" role="tablist" aria-label="Transfer sections"><button class="transfer-subtab active" type="button" onclick="showTransferSubtab('waivers', this)">Waivers</button><button class="transfer-subtab" type="button" onclick="showTransferSubtab('trades', this)">Trades</button><button class="transfer-subtab" type="button" onclick="showTransferSubtab('intelligence', this)">Waiver Intelligence <span>NEW</span></button></div>
+            <div class="transfer-subtabs" role="tablist" aria-label="Transfer sections"><button class="transfer-subtab active" type="button" onclick="showTransferSubtab('waivers', this)">Waivers</button><button class="transfer-subtab" type="button" onclick="showTransferSubtab('trades', this)">Trades</button><button class="transfer-subtab" type="button" onclick="showTransferSubtab('intelligence', this)">Waiver Intelligence</button></div>
             <div class="transfer-subpanel active" id="transfer-subpanel-waivers">
               <div class="card"><h2>Latest Waiver Activity · GW__LATEST_TRANSFER_GW__</h2><p class="card-description">A same-gameweek drop and pickup is shown as one completed waiver move.</p>__RECENT_WAIVER_ACTIVITY__</div>
               <div class="card"><h2>Waiver History</h2><p class="card-description">All captured free-agent ins and outs, paired into manager transactions rather than double-counted player legs.</p><div class="player-filter-grid transfer-filter-grid"><select id="waiver-team-filter" class="player-filter" onchange="filterWaivers()"><option value="">All fantasy teams</option>__TRANSFER_TEAM_OPTIONS__</select></div>__WAIVER_ARCHIVE__</div>
