@@ -20284,6 +20284,7 @@ function showPage(
 
     if (pageName === "war-room") requestAnimationFrame(renderManagerWarRoom);
     if (pageName === "season-simulator") requestAnimationFrame(initSeasonSimulator);
+    if (typeof mcdNavSync === "function") mcdNavSync(pageName);
 
 }
 
@@ -23676,6 +23677,83 @@ __CSS__
  .rating-lab-team-grid{grid-template-columns:1fr}
 }
 
+
+/* McDraft navigation v1: the original pages and subtab handlers are preserved. */
+.mcd-workspace{display:grid;grid-template-columns:254px minmax(0,1fr);max-width:1770px;margin:0 auto;min-width:0;transition:grid-template-columns .2s ease}
+.mcd-workspace.mcd-compact{grid-template-columns:66px minmax(0,1fr)}
+.mcd-workspace>.main{max-width:none;width:100%;min-width:0;padding:24px clamp(14px,2.5vw,32px)}
+.header .nav{display:none!important}
+.header{padding-bottom:0!important}
+.header-top{padding-bottom:16px!important}
+.mcd-sidebar{position:sticky;top:95px;align-self:start;height:calc(100dvh - 108px);min-height:340px;border-right:1px solid var(--border);background:var(--bg-secondary);padding:13px 9px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;z-index:55}
+.mcd-sidebar-head{display:flex;justify-content:space-between;align-items:center;gap:9px;padding:6px 9px 15px;border-bottom:1px solid var(--border);margin-bottom:10px}
+.mcd-sidebar-head strong{font-size:11px;letter-spacing:.11em;color:var(--muted);text-transform:uppercase}
+.mcd-sidebar-collapse{appearance:none;display:grid;place-items:center;min-width:34px;min-height:34px;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;font-size:17px}
+.mcd-nav-section{border-radius:10px;margin:3px 0;overflow:hidden}
+.mcd-nav-section>summary{display:flex;align-items:center;gap:11px;min-height:43px;cursor:pointer;color:var(--text);font-weight:760;padding:10px 11px;list-style:none;border-radius:9px;user-select:none}
+.mcd-nav-section>summary::-webkit-details-marker{display:none}
+.mcd-nav-section>summary:hover,.mcd-nav-section[open]>summary{background:var(--card-hover)}
+.mcd-nav-section.is-current>summary{color:var(--accent)}
+.mcd-nav-icon{display:inline-grid;place-items:center;width:22px;min-width:22px;font-size:19px;line-height:1;font-weight:900;color:var(--muted)}
+.mcd-nav-section.is-current .mcd-nav-icon{color:var(--accent)}
+.mcd-nav-label{font-size:13px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mcd-nav-chevron{font-size:13px;color:var(--muted);transition:transform .2s ease}
+.mcd-nav-section[open] .mcd-nav-chevron{transform:rotate(90deg)}
+.mcd-nav-children{display:grid;gap:2px;padding:3px 0 10px 34px}
+.mcd-nav-link{appearance:none;border:0;display:block;width:100%;text-align:left;background:transparent;color:var(--muted);border-radius:8px;padding:10px 8px;min-height:38px;font:600 12px/1.25 inherit;font-family:inherit;cursor:pointer;transition:background .15s ease,color .15s ease}
+.mcd-nav-link:hover{background:var(--card-hover);color:var(--text)}
+.mcd-nav-link.is-active{background:color-mix(in srgb,var(--accent) 14%,var(--card));color:var(--accent);font-weight:800;box-shadow:inset 3px 0 0 var(--accent)}
+.mcd-sidebar button:focus-visible,.mcd-sidebar summary:focus-visible,.mcd-mobile-bottom button:focus-visible,.mcd-mobile-sheet button:focus-visible,.mcd-mobile-current button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mcd-workspace.mcd-compact .mcd-sidebar{padding:13px 5px;overflow-x:visible}
+.mcd-workspace.mcd-compact .mcd-sidebar-head{padding:5px 6px 14px}
+.mcd-workspace.mcd-compact .mcd-sidebar-head strong,.mcd-workspace.mcd-compact .mcd-nav-label,.mcd-workspace.mcd-compact .mcd-nav-chevron,.mcd-workspace.mcd-compact .mcd-nav-children{display:none}
+.mcd-workspace.mcd-compact .mcd-sidebar-collapse{min-width:37px}
+.mcd-workspace.mcd-compact .mcd-nav-section>summary{justify-content:center;padding:10px 4px}
+.mcd-workspace.mcd-compact .mcd-nav-icon{font-size:20px}
+.mcd-mobile-bottom,.mcd-mobile-current,.mcd-mobile-sheet{display:none}
+.mcd-analytics-directory{padding:18px;border:1px solid var(--border);border-radius:14px;background:var(--card);margin:0 0 22px}
+.mcd-analytics-directory h3{font-size:18px;color:var(--text);margin:0 0 6px}
+.mcd-analytics-directory>p{color:var(--muted);font-size:13px;margin:0 0 15px}
+.mcd-analytics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,198px),1fr));gap:10px}
+.mcd-analytics-quick{display:block;text-align:left;border-radius:11px;border:1px solid var(--border);background:var(--bg-secondary);padding:14px;color:var(--text);cursor:pointer;font:inherit;min-width:0}
+.mcd-analytics-quick:hover{border-color:var(--accent);background:var(--card-hover)}
+.mcd-analytics-quick strong{display:block;font-size:13px;color:var(--text);margin-bottom:5px}
+.mcd-analytics-quick small{font-size:11px;color:var(--muted);line-height:1.45;display:block}
+body[data-theme=light] .mcd-sidebar,body[data-theme=light] .mcd-mobile-sheet{background:#fff;color:#172033}
+body[data-theme=light] .mcd-nav-link.is-active{background:#e6f3fd;color:#0369a1}
+@media(max-width:850px){
+ .mcd-workspace,.mcd-workspace.mcd-compact{display:block}
+ .mcd-sidebar{display:none!important}
+ .mcd-workspace>.main{padding:14px 12px calc(100px + env(safe-area-inset-bottom))!important;max-width:100%;overflow-x:hidden}
+ .mcd-mobile-current{display:flex;align-items:center;justify-content:space-between;gap:9px;margin:0 0 15px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:12px}
+ .mcd-mobile-current span{color:var(--muted)}
+ .mcd-mobile-current strong{color:var(--text);font-size:13px}
+ .mcd-mobile-current button{border:1px solid var(--border);border-radius:9px;background:var(--bg-secondary);color:var(--text);font:700 12px inherit;font-family:inherit;padding:9px;cursor:pointer;min-height:38px}
+ .mcd-mobile-bottom{position:fixed;inset:auto 0 0;z-index:130;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;min-height:65px;padding:5px 3px calc(5px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--card);box-shadow:0 -4px 20px rgba(0,0,0,.12)}
+ .mcd-mobile-bottom button{appearance:none;border:0;border-radius:11px;background:transparent;color:var(--muted);font:700 10px/1.25 inherit;font-family:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;padding:6px 2px;cursor:pointer}
+ .mcd-mobile-bottom button.is-current{background:var(--card-hover);color:var(--accent)}
+ .mcd-mobile-bottom .mcd-nav-icon{font-size:23px;min-height:25px;color:inherit}
+ .mcd-mobile-sheet:not([hidden]){display:flex;position:fixed;inset:0;z-index:180;align-items:flex-end;justify-content:center;background:rgba(4,12,28,.55);backdrop-filter:blur(2px)}
+ .mcd-mobile-sheet-panel{width:100%;max-width:650px;max-height:min(82dvh,760px);display:flex;flex-direction:column;border-radius:20px 20px 0 0;background:var(--card);color:var(--text);border:1px solid var(--border);border-bottom:none;box-shadow:0 -18px 55px rgba(0,0,0,.3);padding-bottom:env(safe-area-inset-bottom)}
+ .mcd-mobile-sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;border-bottom:1px solid var(--border)}
+ .mcd-mobile-sheet-head h2{font-size:19px;margin:0;color:var(--text)}
+ .mcd-mobile-sheet-head button{display:grid;place-items:center;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text);border-radius:10px;font-size:20px;min-width:38px;min-height:38px;cursor:pointer}
+ .mcd-mobile-sheet-content{overflow-y:auto;padding:12px 17px 22px;overscroll-behavior:contain}
+ .mcd-mobile-sheet-group{margin:8px 0 20px}
+ .mcd-mobile-sheet-group h3{font-size:13px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin:7px 0 10px}
+ .mcd-mobile-sheet-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .mcd-mobile-sheet-links button{font:700 12px/1.3 inherit;font-family:inherit;text-align:left;min-height:46px;padding:10px 12px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text);border-radius:10px;cursor:pointer}
+ .mcd-mobile-sheet-links button.is-active{color:var(--accent);border-color:var(--accent);background:var(--card-hover)}
+ .mcd-mobile-sheet[hidden]{display:none!important}
+ body.mcd-mobile-sheet-open{overflow:hidden}
+ .header{padding:10px 12px 0!important;position:relative}
+ .header-top{padding-bottom:8px!important}
+ .mcd-analytics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:410px){.mcd-mobile-sheet-links{grid-template-columns:1fr 1fr}.mcd-analytics-grid{grid-template-columns:1fr 1fr}.mcd-analytics-quick{padding:10px}}
+@media(min-width:851px){.mcd-mobile-bottom,.mcd-mobile-current,.mcd-mobile-sheet{display:none!important}}
+@media(prefers-reduced-motion:reduce){.mcd-workspace{transition:none}}
+
 </style>
 
 </head>
@@ -23835,7 +23913,14 @@ __CSS__
     </header>
 
 
+<div class="mcd-workspace" id="mcd-workspace">
+    <aside class="mcd-sidebar" id="mcd-sidebar" aria-label="Main navigation">
+      <div class="mcd-sidebar-head"><strong>Explore McDraft</strong><button id="mcd-sidebar-collapse" class="mcd-sidebar-collapse" type="button" title="Collapse sidebar" aria-label="Collapse sidebar" aria-expanded="true">«</button></div>
+      <nav id="mcd-sidebar-sections" aria-label="Dashboard sections"></nav>
+    </aside>
     <main class="main">
+<div class="mcd-mobile-current" id="mcd-mobile-current"><span>YOU ARE HERE · <strong id="mcd-mobile-location">Home</strong></span><button type="button" id="mcd-current-browse" aria-haspopup="dialog">Browse section ▾</button></div>
+
 
 
         <!-- ==================================================
@@ -24383,6 +24468,21 @@ __CSS__
 
 
     </main>
+</div><!-- /.mcd-workspace -->
+
+<nav class="mcd-mobile-bottom" id="mcd-mobile-bottom" aria-label="Mobile sections">
+  <button type="button" data-mcd-mobile="home"><span class="mcd-nav-icon" aria-hidden="true">⌂</span>Home</button>
+  <button type="button" data-mcd-mobile="myteam"><span class="mcd-nav-icon" aria-hidden="true">♜</span>My Team</button>
+  <button type="button" data-mcd-mobile="league"><span class="mcd-nav-icon" aria-hidden="true">♛</span>League</button>
+  <button type="button" data-mcd-mobile="market"><span class="mcd-nav-icon" aria-hidden="true">⇄</span>Market</button>
+  <button type="button" data-mcd-mobile="more"><span class="mcd-nav-icon" aria-hidden="true">☷</span>More</button>
+</nav>
+<div class="mcd-mobile-sheet" id="mcd-mobile-sheet" role="presentation" hidden>
+  <div class="mcd-mobile-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="mcd-sheet-title" tabindex="-1">
+    <div class="mcd-mobile-sheet-head"><h2 id="mcd-sheet-title">Browse McDraft</h2><button id="mcd-sheet-close" type="button" aria-label="Close navigation">×</button></div>
+    <div class="mcd-mobile-sheet-content" id="mcd-sheet-content"></div>
+  </div>
+</div>
 
 </div>
 
@@ -24390,6 +24490,216 @@ __CSS__
 <script>
 
 __JAVASCRIPT__
+
+
+/* Navigation only: every destination routes through EXISTING showPage/subtab handlers. */
+const MCD_MENU = [
+ {id:'home',title:'Home',icon:'⌂',page:'overview',items:[
+  ['League overview','overview','overview','standings'],
+  ['Predictions & power rankings','overview','overview','intelligence'],
+  ['Manager War Room','war-room'],
+ ]},
+ {id:'myteam',title:'My Team',icon:'♜',page:'myteam',items:[
+  ['My squad & FIFA pedigree','myteam','myteam','squad'],
+  ['Vulnerability radar','myteam','myteam','squad','myteam-vulnerability-card'],
+  ['Five-GW planner','myteam','myteam','planner'],
+  ['Medical room','myteam','myteam','medical'],
+  ['Transfer targets','myteam','myteam','targets'],
+  ['Player Scout','myteam','myteam','scout'],
+  ['Head-to-head & stats','myteam','myteam','stats'],
+ ]},
+ {id:'league',title:'League',icon:'♛',page:'gameweeks',items:[
+  ['Results & Team of the Week','gameweeks'],
+  ['Fixtures & predictions','fixtures'],
+  ['McDraft Cup','mcdraft-cup'],
+  ['Season evolution','season-summary','season-summary','evolution'],
+  ['McDraft Column archive','season-summary','season-summary','diary'],
+  ['Milestones','season-summary','season-summary','milestones'],
+  ['Records','season-summary','season-summary','records'],
+  ['Share cards','season-summary','season-summary','share'],
+  ['Season Simulator','season-simulator'],
+ ]},
+ {id:'market',title:'Market',icon:'⇄',page:'transfers',items:[
+  ['Waivers & pickups','transfers','transfers','waivers'],
+  ['Waiver Intelligence','transfers','transfers','intelligence'],
+  ['Trades & Trade Lab','transfers','transfers','trades'],
+  ['Draft Centre','draft-centre','draft-centre','overview'],
+  ['Redraft Today','draft-centre','draft-centre','redraft'],
+  ['Original draft board','draft-centre','draft-centre','board'],
+ ]},
+ {id:'players',title:'Players & Clubs',icon:'♙',page:'players',items:[
+  ['Leaders & form','players','players','leaders'],
+  ['Player Directory & ratings','players','players','directory'],
+  ['Injuries & suspensions','players','players','injuries'],
+  ['Availability & departures','players','players','availability'],
+  ['Premier League club overview','clubs','clubs','overview'],
+  ['Club points by gameweek','clubs','clubs','gameweeks'],
+  ['Top players by club','clubs','clubs','players'],
+  ['Free agents by club','clubs','clubs','agents'],
+  ['PL club fixtures','clubs','clubs','fixtures'],
+ ]},
+ {id:'analytics',title:'Analytics',icon:'▥',page:'analytics',items:[
+  ['McDraft Insights','analytics','analytics','insights'],
+  ['Matrix Lab','analytics','analytics','matrices'],
+  ['Rating Lab & Squad Time Machine','analytics','analytics','ratings'],
+  ['Player Analytics','analytics','analytics','player'],
+  ['Player Relationships','analytics','analytics','relationships'],
+  ['Transfer River & Passport','analytics','analytics','river-passport'],
+  ['PL Club Analytics','analytics','analytics','club'],
+  ['Squad Strength','analytics','analytics','squad-strength'],
+  ['Squad Construction','analytics','analytics','squad-build'],
+  ['Manager Decisions','analytics','analytics','decisions'],
+  ['Availability Impact','analytics','analytics','availability-impact'],
+  ['Fixtures & H2H Analytics','analytics','analytics','fixtures-h2h'],
+  ['Season Analytics','analytics','analytics','season'],
+  ['League Stats','analytics','analytics','league-stats'],
+ ]},
+];
+let mcdSelectedGroup='home';
+let mcdMobilePreviousFocus=null;
+function mcdTabSelector(kind){return ({overview:'.overview-tab',myteam:'.myteam-tab',players:'.player-page-tab',clubs:'.club-explorer-tab',transfers:'.transfer-subtab','season-summary':'.season-summary-tab','draft-centre':'.draft-centre-tab',analytics:'#page-analytics .analytics-subtab'})[kind];}
+function mcdSubtabHandler(kind){return ({overview:showOverviewSubtab,myteam:showMyTeamSubtab,players:showPlayerSubtab,clubs:showClubSubtab,transfers:showTransferSubtab,'season-summary':showSeasonSummarySubtab,'draft-centre':showDraftCentreSubtab,analytics:showAnalyticsSubtab})[kind];}
+function mcdActivePage(){return (document.querySelector('.page.active')?.id||'page-overview').replace(/^page-/,'');}
+function mcdActualSubtab(kind){
+ const name=({overview:'overview-sub-',myteam:'myteam-sub-',players:'player-sub-',clubs:'club-sub-',transfers:'transfer-subpanel-','season-summary':'season-summary-sub-','draft-centre':'draft-centre-sub-',analytics:'analytics-sub-'})[kind];
+ if(!name)return null;
+ const active=document.querySelector('[id^="'+name+'"].active');
+ return active?active.id.slice(name.length):null;
+}
+function mcdNavGoto(groupId,entry){
+ const group=MCD_MENU.find(g=>g.id===groupId);if(!group)return;
+ const dest=entry||group.items[0];
+ const [label,page,kind,tab,anchor]=dest;
+ if(!document.getElementById('page-'+page))return;
+ mcdSelectedGroup=groupId;
+ mcdCloseSheet();
+ showPage(page);
+ if(kind && tab){
+  const sel=mcdTabSelector(kind);
+  const btn=sel?Array.from(document.querySelectorAll(sel)).find(b=>(b.getAttribute('onclick')||'').includes("'"+tab+"'")):null;
+  const handler=mcdSubtabHandler(kind);if(typeof handler==='function')handler(tab,btn||null);
+ }
+ mcdNavSync(page);
+ if(anchor){setTimeout(()=>{const el=document.getElementById(anchor);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},150);}
+}
+function mcdElement(tag,classes,text){const el=document.createElement(tag);if(classes)el.className=classes;if(text!=null)el.textContent=text;return el;}
+function mcdBuildMenu(){
+ const sidebar=document.getElementById('mcd-sidebar-sections');if(!sidebar)return;
+ MCD_MENU.forEach(group=>{
+  const details=mcdElement('details','mcd-nav-section');details.dataset.mcdGroup=group.id;
+  if(group.id==='home')details.open=true;
+  const summary=mcdElement('summary');summary.title=group.title;summary.setAttribute('aria-label',group.title);
+  const ico=mcdElement('span','mcd-nav-icon',group.icon);ico.setAttribute('aria-hidden','true');summary.appendChild(ico);
+  summary.appendChild(mcdElement('span','mcd-nav-label',group.title));summary.appendChild(mcdElement('span','mcd-nav-chevron','›'));
+  details.appendChild(summary);
+  const children=mcdElement('div','mcd-nav-children');
+  group.items.forEach((entry,i)=>{
+   const btn=mcdElement('button','mcd-nav-link',entry[0]);btn.type='button';btn.dataset.mcdPage=entry[1];btn.dataset.mcdRoute=group.id+':'+i;
+   btn.addEventListener('click',()=>mcdNavGoto(group.id,entry));children.appendChild(btn);
+  });
+  details.appendChild(children);sidebar.appendChild(details);
+ });
+ const collapse=document.getElementById('mcd-sidebar-collapse');
+ collapse?.addEventListener('click',()=>{
+  const shell=document.getElementById('mcd-workspace'),compact=!shell.classList.contains('mcd-compact');shell.classList.toggle('mcd-compact',compact);
+  collapse.textContent=compact?'»':'«';collapse.setAttribute('aria-expanded',String(!compact));collapse.setAttribute('aria-label',compact?'Expand sidebar':'Collapse sidebar');collapse.title=compact?'Expand sidebar':'Collapse sidebar';
+  if(compact)sidebar.querySelectorAll('details').forEach(d=>d.open=false);
+  else sidebar.querySelector('[data-mcd-group="'+mcdSelectedGroup+'"]')?.setAttribute('open','');
+  setTimeout(()=>{if(typeof resizeCharts==='function')resizeCharts();window.dispatchEvent(new Event('resize'));},230);
+ });
+ sidebar.addEventListener('click',event=>{
+  if(!event.target.closest('summary'))return;
+  const shell=document.getElementById('mcd-workspace');
+  if(shell.classList.contains('mcd-compact')){
+   event.preventDefault();shell.classList.remove('mcd-compact');collapse.textContent='«';collapse.setAttribute('aria-expanded','true');collapse.setAttribute('aria-label','Collapse sidebar');
+   const sect=event.target.closest('details');sect.open=true;
+   setTimeout(()=>{resizeCharts();window.dispatchEvent(new Event('resize'));},230);
+  }
+ });
+ document.querySelectorAll('[data-mcd-mobile]').forEach(btn=>btn.addEventListener('click',()=>{
+  const id=btn.dataset.mcdMobile;
+  if(id==='more'){mcdOpenSheet('more');return;}
+  if(id==='league'||id==='market'){mcdOpenSheet(id);return;}
+  if(mcdSelectedGroup===id && mcdActivePage()===(id==='home'?'overview':'myteam'))mcdOpenSheet(id);
+  else mcdNavGoto(id);
+ }));
+ document.getElementById('mcd-current-browse')?.addEventListener('click',()=>mcdOpenSheet(mcdSelectedGroup));
+ document.getElementById('mcd-sheet-close')?.addEventListener('click',mcdCloseSheet);
+ document.getElementById('mcd-mobile-sheet')?.addEventListener('click',ev=>{if(ev.target.id==='mcd-mobile-sheet')mcdCloseSheet();});
+ document.addEventListener('keydown',ev=>{if(ev.key==='Escape')mcdCloseSheet();});
+ document.addEventListener('click',ev=>{if(ev.target.closest('.overview-tab,.myteam-tab,.player-page-tab,.club-explorer-tab,.transfer-subtab,.season-summary-tab,.draft-centre-tab,#page-analytics .analytics-subtab'))requestAnimationFrame(()=>mcdNavSync());});
+ const insights=document.getElementById('analytics-sub-insights');
+ if(insights){
+  const directory=mcdElement('div','mcd-analytics-directory');
+  const h=mcdElement('h3',null,'Analytics directory');const p=mcdElement('p',null,'Pick a collection. All existing charts and filters are exactly where they were.');directory.append(h,p);
+  const grid=mcdElement('div','mcd-analytics-grid');
+  const featured=[
+   ['ratings','Rating Lab & Squad Time Machine','Player evolution, squad rating race, DEF / MID / ATT.'],
+   ['squad-strength','Squad Strength','Quality, depth and positional comparisons.'],
+   ['player','Player Analytics','Output, form, scarcity and free agents.'],
+   ['matrices','Matrix Lab','Manager comparisons and interactive scatter plots.'],
+   ['decisions','Manager Decisions','Bench calls, transfers and manager performance.'],
+   ['availability-impact','Availability Impact','Injuries, suspensions and squad exposure.'],
+   ['relationships','Player Relationships','Who played with whom and ownership history.'],
+   ['league-stats','League Stats','League-wide trends and analytical records.'],
+  ];
+  featured.forEach(([tab,title,desc])=>{
+   const card=mcdElement('button','mcd-analytics-quick');card.type='button';card.append(mcdElement('strong',null,title),mcdElement('small',null,desc));
+   card.addEventListener('click',()=>mcdNavGoto('analytics',['', 'analytics','analytics',tab]));grid.appendChild(card);
+  });directory.appendChild(grid);insights.prepend(directory);
+ }
+ // Existing search results continue using the original showPage functions.
+ mcdNavSync(mcdActivePage());
+}
+function mcdNavSync(page){
+ const activePage=page||mcdActivePage();
+ const preferred=MCD_MENU.find(g=>g.id===mcdSelectedGroup&&g.items.some(e=>e[1]===activePage));
+ const group=preferred||MCD_MENU.find(g=>g.items.some(e=>e[1]===activePage))||MCD_MENU[0];
+ mcdSelectedGroup=group.id;
+ document.querySelectorAll('.mcd-nav-section').forEach(d=>{
+  const is=d.dataset.mcdGroup===group.id;d.classList.toggle('is-current',is);
+  if(is&&!document.getElementById('mcd-workspace')?.classList.contains('mcd-compact'))d.open=true;
+ });
+ document.querySelectorAll('.mcd-nav-link').forEach(b=>{
+  const g=MCD_MENU.find(g=>g.id===b.dataset.mcdRoute?.split(':')[0]);
+  const item=g?.items[Number(b.dataset.mcdRoute?.split(':')[1])];
+  const active=!!item&&item[1]===activePage&&(!item[2]||mcdActualSubtab(item[2])===item[3]);
+  b.classList.toggle('is-active',active);
+  if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+ });
+ const loc=document.getElementById('mcd-mobile-location');if(loc)loc.textContent=group.title;
+ document.querySelectorAll('[data-mcd-mobile]').forEach(btn=>{
+  const id=btn.dataset.mcdMobile;const selected=(group.id===id||(id==='more'&&['players','analytics'].includes(group.id)));
+  btn.classList.toggle('is-current',selected);if(selected)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current');
+ });
+}
+function mcdOpenSheet(groupId){
+ const sheet=document.getElementById('mcd-mobile-sheet'),content=document.getElementById('mcd-sheet-content');if(!sheet||!content)return;
+ const groups=groupId==='more'?MCD_MENU.filter(g=>['players','analytics'].includes(g.id)):MCD_MENU.filter(g=>g.id===groupId);
+ const title=groupId==='more'?'Players & Analytics':(groups[0]?.title||'Browse McDraft');
+ document.getElementById('mcd-sheet-title').textContent=title;
+ content.replaceChildren();
+ groups.forEach(group=>{
+  const wrap=mcdElement('section','mcd-mobile-sheet-group');wrap.append(mcdElement('h3',null,group.title));
+  const links=mcdElement('div','mcd-mobile-sheet-links');
+  group.items.forEach(entry=>{
+   const btn=mcdElement('button',null,entry[0]);btn.type='button';
+   const active=mcdActivePage()===entry[1]&&(!entry[2]||mcdActualSubtab(entry[2])===entry[3]);
+   btn.classList.toggle('is-active',active);btn.addEventListener('click',()=>mcdNavGoto(group.id,entry));links.appendChild(btn);
+  });wrap.appendChild(links);content.appendChild(wrap);
+ });
+ mcdMobilePreviousFocus=document.activeElement;
+ sheet.hidden=false;document.body.classList.add('mcd-mobile-sheet-open');
+ document.getElementById('mcd-sheet-close').focus();
+}
+function mcdCloseSheet(){
+ const sheet=document.getElementById('mcd-mobile-sheet');if(!sheet||sheet.hidden)return;
+ sheet.hidden=true;document.body.classList.remove('mcd-mobile-sheet-open');
+ if(mcdMobilePreviousFocus&&document.contains(mcdMobilePreviousFocus))mcdMobilePreviousFocus.focus();
+ mcdMobilePreviousFocus=null;
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mcdBuildMenu);
+else mcdBuildMenu();
 
 </script>
 
