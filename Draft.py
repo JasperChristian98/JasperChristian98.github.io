@@ -503,6 +503,7 @@ def get_live_gw_data(gw):
             "points": el["stats"]["total_points"],
             "in_dreamteam": el["stats"]["in_dreamteam"],
             "minutes": el["stats"]["minutes"],
+            "fpl_stats": el.get("stats", {}),  # historic component replay
         }
         for el in data.get("elements", [])
     }
@@ -7270,8 +7271,44 @@ def _rating_percentile(pos, key, value):
     return _rating_bisect.bisect_right(vals, value) / len(vals)
 
 
+# Rating calibration v2: raise the floor while preserving the elite ceiling.
+# v1 used 26 + 72*w; v2 uses 35 + 63*w. This compresses the lower half upward
+# without turning middling assets into 80+ players.
+PLAYER_RATING_CALIBRATION_VERSION = 2
+PLAYER_RATING_FLOOR = 35.0
+PLAYER_RATING_SPAN = 63.0
+
+def _calibrated_player_rating(weighted):
+    return int(round(PLAYER_RATING_FLOOR + PLAYER_RATING_SPAN * _rating_clamp(weighted)))
+
+def _legacy_rating_to_v2(value):
+    try:
+        old = float(value)
+    except (TypeError, ValueError):
+        return value
+    # Inverse old scale (26..98) then apply v2 (35..98).
+    weight = _rating_clamp((old - 26.0) / 72.0)
+    return _calibrated_player_rating(weight)
+
+def _rating_tier(value):
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        score = 0.0
+    if score >= 90: return 'platinum'
+    if score >= 80: return 'gold'
+    if score >= 70: return 'silver'
+    return 'bronze'
+
 _player_ratings_by_id = {}
 _rating_previous = history.get('player_rating_previous', {}) or {}
+_rating_old_version = int(history.get('player_rating_calibration_version', 1) or 1)
+if _rating_old_version < PLAYER_RATING_CALIBRATION_VERSION:
+    for _key, _prev in list(_rating_previous.items()):
+        if isinstance(_prev, dict) and _prev.get('rating') is not None:
+            _prev['rating'] = _legacy_rating_to_v2(_prev['rating'])
+        elif isinstance(_prev, (int, float)):
+            _rating_previous[_key] = _legacy_rating_to_v2(_prev)
 for _entry in player_search_data:
     pid = int(_entry['id'])
     f = _rating_features[pid]
@@ -7304,7 +7341,7 @@ for _entry in player_search_data:
                 + 0.11 * reliability + 0.09 * advanced)
     # Fixed calibration: scores do not artificially inflate just because the
     # weakest player in today's pool is poor or many players are injured.
-    rating = int(round(26.0 + 72.0 * _rating_clamp(weighted)))
+    rating = _calibrated_player_rating(weighted)
     prior_rating = _rating_previous.get(str(pid), {})
     previous = prior_rating.get('rating') if isinstance(prior_rating, dict) else prior_rating
     delta = rating - int(previous) if isinstance(previous, (int, float)) else None
@@ -7314,7 +7351,7 @@ for _entry in player_search_data:
               'matches_missed_estimate': max(0, int(_pl_table_stats.get(elements.get(pid, {}).get('team'), {}).get('played', 0)) - int(f['starts'])),
               'as_of': history.get('last_updated')}
     _player_ratings_by_id[pid] = detail
-    _entry.update(player_rating=rating, rating_change=delta,
+    _entry.update(player_rating=rating, rating_change=delta, rating_tier=_rating_tier(rating),
                   rating_breakdown=components,
                   club_form_score=detail['club_form'],
                   minutes_share=detail['minutes_share'],
@@ -7323,6 +7360,242 @@ for _entry in player_search_data:
 # Existing trade and value calculations remain independent of the /100 rating.
 # Store the previous build for up/down indicators after the next scheduled run.
 history['player_rating_previous'] = {str(pid): {'rating': r['rating']} for pid, r in _player_ratings_by_id.items()}
+
+# ============================================================
+# PERSISTENT PLAYER RATING HISTORY / RETROSPECTIVE TREND ESTIMATES
+# ============================================================
+# New GWs are observed ONCE, on the first build that sees them completed.
+# Already-finished weeks from before this feature launched are reconstructed
+# from per-GW FPL live statistics and the historical Premier League results.
+# Historical medical availability, mid-season unowned club transfers and some
+# older underlying metrics cannot always be recovered: mark those points as
+# ESTIMATED, never pretend they are previously-recorded rating snapshots.
+_RATING_COMPONENT_NAMES = ('3GW form', '5GW form', 'Season output',
+                           'Draft pedigree', 'PL club & form',
+                           'Availability & minutes', 'Underlying stats')
+_rating_archive = history.setdefault('player_rating_history', {})
+if _rating_old_version < PLAYER_RATING_CALIBRATION_VERSION:
+    for _player_points in _rating_archive.values():
+        if not isinstance(_player_points, dict):
+            continue
+        for _snapshot in _player_points.values():
+            if isinstance(_snapshot, dict) and _snapshot.get('rating') is not None:
+                _snapshot['rating'] = _legacy_rating_to_v2(_snapshot['rating'])
+history['player_rating_calibration_version'] = PLAYER_RATING_CALIBRATION_VERSION
+_rating_completed = sorted(set(int(g) for g in finished_gws))
+_rating_latest_completed = _rating_completed[-1] if _rating_completed else 0
+
+
+def _historic_club_last_five(as_of_gw):
+    records = defaultdict(list)
+    for fixture in _all_pl_fixtures:
+        if not isinstance(fixture, dict) or not fixture.get('finished'):
+            continue
+        try:
+            gw = int(fixture.get('event') or 0)
+            if not gw or gw > as_of_gw:
+                continue
+            home, away = int(fixture['team_h']), int(fixture['team_a'])
+            hs, aws = int(fixture['team_h_score']), int(fixture['team_a_score'])
+        except (ValueError, KeyError, TypeError):
+            continue
+        order = (gw, str(fixture.get('kickoff_time') or ''))
+        records[home].append((order, 3 if hs > aws else 1 if hs == aws else 0))
+        records[away].append((order, 3 if aws > hs else 1 if hs == aws else 0))
+    return {club: (sum(v for _, v in last) / (3.0 * len(last)) if last else 0.5)
+            for club in _pl_team_meta_by_id
+            for last in [sorted(records.get(club, []), key=lambda r: r[0])[-5:]]}
+
+
+def _historical_rating_club_hints(gw):
+    # When this player was actually rostered in the frozen GW, use that week's
+    # pinned club instead of today's club. For previously-unowned players the
+    # FPL live feed has no historical-club field; use the present club and
+    # explicitly mark the entire reconstructed history as estimated.
+    hints = {}
+    reverse = {str(name): int(cid) for cid, name in teams_lookup.items()}
+    for squad in (history.get('gameweeks', {}).get(str(gw), {}) or {}).get('teams', {}).values():
+        for pick in squad.get('starters', []) + squad.get('bench', []):
+            try:
+                pid = int(pick['element_id'])
+            except (TypeError, KeyError, ValueError):
+                continue
+            club = reverse.get(str(pick.get('team') or ''))
+            if club:
+                hints[pid] = club
+    return hints
+
+
+def _retrospective_player_rating_points(missing_gws):
+    """Backfill missing finished GWs without future results leaking into scores."""
+    if not missing_gws:
+        return
+    from collections import defaultdict as _defaultdict
+    cumulative = _defaultdict(lambda: _defaultdict(float))
+    gw_points = _defaultdict(dict)
+    eligible = {int(row['id']): row for row in player_search_data}
+    official_keys = ('expected_goal_involvements', 'goals_scored', 'assists',
+                     'bonus', 'bps', 'defensive_contribution',
+                     'clean_sheets', 'saves')
+
+    for gw in _rating_completed:
+        live = get_live_gw_data(gw)
+        if not live:
+            # An unavailable old API response must not become an invented
+            # zero-scoring week in any historical rating.
+            continue
+        for pid, record in live.items():
+            if pid not in eligible:
+                continue
+            stats = record.get('fpl_stats', {}) or {}
+            acc = cumulative[pid]
+            pts = _rating_num(record.get('points'))
+            minutes = max(0.0, _rating_num(record.get('minutes')))
+            gw_points[pid][gw] = pts
+            acc['points'] += pts
+            acc['minutes'] += minutes
+            for key in official_keys:
+                if key in stats:
+                    acc[key] += _rating_num(stats.get(key))
+                    acc['_available_' + key] += 1.0
+
+        if gw not in missing_gws:
+            continue
+        club_hint = _historical_rating_club_hints(gw)
+        club_form = _historic_club_last_five(gw)
+        club_strength = _pl_club_strength_snapshot(gw)['scores']
+        club_played = _pl_table_snapshot(gw)['stats']
+        positions = _defaultdict(lambda: _defaultdict(list))
+        per_player = {}
+        elapsed = [g for g in _rating_completed if g <= gw]
+        for pid, row in eligible.items():
+            pos = row.get('position', '')
+            acc = cumulative[pid]
+            minutes = acc['minutes']
+            three = statistics.mean([gw_points[pid].get(g, 0.0) for g in elapsed[-3:]])
+            five = statistics.mean([gw_points[pid].get(g, 0.0) for g in elapsed[-5:]])
+            season = acc['points'] / max(1, len(elapsed))
+            per90 = 90.0 / max(270.0, minutes)
+            has_advanced = any(acc.get('_available_' + k, 0) for k in official_keys)
+            xgi = acc['expected_goal_involvements'] * per90
+            goals = acc['goals_scored'] * per90
+            assists = acc['assists'] * per90
+            bonus = acc['bonus'] * per90
+            bps = acc['bps'] * per90
+            defensive = acc['defensive_contribution'] * per90
+            clean = acc['clean_sheets'] * per90
+            saves = acc['saves'] * per90
+            if pos == 'GKP':
+                advanced = .42 * clean + .24 * saves + .20 * bonus + .14 * bps / 20
+            elif pos == 'DEF':
+                advanced = .30 * clean + .24 * defensive + .20 * xgi + .14 * bonus + .12 * bps / 20
+            elif pos == 'MID':
+                advanced = .41 * xgi + .22 * goals + .16 * assists + .13 * defensive + .08 * bonus
+            else:
+                advanced = .49 * xgi + .28 * goals + .17 * assists + .06 * bonus
+            club = club_hint.get(pid, elements.get(pid, {}).get('team'))
+            try:
+                club = int(club)
+            except (TypeError, ValueError):
+                club = None
+            rank = _rating_num(_blended_draft_rank(pid), UNDRAFTED_PLAYER_RANK)
+            draft = _rating_clamp(1 - (rank - 1) / (UNDRAFTED_PLAYER_RANK - 1)) ** .70
+            quality = _rating_clamp(.65 * club_strength.get(club, .5) + .35 * club_form.get(club, .5))
+            played = club_played.get(club, {}).get('played', len(elapsed))
+            game_time = _rating_clamp(minutes / max(1, played * 90))
+            per_player[pid] = dict(pos=pos, three=three, five=five, season=season,
+                                   advanced=advanced, has_advanced=has_advanced,
+                                   draft=draft, club=quality, club_form=club_form.get(club, .5),
+                                   game_time=game_time, minutes=minutes, points=gw_points[pid].get(gw, 0))
+            if minutes >= 90:
+                for key in ('three', 'five', 'season'):
+                    positions[pos][key].append(per_player[pid][key])
+                if has_advanced:
+                    positions[pos]['advanced'].append(advanced)
+        for bucket in positions.values():
+            for arr in bucket.values():
+                arr.sort()
+
+        def pct(pos, key, value):
+            vals = positions[pos].get(key, [])
+            if len(vals) < 2 or abs(vals[-1] - vals[0]) < 1e-8:
+                return .5
+            return _rating_bisect.bisect_right(vals, value) / len(vals)
+
+        for pid, f in per_player.items():
+            prior = .65 * f['draft'] + .35 * f['club']
+            confidence = _rating_clamp(f['minutes'] / 720)
+            def shrink(key):
+                return confidence * pct(f['pos'], key, f[key]) + (1 - confidence) * prior
+            recent3 = shrink('three')
+            recent5 = shrink('five')
+            season = shrink('season')
+            advanced = shrink('advanced') if f['has_advanced'] else .5
+            # Retrospective medical/suspension information was never captured;
+            # use a neutral availability assumption, but preserve historical
+            # actual minutes. These are estimates, not the historical API state.
+            reliability = .6 * 1.0 + .4 * f['game_time']
+            weighted = (.23 * recent3 + .10 * recent5 + .20 * season
+                        + .14 * f['draft'] + .13 * f['club']
+                        + .11 * reliability + .09 * advanced)
+            components = (recent3, recent5, season, f['draft'], f['club'],
+                          reliability, advanced)
+            _rating_archive.setdefault(str(pid), {}).setdefault(str(gw), {
+                'gw': gw, 'rating': _calibrated_player_rating(weighted),
+                'source': 'estimated',
+                'components': [int(round(100 * v)) for v in components],
+                'club_form': int(round(100 * f['club_form'])),
+                'points': int(round(f['points'])),
+            })
+
+
+# The current API is observed at the present build, not retroactively applied
+# to a past GW. Earlier missing weeks are explicitly historical estimates.
+_retro_gws = {gw for gw in _rating_completed if gw < _rating_latest_completed and
+              any(str(gw) not in _rating_archive.get(str(pid), {})
+                  for pid in _player_ratings_by_id)}
+_retrospective_player_rating_points(_retro_gws)
+
+for _pid, _detail in _player_ratings_by_id.items():
+    _series = _rating_archive.setdefault(str(_pid), {})
+    _actual = {
+        'gw': _rating_latest_completed, 'rating': _detail['rating'],
+        'source': 'observed',
+        'components': [int(round(_detail['breakdown'][k])) for k in _RATING_COMPONENT_NAMES],
+        'club_form': int(round(_detail['club_form'])),
+        'points': int(_rating_num(all_player_gw_points.get(_pid, {}).get(_rating_latest_completed))),
+    }
+    # Once observed at GW close, lock it; a transfer, new status or next GW's
+    # form must never silently rewrite the earlier snapshot.
+    if _rating_latest_completed and str(_rating_latest_completed) not in _series:
+        _series[str(_rating_latest_completed)] = dict(_actual)
+    _actual['source'] = 'latest'
+    _actual['captured_at'] = history.get('last_updated')
+    _ordered = [_series[k] for k in sorted(_series, key=int)
+                if int(k) <= _rating_latest_completed]
+    # Always include the genuinely current rating, separately from the
+    # frozen end-of-GW snapshot when the rating/components have moved.
+    if not _ordered or any(_actual[k] != _ordered[-1][k]
+                           for k in ('rating', 'components', 'club_form')):
+        _ordered.append(_actual)
+    _entry = _player_model_by_id.get(_pid) if '_player_model_by_id' in globals() else None
+    # The model-by-id index is normally built later. The loop below instead
+    # writes directly into the already available player_search_data records.
+    _detail['historical_samples'] = _ordered
+
+for _entry in player_search_data:
+    _pid = int(_entry['id'])
+    _points = _player_ratings_by_id.get(_pid, {})
+    _entry['rating_history'] = _points.get('historical_samples', [])
+    _entry['draft_active'] = bool(elements.get(_pid, {}).get('draft_active', True))
+    _series = _entry['rating_history']
+    # Movement uses the preceding GW, NOT the last hourly refresh.
+    past = [p for p in _series if p.get('source') != 'latest']
+    base = past[-2] if len(past) > 1 else None
+    _entry['rating_gw_delta'] = (_entry['player_rating'] - base['rating']) if base else None
+
+history['player_rating_history'] = _rating_archive
+
 
 # Rebuild now that projection/value/heat/history fixture context has been added.
 player_search_json=json.dumps(player_search_data,ensure_ascii=False)
@@ -8559,7 +8832,7 @@ def _round_half_star(value):
     return min(5.0, max(0.0, round(float(value) * 2.0) / 2.0))
 
 
-def _pedigree_line_score(players, position, starters, fallback=38):
+def _pedigree_line_score(players, position, starters, fallback=45):
     """FIFA-esque positional unit: best starting assets 85%, genuine depth 15%."""
     scores = sorted((int(_player_ratings_by_id.get(int(p['id']), {}).get('rating', fallback))
                      for p in players if p.get('position') == position), reverse=True)
@@ -8609,7 +8882,7 @@ def squad_pedigree_table():
     for idx, entry in enumerate(rows_data):
         name=escape_html(entry['manager'])
         score=entry['ovr']
-        tier='elite' if score >= 80 else 'strong' if score >= 65 else 'developing' if score >= 50 else 'building'
+        tier=_rating_tier(score)
         star_label=_star_text(entry['stars'])
         form_text=f"{entry['form']:.1f}" if entry['form'] is not None else '—'
         table_rows.append(f"""<tr><td class="manager-name">{name}</td>
@@ -8624,13 +8897,13 @@ def squad_pedigree_table():
         player_rows=[]
         for player in players_sorted:
             pid=int(player['id']); detail=_player_ratings_by_id.get(pid,{})
-            rating=int(detail.get('rating',38)); delta=detail.get('change')
+            rating=int(detail.get('rating',45)); delta=detail.get('change'); rating_tier=_rating_tier(rating)
             trend=('+'+str(delta) if delta>0 else str(delta)) if delta is not None else '—'
             club=teams_lookup.get(elements.get(pid,{}).get('team'),'—')
             delta_class='rating-up' if delta is not None and delta>0 else 'rating-down' if delta is not None and delta<0 else 'rating-flat'
             player_rows.append(f'<tr><td>{escape_html(player.get("position") or "—")}</td>'
                 f'<td><b>{escape_html(player.get("name") or "Unknown")}</b><small>{escape_html(club)}</small></td>'
-                f'<td><strong>{rating}</strong></td><td class="{delta_class}">{trend}</td>'
+                f'<td><strong class="rating-tier-number {rating_tier}">{rating}</strong></td><td class="{delta_class}">{trend}</td>'
                 f'<td>{detail.get("club_form",50):.0f}</td>'
                 f'<td>{detail.get("minutes_share",0):.0f}%</td></tr>')
         summary=f"""<summary class="pedigree-summary"><div class="pedigree-head">
@@ -8652,7 +8925,7 @@ OVR = 34% DEF, 38% MID, 28% ATT. Player ratings automatically follow recent FPL 
 <h3 class="pedigree-comparison-title">League-wide squad comparison</h3>
 <div class="table-wrap"><table><thead><tr><th>Manager</th><th>OVR</th><th>DEF</th><th>MID</th><th>ATT</th><th>Stars /5</th><th>Avg player</th><th>Draft rank ↓</th><th>3GW pts</th></tr></thead>
 <tbody>{''.join(table_rows)}</tbody></table></div>
-<p class="card-description">Five-star bands are fixed to the same /100 scale (35 = ★, 50 = ★★, 65 = ★★★, 80 = ★★★★, 95 = ★★★★★), never forced relative to this league. Player ratings influence the immediately upcoming GW projection by at most ±7%; later-GW projections keep the original fixture model.</p>"""
+<p class="card-description">Five-star bands are fixed to the /100 scale (35 = ★, 50 = ★★, 65 = ★★★, 80 = ★★★★, 95 = ★★★★★). Rating colours are Bronze <70, Silver 70–79, Gold 80–89 and Platinum 90+, never forced relative to this league. Player ratings influence the immediately upcoming GW projection by at most ±7%; later-GW projections keep the original fixture model.</p>"""
 
 
 def season_prediction_table():
@@ -13106,6 +13379,115 @@ def _analytics_observations():
     return observations[:8]
 
 
+# ============================================================
+# RATING LAB — CURRENT PLAYER / SQUAD RATING ANALYTICS
+# ============================================================
+def rating_lab_html():
+    rated = [p for p in player_search_data
+             if p.get('player_rating') is not None
+             and elements.get(int(p['id']), {}).get('draft_active', True)]
+    useful = [p for p in rated if _rating_num(p.get('minutes')) >= 90
+              or _rating_num(p.get('total_points')) > 0]
+    top = sorted(rated, key=lambda p: (-p['player_rating'], p['name']))
+    top_rows = [(p['name'], p['player_rating'], p['id']) for p in top]
+    free = [p for p in top if p.get('fantasy_team') in ('Free Agent', 'Free agents', None, '')]
+    movers = [p for p in rated if p.get('rating_gw_delta') is not None]
+    risers = sorted((p for p in movers if p['rating_gw_delta'] > 0),
+                    key=lambda p: (-p['rating_gw_delta'], -p['player_rating']))
+    fallers = sorted((p for p in movers if p['rating_gw_delta'] < 0),
+                     key=lambda p: (p['rating_gw_delta'], p['player_rating']))
+    current_club_scores = [(p['id'], p['name'], p.get('club_form_score', 50), p['player_rating'])
+                           for p in useful]
+    squad_rows = []
+    for manager in managers:
+        roster = current_squad_strength.get(manager, {}).get('players', [])
+        if not roster:
+            continue
+        gk, _ = _pedigree_line_score(roster, 'GKP', 1)
+        d, _ = _pedigree_line_score(roster, 'DEF', 4)
+        m, _ = _pedigree_line_score(roster, 'MID', 4)
+        a, _ = _pedigree_line_score(roster, 'FWD', 2)
+        defensive = round(.8 * d + .2 * gk, 1)
+        overall = round(.34 * defensive + .38 * m + .28 * a, 1)
+        squad_rows.append((manager, overall, defensive, m, a))
+    squad_rows.sort(key=lambda t: -t[1])
+    squad_cards = ''.join(
+        f'<div class="rating-lab-team {_rating_tier(ovr)}" data-analytics-manager="{escape_html(name)}">'
+        f'<div><strong>{escape_html(name)}</strong><span class="rating-tier-number {_rating_tier(ovr)}">OVR {ovr:.0f}</span></div>'
+        f'<div class="rating-lab-team-units">'
+        + ''.join(f'<div title="{pos}: {score:.1f} / 100"><small>{pos}</small>'
+                  f'<i><em style="width:{score:.1f}%"></em></i><b>{score:.0f}</b></div>'
+                  for pos, score in (('DEF', defense), ('MID', mid), ('ATT', att)))
+        + '</div></div>'
+        for name, ovr, defense, mid, att in squad_rows
+    )
+    intro = ('Ratings refresh when the dashboard rebuilds. Compare player ' 
+             'rating trajectories, see which factors moved and spot rating ' 
+             'gaps by position. Bronze is <70, Silver 70–79, Gold 80–89 and Platinum 90+. The shared manager chips also filter this lab.')
+    charts = [
+        _category_bar_chart_html('Top-rated players /100', top_rows,
+            'Current seven-factor rating (not the trade-value score). Filter by manager above.',
+            y_label='Current rating /100', limit=20),
+        _category_bar_chart_html('Highest-rated free agents',
+            [(p['name'], p['player_rating'], p['id']) for p in free],
+            'Unowned players: ratings are based on football output and availability, not ownership.',
+            y_label='Rating /100', limit=15),
+        _category_bar_chart_html('Biggest rating rises',
+            [(p['name'], p['rating_gw_delta'], p['id']) for p in risers],
+            'Change since the previous finished GW. Earlier unrecorded GWs are estimates.',
+            value_suffix=' pts', y_label='Rating change', limit=15),
+        _category_bar_chart_html('Biggest rating falls',
+            [(p['name'], abs(p['rating_gw_delta']), p['id']) for p in fallers],
+            'Absolute size of the rating decline since the previous finished GW.',
+            value_suffix=' pts', y_label='Rating drop', limit=15),
+        _player_scatter_chart_html('Rating vs season production',
+            [(p['id'], p['name'], p.get('total_points', 0), p['player_rating']) for p in useful],
+            'Who looks better or worse once form, draft pedigree, club quality and availability count?',
+            x_label='FPL points this season', y_label='Dynamic rating /100'),
+        _player_scatter_chart_html('PL club form vs player rating', current_club_scores,
+            'Club form alone is only one input; this distinguishes individual stars from their clubs.',
+            x_label='Club last-five form /100', y_label='Player rating /100',
+            fixed_x_min=0, fixed_x_max=100),
+        _player_scatter_chart_html('Draft pedigree vs current rating',
+            [(p['id'], p['name'], p.get('blended_draft_rank', 151), p['player_rating']) for p in useful],
+            'How much has on-pitch evidence changed each player’s preseason expectations?',
+            x_label='Blended original draft rank', y_label='Player rating /100',
+            reverse_x=True, fixed_x_min=1, fixed_x_max=151),
+        _bar_chart_html('FIFA squad OVR /100', {n: ovr for n, ovr, *_ in squad_rows},
+            'Exactly the same current-roster formula used in Squad Pedigree.',
+            y_label='Squad OVR /100'),
+    ]
+    return f'''<div class="card rating-lab-intro"><div><h2>Player Rating Lab</h2>
+        <p class="card-description">{escape_html(intro)}</p></div>
+        <span class="rating-lab-stamp">Last updated {escape_html(format_london_timestamp(history.get('last_updated','')))}</span></div>
+    <div class="card rating-lab-trend-card"><h2>Rating evolution · choose up to four players</h2>
+        <p class="card-description">End-of-gameweek ratings are fixed when first observed. Earlier missing weeks are reconstructed from historical points, minutes and Premier League results and shown with dashed lines. Historic injuries, unavailable underlying statistics and some old club moves may not be fully recoverable.</p>
+        <div class="rating-lab-searchbar"><label for="rating-lab-search">Find player</label>
+          <input id="rating-lab-search" type="search" placeholder="Search the player pool…" oninput="ratingLabFind()" autocomplete="off" />
+          <button type="button" onclick="ratingLabAutoSelect()">Current top four</button>
+          <button type="button" onclick="ratingLabClear()">Clear</button></div>
+        <div id="rating-lab-suggestions" class="rating-lab-suggestions" aria-live="polite"></div>
+        <div id="rating-lab-chips" class="rating-lab-selected" aria-live="polite"></div>
+        <div id="rating-lab-trend" class="rating-lab-trend" role="img" aria-label="Dynamic player rating chart"></div>
+        <div class="rating-lab-legend"><span><i></i> Observed end-of-GW rating</span>
+            <span><i class="estimated"></i> Retrospective estimate</span></div></div>
+    <div class="analytics-chart-grid rating-lab-detailed">
+      <div class="card rating-lab-driver-card"><h2>Why did the rating move?</h2>
+        <div class="rating-lab-driver-controls"><label for="rating-lab-focus">Player</label>
+        <select id="rating-lab-focus" onchange="ratingLabDrivers()"></select>
+        <label for="rating-lab-week">Snapshot</label>
+        <select id="rating-lab-week" onchange="ratingLabDrivers(true)"></select></div>
+        <div id="rating-lab-drivers"></div></div>
+      <div class="card rating-lab-hist-card"><h2>Where do the ratings sit?</h2>
+        <p class="card-description">Live distribution of currently selected players, grouped by position. Use the manager filter above.</p>
+        <div id="rating-lab-position-filter" class="rating-lab-position-chips"></div>
+        <div id="rating-lab-histogram"></div></div>
+    </div>
+    <div class="card rating-lab-squad-card"><h2>Squad OVR · DEF / MID / ATT</h2>
+        <p class="card-description">FIFA-style unit breakdown from the same individual player ratings shown above. Only managers selected in the shared filter remain visible.</p>
+        <div class="rating-lab-team-grid">{squad_cards}</div></div>
+    <div class="analytics-chart-grid rating-lab-main-charts">{''.join(charts)}</div>'''
+
 def analytics_page_html():
     avg_score={m:_manager_season_avg(m) for m in managers}
     last3={m:_manager_last_n_avg(m,3) for m in managers}
@@ -13848,6 +14230,8 @@ def analytics_page_html():
     insight_rows = _analytics_observations() + extra_obs
     insights=''.join(f'<div class="analytics-insight"><span>{escape_html(k)}</span><strong>{escape_html(v)}</strong></div>' for k,v in insight_rows[:13])
     player_charts=[
+        _category_bar_chart_html('Dynamic player rating /100', [(p['name'], p['player_rating'], p['id']) for p in player_search_data if p.get('player_rating') is not None], 'Current seven-factor rating, refreshed on each dashboard build.', y_label='Rating /100', limit=20),
+        _category_bar_chart_html('Largest player rating moves', [(p['name'], abs(p['rating_gw_delta']), p['id']) for p in player_search_data if p.get('rating_gw_delta') is not None], 'Absolute moves since the previous completed gameweek; see Rating Lab for the direction and reasons.', y_label='Rating change', limit=20),
         _positional_scarcity_table_html(),
         _category_bar_chart_html('Positional scarcity index',[( {'GKP':'GK','DEF':'DEF','MID':'MID','FWD':'FWD'}.get(p,p),v) for p,v in positional_scarcity.items()],'Higher means the elite tier sits further above the best available free-agent replacement.',x_label='Position',y_label='Scarcity index',limit=10),
         _category_bar_chart_html('Best free-agent production by position',[( {'GKP':'GK','DEF':'DEF','MID':'MID','FWD':'FWD'}.get(p,p),v) for p,v in positional_best_fa.items()],'Best unowned player at each position, measured in points per completed GW.',x_label='Position',y_label='Points per GW',limit=10),
@@ -13990,6 +14374,7 @@ def analytics_page_html():
     return f'''<div class="analytics-subtabs" role="tablist" aria-label="Analytics sections">
         <button class="analytics-subtab active" type="button" onclick="showAnalyticsSubtab('insights', this)">McDraft Insights <span>{len(insight_rows[:13])}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('matrices', this)">Matrix Lab <span>{len(_matrix_cards)}</span></button>
+        <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('ratings', this)">Rating Lab <span>NEW</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('player', this)">Player Analytics <span>{len(player_charts)}</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('relationships', this)">Player Relationships <span>NEW</span></button>
         <button class="analytics-subtab" type="button" onclick="showAnalyticsSubtab('river-passport', this)">Transfer River + Player Passport <span>NEW</span></button>
@@ -14009,6 +14394,7 @@ def analytics_page_html():
     </div>
     <div class="analytics-subpage active" id="analytics-sub-insights"><div class="card analytics-hero"><h2>McDraft Insights</h2><p class="card-description">Generated from the latest captured league, squad, fixture and transfer data.</p><div class="analytics-insight-grid">{insights}</div></div></div>
     <div class="analytics-subpage" id="analytics-sub-matrices">{matrix_html}</div>
+    <div class="analytics-subpage" id="analytics-sub-ratings">{rating_lab_html()}</div>
     <div class="analytics-subpage" id="analytics-sub-player">
         <div class="analytics-player-summary"><p class="card-description">Use the shared Manager filter above to choose one or more current fantasy owners. Player dots and bars retain each team’s colour; free agents are grey. League-wide positional-scarcity comparisons remain unchanged.</p><span id="analytics-player-count" class="muted" aria-live="polite"></span></div>
         <div class="analytics-chart-grid">{''.join(player_charts)}</div>
@@ -16988,7 +17374,7 @@ function resizeCharts() {
 const analyticsManagerState = { visible: new Set(), includeFreeAgents: true };
 
 function applyPlayerAnalyticsFilter(){
-    const page=document.getElementById('analytics-sub-player');
+    const page=document.getElementById('page-analytics');
     if(!page) return;
     const selected=analyticsManagerState.visible;
     const includeFreeAgents=analyticsManagerState.includeFreeAgents;
@@ -17153,6 +17539,7 @@ function applyAnalyticsManagerFilter() {
     refreshMatrixManagerState();
     renderPlayerRelationshipGraph();
     renderTransferRiverPassport();
+    if(document.getElementById('analytics-sub-ratings')?.classList.contains('active')) ratingLabRender();
 }
 
 function toggleAnalyticsLeagueAverage(enabled) {
@@ -17821,8 +18208,187 @@ function showAnalyticsSubtab(name, button) {
     if (button) button.classList.add('active');
     // The shared Manager filter stays visible on every Analytics subtab.
     if(name==='player') applyPlayerAnalyticsFilter();
+    if(name==='ratings'){applyPlayerAnalyticsFilter();ratingLabRender();}
     if(name==='relationships') requestAnimationFrame(renderPlayerRelationshipGraph);
     if(name==='river-passport') requestAnimationFrame(renderTransferRiverPassport);
+}
+
+/* ============================================================
+   RATING LAB — persistent GW trends, current ratings and factor attribution
+   ============================================================ */
+const ratingLabState = {selected:[], initialised:false, position:'ALL'};
+const ratingLabPalette = ['#edbd68','#6acbe0','#d296e8','#84d49d'];
+const ratingLabFactors = ['3GW form','5GW form','Season output','Draft pedigree',
+                          'PL club & form','Availability & minutes','Underlying stats'];
+function ratingLabEsc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function ratingTier(score){score=Number(score||0);return score>=90?'platinum':score>=80?'gold':score>=70?'silver':'bronze';}
+function ratingTierLabel(score){const t=ratingTier(score);return t.charAt(0).toUpperCase()+t.slice(1);}
+function ratingLabOwner(p){return (!p.fantasy_team || p.fantasy_team==='Free Agent' || p.fantasy_team==='Free agents')
+    ? 'Free agents' : p.fantasy_team;}
+function ratingLabAllowed(p){const owner=ratingLabOwner(p);
+    return owner==='Free agents' ? analyticsManagerState.includeFreeAgents
+         : analyticsManagerState.visible.has(owner);}
+function ratingLabPool(){return playerSearchData.filter(p=>p.draft_active!==false && Number.isFinite(Number(p.player_rating)) && ratingLabAllowed(p));}
+function ratingLabRecord(id){return playerSearchData.find(p=>Number(p.id)===Number(id));}
+function ratingLabPoints(p){return (p.rating_history||[]).filter(r=>Number.isFinite(Number(r.rating)));}
+function ratingLabAutoSelect(){
+    ratingLabState.initialised=true;
+    ratingLabState.selected=ratingLabPool().filter(p=>ratingLabPoints(p).length)
+        .sort((a,b)=>Number(b.player_rating)-Number(a.player_rating)).slice(0,4).map(p=>Number(p.id));
+    const search=document.getElementById('rating-lab-search');if(search)search.value='';
+    ratingLabRender();
+}
+function ratingLabClear(){ratingLabState.initialised=true;ratingLabState.selected=[];ratingLabRender();}
+function ratingLabAdd(pid){
+    pid=Number(pid);const p=ratingLabRecord(pid);
+    if(!p || !ratingLabAllowed(p) || ratingLabState.selected.includes(pid))return;
+    ratingLabState.initialised=true;
+    if(ratingLabState.selected.length===4) ratingLabState.selected.shift();
+    ratingLabState.selected.push(pid);
+    const search=document.getElementById('rating-lab-search');if(search)search.value='';
+    ratingLabRender();
+}
+function ratingLabRemove(pid){ratingLabState.selected=ratingLabState.selected.filter(id=>id!==Number(pid));ratingLabRender();}
+function ratingLabFind(){
+    const input=document.getElementById('rating-lab-search');
+    const root=document.getElementById('rating-lab-suggestions');if(!root)return;
+    const term=(input?.value||'').trim().toLowerCase();
+    if(!term){root.innerHTML='';return;}
+    const rows=ratingLabPool().filter(p=>((p.name||'')+' '+(p.team||'')+' '+(p.position||'')).toLowerCase().includes(term))
+        .sort((a,b)=>Number(b.player_rating)-Number(a.player_rating)).slice(0,12);
+    root.innerHTML=rows.length ? rows.map(p=>'<button type="button" onclick="ratingLabAdd('+Number(p.id)+')">'
+        +ratingLabEsc(p.name)+' <small>'+ratingLabEsc(p.position)+' · '+ratingLabEsc(ratingLabOwner(p))+'</small> '
+        +'<strong class="rating-tier-number '+ratingTier(p.player_rating)+'">'+Number(p.player_rating)+'/100</strong></button>').join('')
+        : '<span class="muted">No matching players in the current manager filter.</span>';
+}
+function ratingLabSVG(players,compact=false){
+    const datasets=players.map(p=>({player:p,rows:ratingLabPoints(p)})).filter(d=>d.rows.length);
+    if(!datasets.length)return '<div class="notice">No ratings available for this selection yet.</div>';
+    const W=compact?700:1000,H=compact?190:342,L=compact?37:52,R=compact?15:27,T=compact?12:18,B=compact?26:49;
+    const pw=W-L-R,ph=H-T-B;
+    const historical=datasets.flatMap(d=>d.rows.filter(r=>r.source!=='latest').map(r=>Number(r.gw)));
+    const minGw=historical.length?Math.min(...historical):1;
+    const maxGw=Math.max(...historical,1);
+    const hasNow=datasets.some(d=>d.rows.some(r=>r.source==='latest'));
+    const end=maxGw+(hasNow?1:0);
+    const X=r=>L+((r.source==='latest'?maxGw+1:Number(r.gw))-minGw)/Math.max(1,end-minGw)*pw;
+    const Y=r=>T+(100-Math.max(30,Math.min(100,Number(r.rating))))/70*ph;
+    let html='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Player ratings by gameweek">';
+    for(const tick of [30,40,50,60,70,80,90,100]){
+        const y=T+(100-tick)/70*ph;
+        html+='<line class="rating-lab-grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'"/>'
+            +'<text class="rating-lab-axis" x="'+(L-9)+'" y="'+(y+4)+'" text-anchor="end">'+tick+'</text>';
+    }
+    const step=compact?Math.max(1,Math.ceil((end-minGw)/7)):Math.max(1,Math.ceil((end-minGw)/12));
+    for(let g=minGw;g<=end;g++){
+        if((g-minGw)%step!==0 && g!==end)continue;
+        const x=L+(g-minGw)/Math.max(1,end-minGw)*pw;
+        html+='<text class="rating-lab-axis" x="'+x+'" y="'+(H-B+17)+'" text-anchor="middle">'
+            +(hasNow&&g===end?'Now':'GW'+g)+'</text>';
+    }
+    datasets.forEach((d,idx)=>{
+        const colour=ratingLabPalette[idx%ratingLabPalette.length];
+        const rows=d.rows;
+        for(let j=1;j<rows.length;j++){
+            const a=rows[j-1],b=rows[j];
+            const estimate=a.source==='estimated'||b.source==='estimated';
+            html+='<path d="M'+X(a).toFixed(1)+','+Y(a).toFixed(1)+' L'+X(b).toFixed(1)+','+Y(b).toFixed(1)+'"'
+                +' stroke="'+colour+'" stroke-width="'+(compact?2:3)+'" fill="none"'
+                +(estimate?' stroke-dasharray="7 5"':'')+'/>';
+        }
+        rows.forEach(r=>{
+            const desc=(r.source==='estimated'?'Retrospective estimate':r.source==='latest'?'Latest build':'Observed GW snapshot');
+            const tooltip=d.player.name+' · '+(r.source==='latest'?'Now':'GW'+r.gw)
+                +' · '+r.rating+'/100 · '+desc+' · PL club form '+Number(r.club_form||0)+'/100';
+            html+='<circle cx="'+X(r).toFixed(1)+'" cy="'+Y(r).toFixed(1)+'" r="'+(compact?3.1:4.3)+'"'
+                +' fill="'+(r.source==='estimated'?'#101827':colour)+'" stroke="'+colour+'" stroke-width="2" tabindex="0">'
+                +'<title>'+ratingLabEsc(tooltip)+'</title></circle>';
+        });
+    });
+    html+='</svg>';
+    return html;
+}
+function ratingLabRender(){
+    const root=document.getElementById('analytics-sub-ratings');if(!root)return;
+    if(!ratingLabState.initialised){ratingLabAutoSelect();return;}
+    ratingLabState.selected=ratingLabState.selected.filter(id=>{const p=ratingLabRecord(id);return p&&ratingLabAllowed(p);});
+    const picked=ratingLabState.selected.map(ratingLabRecord).filter(Boolean);
+    const chips=document.getElementById('rating-lab-chips');
+    if(chips)chips.innerHTML=picked.length?picked.map((p,i)=>'<button type="button" class="rating-lab-chip"'
+        +' style="--chip:'+ratingLabPalette[i%ratingLabPalette.length]+'" onclick="ratingLabRemove('+Number(p.id)+')">'
+        +ratingLabEsc(p.name)+' <b class="rating-tier-number '+ratingTier(p.player_rating)+'">'+Number(p.player_rating)+'</b> <span aria-label="Remove">×</span></button>').join('')
+        :'<span class="muted">Search for players above, or choose Current top four.</span>';
+    const canvas=document.getElementById('rating-lab-trend');
+    if(canvas)canvas.innerHTML=ratingLabSVG(picked);
+    ratingLabDrivers(false);
+    ratingLabHistogram();
+    ratingLabFind();
+}
+function ratingLabDrivers(keepWeek=false){
+    const focus=document.getElementById('rating-lab-focus'),weeks=document.getElementById('rating-lab-week');
+    const root=document.getElementById('rating-lab-drivers');if(!focus||!weeks||!root)return;
+    const oldId=focus.value,oldIndex=weeks.value;
+    const picked=ratingLabState.selected.map(ratingLabRecord).filter(Boolean);
+    focus.innerHTML=picked.map(p=>'<option value="'+Number(p.id)+'">'+ratingLabEsc(p.name)+'</option>').join('');
+    if(oldId&&picked.some(p=>String(p.id)===oldId))focus.value=oldId;
+    const p=ratingLabRecord(focus.value);
+    if(!p){weeks.innerHTML='';root.innerHTML='<div class="notice">Select at least one player to inspect their rating drivers.</div>';return;}
+    const points=ratingLabPoints(p);
+    weeks.innerHTML=points.map((r,i)=>'<option value="'+i+'">'
+        +(r.source==='latest'?'Now':'GW'+r.gw)
+        +(r.source==='estimated'?' · estimate':'')+'</option>').join('');
+    weeks.value=(keepWeek && oldIndex!=='' && Number(oldIndex)<points.length)?oldIndex:String(Math.max(0,points.length-1));
+    const at=Number(weeks.value),curr=points[at],prev=at>0?points[at-1]:null;
+    if(!curr){root.innerHTML='<div class="notice">No snapshot has been captured yet.</div>';return;}
+    const delta=prev?curr.rating-prev.rating:null;
+    const trend=delta===null?'First snapshot':(delta>0?'+'+delta:delta)+' rating points';
+    const summary='<div class="rating-lab-driver-summary"><div><strong class="rating-tier-number '+ratingTier(curr.rating)+'">'+curr.rating+'</strong><small>/100 · '+ratingTierLabel(curr.rating)+'</small>'
+        +'<span class="'+(delta>0?'rating-up':delta<0?'rating-down':'rating-flat')+'">'+trend+'</span></div>'
+        +'<div><b>'+Number(curr.club_form??50)+'/100</b><small>PL club last-5 form'
+        +(prev?' · '+(Number(curr.club_form)-Number(prev.club_form)>=0?'+':'')
+            +(Number(curr.club_form)-Number(prev.club_form))+' since previous':'' )+'</small></div></div>';
+    const current=curr.components||[];const earlier=prev?.components||[];
+    const rows=ratingLabFactors.map((name,i)=>{
+        const value=Number(current[i]??50),before=prev?Number(earlier[i]??50):null;
+        const change=before===null?null:value-before;
+        return '<div class="rating-lab-factor"><div><span>'+ratingLabEsc(name)+'</span>'
+            +'<strong>'+value+'/100'+(change===null?'':' <small class="'+(change>0?'rating-up':change<0?'rating-down':'rating-flat')+'">'
+                +(change>0?'+':'')+change+'</small>')+'</strong></div>'
+            +'<i><em style="width:'+Math.max(0,Math.min(100,value))+'%"></em>'
+            +(before===null?'':'<b style="left:'+Math.max(0,Math.min(100,before))+'%" title="Previous: '+before+'"></b>')
+            +'</i></div>';
+    }).join('');
+    const caution=(curr.source==='estimated'||prev?.source==='estimated')
+        ?'<p class="rating-lab-caution">Dashed history uses reconstructed estimates. Historical medical status and unavailable per-GW advanced data are not recoverable.</p>':'';
+    root.innerHTML=summary+rows+caution;
+}
+function ratingLabHistogram(){
+    const root=document.getElementById('rating-lab-histogram'),filter=document.getElementById('rating-lab-position-filter');
+    if(!root||!filter)return;
+    const posLabels={ALL:'All players',GKP:'GK',DEF:'DEF',MID:'MID',FWD:'ATT'};
+    filter.innerHTML=Object.entries(posLabels).map(([p,l])=>'<button type="button" class="'
+        +(ratingLabState.position===p?'active':'')+'" onclick="ratingLabPosition('+"'"+p+"'"+')">'+l+'</button>').join('');
+    const pool=ratingLabPool().filter(p=>ratingLabState.position==='ALL'||p.position===ratingLabState.position);
+    const bins=[30,40,50,60,70,80,90];
+    const counts=bins.map(min=>pool.filter(p=>Number(p.player_rating)>=min && Number(p.player_rating)<min+10).length);
+    const maximum=Math.max(1,...counts);
+    root.innerHTML=bins.map((min,i)=>'<div class="rating-lab-hist-row"><span>'+min+'–'+(min+9)+'</span>'
+        +'<i><em class="rating-hist-'+ratingTier(min+5)+'" style="width:'+(counts[i]/maximum*100).toFixed(1)+'%"></em></i><strong>'+counts[i]+'</strong></div>').join('')
+        +'<div class="rating-lab-hist-total">'+pool.length+' players in current filter</div>';
+}
+function ratingLabPosition(pos){ratingLabState.position=pos;ratingLabHistogram();}
+function openRatingLabForPlayer(id){
+    const p=ratingLabRecord(id);if(!p)return;
+    const owner=ratingLabOwner(p);
+    if(owner==='Free agents')analyticsManagerState.includeFreeAgents=true;
+    else analyticsManagerState.visible.add(owner);
+    renderAnalyticsManagerChips();applyAnalyticsManagerFilter();
+    ratingLabState.initialised=true;ratingLabState.selected=[Number(id)];
+    showPage('analytics');
+    const btn=Array.from(document.querySelectorAll('#page-analytics .analytics-subtab'))
+        .find(el=>(el.getAttribute('onclick')||'').includes("'ratings'"));
+    showAnalyticsSubtab('ratings',btn||null);
 }
 
 /* ============================================================
@@ -19894,7 +20460,7 @@ function renderPlayerDirectoryCard(player) {
     return '<div class="player-directory-card">' +
         '<div class="player-directory-main">' +
             '<div class="player-directory-name">' + escapePlayerHTML(player.name) + '</div>' +
-            '<div class="player-rating-pill" title="Current dynamic rating out of 100">' + Number(player.player_rating || 0).toFixed(0) + '<small>/100</small>' +
+            '<div class="player-rating-pill '+ratingTier(player.player_rating)+'" title="'+ratingTierLabel(player.player_rating)+' dynamic rating">' + Number(player.player_rating || 0).toFixed(0) + '<small>/100</small>' +
             (player.rating_change === null || player.rating_change === undefined ? '' :
              '<em class="' + (player.rating_change > 0 ? 'rating-up' : player.rating_change < 0 ? 'rating-down' : 'rating-flat') + '">' +
              (player.rating_change > 0 ? '+' : '') + Number(player.rating_change) + '</em>') + '</div>' +
@@ -19913,6 +20479,7 @@ function renderPlayerDirectoryCard(player) {
         '</div>' +
         '<button class="player-details-button" onclick="togglePlayerDetails(' + player.id + ')">Details</button>' +
         '<div class="player-details" id="player-details-' + player.id + '" style="display:none;">' +
+            '<div class="rating-lab-directory-link"><button type="button" onclick="openRatingLabForPlayer(' + player.id + ')">See rating history &amp; compare players →</button></div>' +
             '<div class="player-radar-panel"><h3>Player performance radar</h3>' + playerRadarHTML(player) + '</div>' +
             fixtureRunHTML(player.next_fixtures, false) +
             '<div class="player-stat-chips">' +
@@ -20846,10 +21413,12 @@ css += r"""
 .pedigree-fifa-card summary{list-style:none;cursor:pointer;padding:16px}
 .pedigree-fifa-card summary::-webkit-details-marker{display:none}
 .pedigree-head{display:flex;align-items:center;gap:16px;margin-bottom:13px}
-.pedigree-overall{flex:none;width:82px;height:97px;border:2px solid #c4a15b;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-direction:column;background:linear-gradient(160deg,#f8db9b,#b88e43);color:#2d260f;box-shadow:0 3px 12px rgba(0,0,0,.25)}
-.pedigree-overall.strong{background:linear-gradient(160deg,#e8eef2,#879fb6);border-color:#aac0d4;color:#183044}
-.pedigree-overall.developing{background:linear-gradient(160deg,#eac39a,#995a36);border-color:#c68e60;color:#372013}
-.pedigree-overall.building{background:linear-gradient(160deg,#bac3cf,#52647b);border-color:#9aaec3;color:#102034}
+.pedigree-overall{flex:none;width:82px;height:97px;border:2px solid;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-direction:column;box-shadow:0 3px 12px rgba(0,0,0,.25)}
+.pedigree-overall.platinum,.player-rating-pill.platinum{background:linear-gradient(145deg,#f7ffff 0%,#bde8ee 32%,#8ebcc8 63%,#dff9fa 100%);border-color:#d8ffff;color:#153947;box-shadow:0 0 18px rgba(174,238,244,.22)}
+.pedigree-overall.gold,.player-rating-pill.gold{background:linear-gradient(145deg,#ffe7a1,#d7a83d 58%,#9b6d17);border-color:#f7d36b;color:#33250a}
+.pedigree-overall.silver,.player-rating-pill.silver{background:linear-gradient(145deg,#f2f5f7,#aeb8c2 58%,#6e7b89);border-color:#d7e0e7;color:#1d2a34}
+.pedigree-overall.bronze,.player-rating-pill.bronze{background:linear-gradient(145deg,#e3ad7d,#a86536 58%,#6b3c20);border-color:#d99a68;color:#2f170c}
+.rating-tier-number{font-weight:900}.rating-tier-number.platinum{color:#c9f8ff;text-shadow:0 0 10px rgba(172,239,247,.26)}.rating-tier-number.gold{color:#f5c95d}.rating-tier-number.silver{color:#d7e0e7}.rating-tier-number.bronze{color:#d89561}
 .pedigree-overall strong{font-size:39px;line-height:1;font-weight:900;letter-spacing:-2px}
 .pedigree-overall small{font-size:11px;font-weight:900;letter-spacing:2px;margin-top:4px}
 .pedigree-identity{min-width:0}.pedigree-identity h3{margin:0 0 6px;font-size:18px;overflow-wrap:anywhere;color:#fff}
@@ -20867,7 +21436,7 @@ css += r"""
 .pedigree-detail-stats b{font-size:18px;color:#f4e0b2}.pedigree-players-table{font-size:11px}
 .pedigree-players-table small{display:block;color:#95a9bd;margin-top:3px}
 .pedigree-comparison-title{margin:18px 0 10px}.rating-up{color:#48d8a4!important}.rating-down{color:#ff8c8c!important}.rating-flat{color:#a9b4c4!important}
-.player-rating-pill{display:inline-flex;align-items:center;gap:3px;width:max-content;margin-top:8px;border:1px solid #dbbc66;background:linear-gradient(110deg,#e8c572,#ac8335);color:#1d241c;border-radius:8px;padding:5px 8px;font-size:21px;font-weight:900;line-height:1}
+.player-rating-pill{display:inline-flex;align-items:center;gap:3px;width:max-content;margin-top:8px;border:1px solid;border-radius:8px;padding:5px 8px;font-size:21px;font-weight:900;line-height:1}
 .player-rating-pill small{font-size:10px}.player-rating-pill em{font-size:10px;margin-left:3px;font-style:normal;background:#102339;padding:4px;border-radius:5px}
 .rating-breakdown{flex:1 1 100%;min-width:220px;background:#0d192b;border-radius:10px;padding:12px;margin-top:8px}
 .rating-breakdown>b{color:#e9d193}.rating-breakdown p{font-size:11px;line-height:1.6;color:#a8b8ca}
@@ -20899,6 +21468,69 @@ html_template = r"""
 <style>
 
 __CSS__
+
+/* v57: player rating evolution and FIFA analytics */
+.rating-lab-intro{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;border-color:rgba(235,186,103,.45)}
+.rating-lab-intro h2{color:#f0cf81}
+.rating-lab-stamp{border:1px solid #705e38;background:#322b21;color:#f1d69c;border-radius:8px;padding:8px 11px;font-weight:800;font-size:11px}
+.rating-lab-trend-card{border:1px solid rgba(224,186,111,.5)}
+.rating-lab-searchbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:14px}
+.rating-lab-searchbar label,.rating-lab-driver-controls label{font-size:11px;font-weight:800;color:#b8cce1}
+.rating-lab-searchbar input{flex:1;min-width:165px;max-width:400px;background:#121f32;border:1px solid #435776;color:#f1f4fb;border-radius:8px;padding:10px 12px;font-size:13px}
+.rating-lab-searchbar button,.rating-lab-directory-link button{border:1px solid #a68a51;background:#313348;color:#f7dca7;padding:10px 12px;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer}
+.rating-lab-searchbar button:hover,.rating-lab-directory-link button:hover{background:#464054}
+.rating-lab-suggestions{display:flex;gap:5px;flex-wrap:wrap;margin:11px 0}
+.rating-lab-suggestions button{display:flex;gap:8px;align-items:center;background:#172639;border:1px solid #344b62;color:#eaf0fc;border-radius:7px;cursor:pointer;padding:7px 9px;font-size:11px}
+.rating-lab-suggestions button small{color:#a7bed2}.rating-lab-suggestions button strong{color:#f4cd77}
+.rating-lab-selected{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0;min-height:33px;align-items:center}
+.rating-lab-chip{display:flex;align-items:center;gap:9px;color:#f1f4fd;background:#19283a;border:1px solid var(--chip);border-left:5px solid var(--chip);border-radius:9px;padding:8px 11px;font-weight:700;font-size:12px;cursor:pointer}
+.rating-lab-chip b{font-size:17px;color:var(--chip)}.rating-lab-chip span{color:#aab4c8}
+.rating-lab-trend{width:100%;overflow-x:auto;background:#0c1626;border:1px solid #2d4058;border-radius:12px;padding:10px 6px}
+.rating-lab-trend svg{display:block;width:100%;min-width:400px;max-height:375px}
+.rating-lab-grid{stroke:#293d53;stroke-width:1;stroke-dasharray:3 5}
+.rating-lab-axis{font-size:11px;fill:#aebbd0;font-weight:600}
+.rating-lab-legend{display:flex;gap:20px;flex-wrap:wrap;color:#adbed2;font-size:11px;margin-top:10px}
+.rating-lab-legend span{display:flex;align-items:center;gap:7px}
+.rating-lab-legend i{display:inline-block;width:27px;border-top:3px solid #edbd68}
+.rating-lab-legend i.estimated{border-top-style:dashed}
+.rating-lab-detailed{margin-top:14px}
+.rating-lab-driver-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 16px}
+.rating-lab-driver-controls select{background:#142339;border:1px solid #47617a;border-radius:8px;color:#ebeff8;padding:8px 10px;max-width:180px}
+.rating-lab-driver-summary{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;padding:13px;border:1px solid #3a4b60;border-radius:11px;background:#101e2e;margin-bottom:13px}
+.rating-lab-driver-summary>div{display:flex;flex-direction:column;gap:3px}
+.rating-lab-driver-summary strong{font-size:32px;line-height:1;color:#f1cb7e}
+.rating-lab-driver-summary small{font-size:11px;color:#b0c4d6}.rating-lab-driver-summary b{font-size:21px;color:#a5dbf3}
+.rating-lab-driver-summary span{font-size:11px;font-weight:800}
+.rating-lab-factor{margin:13px 0}.rating-lab-factor>div{display:flex;justify-content:space-between;gap:9px;font-size:12px;margin-bottom:5px}
+.rating-lab-factor strong{white-space:nowrap}.rating-lab-factor strong small{font-weight:800;margin-left:4px}
+.rating-lab-factor>i{display:block;position:relative;height:11px;border-radius:9px;background:#2d4257;overflow:visible}
+.rating-lab-factor>i>em{display:block;height:100%;background:linear-gradient(90deg,#3d9eaf,#efc777);border-radius:9px}
+.rating-lab-factor>i>b{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;box-shadow:0 0 0 1px #243345}
+.rating-lab-caution{font-size:11px;color:#f3cd91;background:#392b20;border:1px solid #685033;padding:9px;border-radius:7px;margin:13px 0 0}
+.rating-lab-position-chips{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+.rating-lab-position-chips button{border:1px solid #455970;color:#c8d7e7;background:#172739;padding:7px 10px;border-radius:8px;cursor:pointer;font-weight:700;font-size:11px}
+.rating-lab-position-chips button.active{border-color:#e3b860;color:#f7d28b;background:#39402e}
+.rating-lab-hist-row{display:grid;grid-template-columns:62px 1fr 26px;align-items:center;gap:12px;font-size:12px;margin:15px 0}
+.rating-lab-hist-row>i{height:16px;background:#24344a;border-radius:4px;overflow:hidden}
+.rating-lab-hist-row>i>em{display:block;height:100%;border-radius:4px}.rating-hist-platinum{background:linear-gradient(90deg,#8ebcc8,#e1fbfd)}.rating-hist-gold{background:linear-gradient(90deg,#a87820,#f3cf68)}.rating-hist-silver{background:linear-gradient(90deg,#748493,#dce4ea)}.rating-hist-bronze{background:linear-gradient(90deg,#7a4528,#d48c58)}
+.rating-lab-hist-row strong{text-align:right}.rating-lab-hist-total{margin-top:15px;font-size:11px;color:#aebdd0}
+.rating-lab-team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:15px}
+.rating-lab-team{border:1px solid #344758;border-radius:10px;background:linear-gradient(110deg,#182b3e,#101b2b);padding:13px}.rating-lab-team.platinum{border-color:#bde8ee}.rating-lab-team.gold{border-color:#d7a83d}.rating-lab-team.silver{border-color:#9daab6}.rating-lab-team.bronze{border-color:#9b633e}
+.rating-lab-team>div:first-child{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px}
+.rating-lab-team>div:first-child strong{font-size:12px}.rating-lab-team>div:first-child span{font-size:19px;font-weight:900;color:#f0c872}
+.rating-lab-team-units{display:flex;flex-direction:column;gap:7px}
+.rating-lab-team-units>div{display:grid;grid-template-columns:34px 1fr 28px;align-items:center;gap:9px}
+.rating-lab-team-units small{font-size:10px;font-weight:800;color:#9fb9d0}
+.rating-lab-team-units i{height:8px;background:#293e52;border-radius:5px;overflow:hidden}
+.rating-lab-team-units em{display:block;height:100%;background:linear-gradient(90deg,#288ebd,#b4bc6a,#efbc67)}
+.rating-lab-team-units b{text-align:right;font-size:12px}
+.rating-lab-directory-link{margin:7px 0 16px}
+@media(max-width:620px){
+ .rating-lab-trend-card{padding:12px}.rating-lab-trend svg{min-width:390px}
+ .rating-lab-driver-controls{align-items:flex-start}.rating-lab-driver-controls select{max-width:100%}
+ .rating-lab-searchbar input{max-width:none;flex-basis:100%}
+ .rating-lab-team-grid{grid-template-columns:1fr}
+}
 
 </style>
 
@@ -21473,7 +22105,7 @@ __CSS__
             <div class="player-subpage" id="player-sub-directory">
                 <div class="card">
                     <div class="player-directory-heading">
-                        <div><h2>Player Directory</h2><p class="card-description">Live /100 ratings across the full player pool. Filter by position, Premier League club or your draft fantasy team, then open Details for the seven-factor breakdown.</p></div>
+                        <div><h2>Player Directory</h2><p class="card-description">Live /100 ratings across the full player pool (Bronze <70 · Silver 70–79 · Gold 80–89 · Platinum 90+). Filter by position, Premier League club or your draft fantasy team, then open Details for the seven-factor breakdown.</p></div>
                         <div class="player-directory-count" id="player-directory-count"></div>
                     </div>
                     <div class="player-filter-grid">
