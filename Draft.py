@@ -11861,6 +11861,173 @@ for _pos in _POSITION_ORDER:
 positional_need_json = json.dumps(positional_need_map, ensure_ascii=False)
 
 # ============================================================
+# MY TEAM · SQUAD VULNERABILITY RADAR
+# ============================================================
+# Snapshot of the CURRENT Draft roster, not a claim about a manager's old squad.
+# All axes represent exposure (0 = less exposed, 100 = more exposed).  The
+# existing next-GW forecast and FPL availability flags are reused; no new API
+# calls are required. Rebuilt whenever the existing dashboard job runs.
+
+def _vulnerability_clamp(value):
+    return round(max(0.0, min(100.0, float(value))), 1)
+
+
+def build_squad_vulnerability_data(rosters=None):
+    import collections
+    roster_map = _trade_rosters if rosters is None else rosters
+    pos_labels = {'GKP': 'goalkeeper', 'DEF': 'defence', 'MID': 'midfield', 'FWD': 'attack'}
+    scores_weight = {'star': 0.18, 'medical': 0.23, 'depth': 0.21,
+                     'clubs': 0.10, 'fixtures': 0.14, 'fragility': 0.14}
+    target = int(dashboard_target_gw or (max(finished_gws, default=0) + 1))
+    result = {}
+
+    def axis(key, title, score, summary, drivers, available=True):
+        return {'key': key, 'label': title,
+                'score': _vulnerability_clamp(score) if available else None,
+                'summary': summary, 'drivers': drivers[:4], 'available': available}
+
+    for manager in managers:
+        ids = [int(pid) for pid in roster_map.get(manager, []) if int(pid) in elements]
+        if not ids:
+            result[manager] = {'as_of_gw': target, 'overall': None, 'axes': [],
+                               'warning': 'Current Draft roster unavailable. No risk estimate shown.'}
+            continue
+        players = []
+        for pid in ids:
+            meta = elements[pid]
+            pos = positions_lookup.get(meta.get('element_type'), '')
+            if pos not in pos_labels:
+                continue
+            healthy = max(0.0, float(_player_weekly_projection(
+                pid, _global_position_baselines, _global_league_player_mean,
+                target_gw=target, apply_availability=False) or 0))
+            avail = max(0.0, min(1.0, float(_availability_factor(pid, target) or 0)))
+            players.append({'id': pid, 'name': meta.get('web_name') or f'Player {pid}',
+                            'position': pos, 'projection': healthy,
+                            'availability': avail, 'club': meta.get('team'),
+                            'status': str((_fpl_availability.get(pid) or {}).get('status') or 'a')})
+        best = _best_projected_xi(players)
+        if not best or best.get('total', 0) <= 0:
+            result[manager] = {'as_of_gw': target, 'overall': None, 'axes': [],
+                               'warning': 'Insufficient player projections or no legal XI available.'}
+            continue
+        xi = best['players']
+        xi_total = float(best['total'])
+        xi_ids = {p['id'] for p in xi}
+        top3 = sorted(xi, key=lambda p: p['projection'], reverse=True)[:3]
+        star_share = sum(p['projection'] for p in top3) / xi_total
+        # A fairly evenly scoring XI still has roughly one third of its points
+        # supplied by its top three. Avoid marking that baseline as high risk.
+        star_score = _vulnerability_clamp(100 * (star_share - 0.34) / 0.32)
+        star = axis('star', 'Star reliance', star_score,
+                    f'The three highest-projected starters supply {star_share:.0%} of this XI’s estimated points.',
+                    [f"{p['name']}: {p['projection']:.1f} healthy projected pts" for p in top3])
+
+        flags = sorted((p for p in players if p['status'] not in ('a', '') or p['availability'] < 0.999),
+                       key=lambda p: p['projection'] * (1 - p['availability']), reverse=True)
+        at_risk = sum(p['projection'] * (1 - p['availability']) for p in xi)
+        medical_score = _vulnerability_clamp(100 * at_risk / max(0.25 * xi_total, 1))
+        medical = axis('medical', 'Medical room', medical_score,
+                       f'{at_risk:.1f} estimated starting-XI points are exposed to official FPL availability flags for GW{target}.',
+                       [f"{p['name']} ({p['status'].upper()}): {p['availability']:.0%} estimated availability; "
+                        f"{p['projection'] * (1-p['availability']):.1f} points exposed"
+                        for p in flags[:3]] or ['No flagged or doubtful players in the current squad.'])
+
+        # Test a loss at EACH position. The existing legal-formation optimiser
+        # can switch 4-4-2 to 3-5-2 etc, instead of assuming same-position subs.
+        position_losses = {}
+        for pos in pos_labels:
+            starters = [p for p in xi if p['position'] == pos]
+            if not starters:
+                continue
+            key_player = max(starters, key=lambda p: p['projection'])
+            reduced = _best_projected_xi([p for p in players if p['id'] != key_player['id']])
+            if reduced:
+                loss = max(0.0, (xi_total - float(reduced['total'])) / xi_total)
+                score = _vulnerability_clamp(100 * loss / 0.13)
+            else:
+                loss = 1.0
+                score = 100.0
+            position_losses[pos] = (score, loss, key_player['name'], bool(reduced))
+        depth_score = (sum(v[0] for v in position_losses.values()) / len(position_losses)
+                       if position_losses else 0.0)
+        thin = sorted(position_losses.items(), key=lambda item: item[1][0], reverse=True)
+        depth = axis('depth', 'Positional cover', depth_score,
+                     'Modelled damage from losing the strongest starter in each position, allowing formation changes but no transfers.',
+                     [f"{pos_labels[pos].capitalize()}: {value[1]:.0%} projected XI loss after "
+                      f"{value[2]} is removed" if value[3]
+                      else f"{pos_labels[pos].capitalize()}: cannot field a legal XI without {value[2]}"
+                      for pos, value in thin])
+
+        clubs = collections.Counter(p['club'] for p in xi if p['club'] is not None)
+        biggest_club, biggest_count = clubs.most_common(1)[0] if clubs else (None, 0)
+        share = biggest_count / max(1, len(xi))
+        hhi = sum((n / len(xi))**2 for n in clubs.values()) if clubs else 0.0
+        clubs_score = _vulnerability_clamp(100 * (0.70 * max(0, share - 0.15) / 0.35
+                                                   + 0.30 * max(0, hhi - 0.11) / 0.24))
+        club_name = teams_lookup.get(biggest_club, 'Unknown club')
+        groups = [f'{teams_lookup.get(tid, "Unknown")}: {count} projected starters'
+                  for tid, count in clubs.most_common(3) if count > 1]
+        club = axis('clubs', 'Club concentration', clubs_score,
+                    f'{biggest_count} of the projected 11 play for {club_name}. Correlated blanks and bad fixtures can hit several at once.',
+                    groups or ['Projected starters are spread across different Premier League clubs.'])
+
+        # A difficult/blank PL run matters mainly for players expected to START.
+        # Include ALL five scheduled upcoming GWs, weighting by healthy expected
+        # contribution so a marginal bench player cannot dominate the radar.
+        weighted_difficulty = 0.0
+        fixture_weights = 0.0
+        blank_hits = 0
+        schedule_drivers = []
+        for p in xi:
+            run = _player_next_fixture_run(p['id'], count=5, start_gw=target)
+            if not run:
+                continue
+            difficulty = sum(float(g.get('difficulty', 3) or 3) for g in run) / len(run)
+            weight = max(0.05, p['projection'])
+            weighted_difficulty += difficulty * weight
+            fixture_weights += weight
+            blanks = sum(bool(g.get('is_blank')) for g in run)
+            blank_hits += blanks
+            schedule_drivers.append((difficulty, p['name'], blanks))
+        if fixture_weights:
+            avg_diff = weighted_difficulty / fixture_weights
+            fixtures_score = _vulnerability_clamp(100 * (avg_diff - 2.0) / 2.65)
+            hard = sorted(schedule_drivers, reverse=True)[:3]
+            fixtures = axis('fixtures', 'Fixture exposure', fixtures_score,
+                            f'Projection-weighted PL fixture difficulty: {avg_diff:.1f}/5 across the next five scheduled GWs' +
+                            (f'; {blank_hits} starter blank-GW occurrences.' if blank_hits else '.'),
+                            [f'{name}: {difficulty:.1f}/5' + (f' · {blank} blanks' if blank else '')
+                             for difficulty, name, blank in hard])
+        else:
+            fixtures = axis('fixtures', 'Fixture exposure', 50,
+                            'No future Premier League fixture data is available.',
+                            ['This axis is omitted from the overall score until fixtures are available.'], False)
+
+        # Losing the two top assets is a separate compound shock from the
+        # individual-position tests above (depth). No hypothetical free agents.
+        top2 = sorted(xi, key=lambda p: p['projection'], reverse=True)[:2]
+        without_two = _best_projected_xi([p for p in players if p['id'] not in {p['id'] for p in top2}])
+        two_loss = max(0.0, (xi_total - float(without_two['total'])) / xi_total) if without_two else 1.0
+        fragility_score = _vulnerability_clamp(100 * two_loss / 0.25)
+        fragility = axis('fragility', 'Two-star shock', fragility_score,
+                         f'If both top-projected starters were unavailable, the best legal XI would lose {two_loss:.0%} of expected output' +
+                         ('.' if without_two else ' and could not be formed.'),
+                         [f"{p['name']}: {p['projection']:.1f} projected pts" for p in top2])
+
+        axes = [star, medical, depth, club, fixtures, fragility]
+        active_weights = sum(scores_weight[x['key']] for x in axes if x['available'])
+        overall = sum(x['score'] * scores_weight[x['key']] for x in axes if x['available']) / active_weights
+        result[manager] = {'as_of_gw': target, 'overall': _vulnerability_clamp(overall),
+                           'xi_projection_healthy': round(xi_total, 1),
+                           'axes': axes, 'warning': None}
+    return result
+
+
+squad_vulnerability_json = json.dumps(build_squad_vulnerability_data(), ensure_ascii=False)
+
+
+# ============================================================
 # FIVE-GW SQUAD PLANNER — actual fixture-specific player forecasts
 # ============================================================
 def _build_five_gw_planner():
@@ -17995,6 +18162,61 @@ function filterCupTeams(){
    MY TEAM SELECTOR
    ============================================================ */
 
+// My Team vulnerability snapshot (current roster; every axis is exposure).
+const SQUAD_VULNERABILITY_DATA = __SQUAD_VULNERABILITY_DATA__;
+const VULNERABILITY_COLOURS={low:'#29a57b',moderate:'#d2a34a',high:'#e17e42',critical:'#dd5364'};
+let vulnerabilitySelectedAxis='';
+let vulnerabilityCompareLeague=true;
+function vulnerabilityLevel(score){
+ if(score===null||score===undefined)return {label:'Unscored',key:'low'};
+ return score<25?{label:'Low',key:'low'}:score<50?{label:'Moderate',key:'moderate'}:score<75?{label:'High',key:'high'}:{label:'Very high',key:'critical'};
+}
+function vulnerabilityAxisDetail(key){
+ vulnerabilitySelectedAxis=key;
+ const manager=currentMyTeamManager(),record=SQUAD_VULNERABILITY_DATA[manager],axis=(record?.axes||[]).find(a=>a.key===key);
+ const panel=document.getElementById('myteam-vulnerability-detail');if(!panel||!axis)return;
+ const label=vulnerabilityLevel(axis.score);
+ panel.innerHTML='<div class="vuln-detail-head"><div><span class="vuln-eyebrow">Selected exposure</span><h3>'+escapePlayerHTML(axis.label)+'</h3></div><span class="vuln-risk-badge vuln-'+label.key+'">'+(axis.score===null?'N/A':Math.round(axis.score)+'/100')+' · '+label.label+'</span></div>'+
+ '<p>'+escapePlayerHTML(axis.summary)+'</p><div class="vuln-driver-list">'+(axis.drivers||[]).map(s=>'<div>'+escapePlayerHTML(s)+'</div>').join('')+'</div>';
+ document.querySelectorAll('.vuln-axis-button').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.axis===key)));
+ document.querySelectorAll('.vuln-radar-point').forEach(dot=>dot.classList.toggle('selected',dot.dataset.axis===key));
+}
+function toggleVulnerabilityComparison(){vulnerabilityCompareLeague=!vulnerabilityCompareLeague;renderMyTeamVulnerability();}
+function renderMyTeamVulnerability(){
+ const root=document.getElementById('myteam-vulnerability');if(!root)return;
+ const manager=currentMyTeamManager(),record=SQUAD_VULNERABILITY_DATA[manager];
+ if(!record||!record.axes?.length){root.innerHTML='<div class="notice">'+escapePlayerHTML(record?.warning||'No current squad data available.')+'</div>';return;}
+ const axes=record.axes,n=axes.length,cx=180,cy=170,r=103;
+ const point=(i,amount)=>{const angle=2*Math.PI*i/n-Math.PI/2;return [(cx+r*amount*Math.cos(angle)).toFixed(1),(cy+r*amount*Math.sin(angle)).toFixed(1)].join(',');};
+ const mean=axes.map((a,i)=>{const nums=Object.values(SQUAD_VULNERABILITY_DATA).map(team=>team.axes?.[i]?.score).filter(v=>Number.isFinite(v));return nums.length?nums.reduce((s,v)=>s+v,0)/nums.length:50;});
+ const poly=(values)=>values.map((v,i)=>point(i,Math.max(0,Math.min(100,Number(v)||0))/100)).join(' ');
+ let svg='<svg class="vuln-radar" viewBox="0 0 360 350" role="group" aria-label="'+escapePlayerHTML(manager)+' squad vulnerability radar, higher means more risk">';
+ [0.25,0.50,0.75,1].forEach(level=>svg+='<polygon class="vuln-grid" points="'+axes.map((_,i)=>point(i,level)).join(' ')+'"/>');
+ axes.forEach((a,i)=>svg+='<line class="vuln-axis-line" x1="'+cx+'" y1="'+cy+'" x2="'+point(i,1).replace(',', '" y2="')+'"/>');
+ if(vulnerabilityCompareLeague)svg+='<polygon class="vuln-league-area" points="'+poly(mean)+'"/>';
+ svg+='<polygon class="vuln-squad-area" points="'+poly(axes.map(a=>a.score===null?50:a.score))+'"/>';
+ const short=['Star reliance','Medical','Positional cover','Club stacking','Fixtures','Two-star shock'];
+ axes.forEach((a,i)=>{
+  const value=a.score===null?50:a.score,xy=point(i,value/100).split(',');
+  const angle=2*Math.PI*i/n-Math.PI/2,lx=cx+143*Math.cos(angle),ly=cy+136*Math.sin(angle);
+  svg+='<text class="vuln-label" x="'+lx.toFixed(1)+'" y="'+(ly+4).toFixed(1)+'" text-anchor="middle">'+short[i]+'</text>';
+  svg+='<g role="button" tabindex="0" class="vuln-radar-point'+(a.key===vulnerabilitySelectedAxis?' selected':'')+'" data-axis="'+a.key+'" aria-label="'+escapePlayerHTML(a.label)+': '+(a.score===null?'not available':Math.round(a.score)+'/100')+'; tap for details" onclick="vulnerabilityAxisDetail(\''+a.key+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();vulnerabilityAxisDetail(\''+a.key+'\');}">'+
+   '<circle class="vuln-touch-target" cx="'+xy[0]+'" cy="'+xy[1]+'" r="18"/><circle class="vuln-dot" cx="'+xy[0]+'" cy="'+xy[1]+'" r="5"/>'+
+   '<title>'+escapePlayerHTML(a.label)+': '+(a.score===null?'N/A':Math.round(a.score)+'/100')+'</title></g>';
+ });
+ svg+='</svg>';
+ const badge=vulnerabilityLevel(record.overall),scoreText=record.overall===null?'—':Math.round(record.overall);
+ const legend='<div class="vuln-legend"><span><i class="vuln-squad-swatch"></i>Selected squad</span>'+
+ (vulnerabilityCompareLeague?'<span><i class="vuln-league-swatch"></i>League average</span>':'')+'</div>';
+ const buttons=axes.map(a=>{const level=vulnerabilityLevel(a.score);return '<button type="button" class="vuln-axis-button" data-axis="'+a.key+'" aria-pressed="'+String(a.key===vulnerabilitySelectedAxis)+'" onclick="vulnerabilityAxisDetail(\''+a.key+'\')"><span><i class="vuln-axis-dot vuln-'+level.key+'"></i>'+escapePlayerHTML(a.label)+'</span><strong>'+(a.score===null?'N/A':Math.round(a.score)+'/100')+'</strong><small>'+level.label+' exposure</small></button>';}).join('');
+ root.innerHTML='<div class="vuln-head"><div class="vuln-overall"><span>Overall vulnerability</span><strong>'+scoreText+'<small>/100</small></strong><span class="vuln-risk-badge vuln-'+badge.key+'">'+badge.label+' exposure</span></div><div class="vuln-meta">GW'+record.as_of_gw+' · Current roster<br>Higher numbers mean MORE risk</div></div>'+
+ '<div class="vuln-layout"><div class="vuln-visual">'+svg+legend+'<button type="button" class="vuln-compare" onclick="toggleVulnerabilityComparison()" aria-pressed="'+String(vulnerabilityCompareLeague)+'">'+(vulnerabilityCompareLeague?'Hide':'Show')+' league average</button></div><div class="vuln-axes">'+buttons+'</div></div>'+
+ '<div class="vuln-detail" id="myteam-vulnerability-detail" aria-live="polite"></div>'+
+ '<p class="vuln-footnote">Based on the current Draft roster and the dashboard’s next-GW projection, FPL availability, legal formations and next five PL fixtures. The scores are modelled exposure, not injury forecasts or win probabilities.</p>';
+ if(!axes.some(a=>a.key===vulnerabilitySelectedAxis))vulnerabilitySelectedAxis=[...axes].filter(a=>a.available).sort((a,b)=>(b.score||0)-(a.score||0))[0]?.key||axes[0].key;
+ vulnerabilityAxisDetail(vulnerabilitySelectedAxis);
+}
+
 const defaultMyTeamIndex = __DEFAULT_MY_TEAM_INDEX__;
 const myTeamStorageKey = "fpl-draft-my-team";
 
@@ -18017,6 +18239,7 @@ function changeMyTeam() {
 
     renderMyTeamSquad();
     renderMyTeamRadar();
+    renderMyTeamVulnerability();
     renderFiveGWPlanner();
     renderMyTeamStatsCharts();
     renderMyTeamPositionNeeds();
@@ -22266,6 +22489,51 @@ window.addEventListener("resize", function() {
 """
 
 
+vulnerability_css = r"""
+/* My Team · Squad Vulnerability Radar, including light theme and touch controls. */
+.vuln-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.vuln-overall{display:flex;flex-direction:column;gap:5px;padding:13px 19px;border:1px solid var(--border);border-radius:14px;background:var(--bg-secondary)}
+.vuln-overall>span:first-child,.vuln-eyebrow{font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.vuln-overall>strong{font-size:37px;color:var(--text);font-weight:850;line-height:1.2;font-variant-numeric:tabular-nums}
+.vuln-overall>strong small{font-size:15px;color:var(--muted);font-weight:600}
+.vuln-meta{text-align:right;font-size:12px;line-height:1.8;color:var(--muted)}
+.vuln-layout{display:grid;grid-template-columns:minmax(270px,1fr) minmax(275px,1fr);gap:20px;align-items:center}
+.vuln-visual{min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px}
+.vuln-radar{width:min(100%,470px);height:auto;overflow:visible;color:var(--text)}
+.vuln-grid{fill:none;stroke:var(--border);stroke-width:1}.vuln-axis-line{stroke:var(--border);stroke-width:1}
+.vuln-league-area{fill:#5193b5;fill-opacity:.075;stroke:#5193b5;stroke-width:2;stroke-dasharray:5 4}
+.vuln-squad-area{fill:#ee8e4d;fill-opacity:.27;stroke:#e78d4e;stroke-width:2.8;stroke-linejoin:round}
+.vuln-label{fill:var(--text);font-size:10.6px;font-weight:750;pointer-events:none}
+.vuln-radar-point{outline:none;cursor:pointer}.vuln-touch-target{fill:transparent;stroke:none;cursor:pointer}
+.vuln-dot{fill:#f6ac62;stroke:var(--bg-secondary);stroke-width:2.5;pointer-events:none}
+.vuln-radar-point.selected .vuln-dot,.vuln-radar-point:focus-visible .vuln-dot{fill:#fbdf85;stroke:#e07833;stroke-width:3}
+.vuln-radar-point:focus-visible .vuln-touch-target{stroke:var(--accent);stroke-width:2;stroke-dasharray:3 3}
+.vuln-legend{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:11px;font-weight:700}
+.vuln-legend span{display:inline-flex;align-items:center;gap:6px}.vuln-legend i{width:15px;height:3px;border-radius:2px;background:#e78d4e;display:inline-block}.vuln-legend i.vuln-league-swatch{background:#5193b5}
+.vuln-compare{background:var(--bg-secondary);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:9px 14px;cursor:pointer;min-height:40px;font:inherit;font-size:12px;font-weight:700}
+.vuln-compare:hover,.vuln-axis-button:hover{border-color:var(--accent)}
+.vuln-axes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.vuln-axis-button{min-width:0;min-height:86px;text-align:left;cursor:pointer;border:1px solid var(--border);border-radius:11px;padding:11px 12px;background:var(--bg-secondary);color:var(--text);display:flex;flex-direction:column;gap:6px;font:inherit}
+.vuln-axis-button[aria-pressed="true"]{border:2px solid var(--accent);padding:10px 11px;box-shadow:0 0 0 2px rgba(54,165,190,.12)}
+.vuln-axis-button>span{display:flex;gap:6px;align-items:center;font-size:12px;font-weight:750}
+.vuln-axis-dot{width:9px;height:9px;flex:none;border-radius:50%;display:inline-block}
+.vuln-axis-dot.vuln-low{background:#29a57b}.vuln-axis-dot.vuln-moderate{background:#d2a34a}.vuln-axis-dot.vuln-high{background:#e17e42}.vuln-axis-dot.vuln-critical{background:#dd5364}
+.vuln-axis-button>strong{font-size:21px;font-weight:850;font-variant-numeric:tabular-nums}
+.vuln-axis-button>small{color:var(--muted);font-size:11px}
+.vuln-detail{border:1px solid var(--border);border-radius:12px;padding:15px 18px;background:var(--bg-secondary);margin-top:16px;color:var(--text)}
+.vuln-detail-head{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.vuln-detail h3{font-size:18px;margin:5px 0 10px;color:var(--text)}.vuln-detail p{font-size:13px;line-height:1.6;color:var(--text);margin:8px 0 12px}
+.vuln-risk-badge{width:fit-content;font-weight:800;font-size:11px;border-radius:12px;padding:5px 9px;border:1px solid}
+.vuln-risk-badge.vuln-low{color:#16835a;border-color:#16835a}.vuln-risk-badge.vuln-moderate{color:#bc912b;border-color:#bc912b}.vuln-risk-badge.vuln-high{color:#dd7c34;border-color:#dd7c34}.vuln-risk-badge.vuln-critical{color:#db5364;border-color:#db5364}
+.vuln-driver-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.vuln-driver-list>div{font-size:12px;line-height:1.45;border-left:3px solid #e78d4e;background:rgba(128,128,128,.055);padding:9px 11px;border-radius:6px}
+.vuln-footnote{font-size:11px;line-height:1.55;color:var(--muted);margin:12px 0 0}
+body[data-theme="light"] .vuln-radar-point .vuln-dot{stroke:#fff}
+@media(max-width:850px){.vuln-layout{grid-template-columns:1fr}.vuln-axes{grid-template-columns:repeat(3,minmax(0,1fr))}.vuln-radar{max-width:410px}}
+@media(max-width:560px){.vuln-axes{grid-template-columns:repeat(2,minmax(0,1fr))}.vuln-head{align-items:flex-start}.vuln-meta{text-align:left}.vuln-visual{margin:0 -9px}.vuln-axis-button{min-height:89px}.vuln-overall>strong{font-size:31px}}
+
+"""
+
 radar_health_css = r"""
 
 /* v41: summary-first analytics, detailed explorer under Players. */
@@ -23677,6 +23945,7 @@ __CSS__
             </div>
 
             <div class="card"><h2>Squad Performance Radar</h2><p class="card-description">Live squad profile, benchmarked within each player's Premier League position.</p><div id="myteam-radar"></div></div>
+            <div class="card" id="myteam-vulnerability-card"><h2>Squad Vulnerability Radar</h2><p class="card-description">Where could your current squad come unstuck? Six exposure scores from the real squad, next-GW projections and upcoming PL schedule. Tap a point or metric to see why.</p><div id="myteam-vulnerability"></div></div>
 
             <div class="analytics-subtabs myteam-tabs" role="tablist" aria-label="My Team sections">
                 <button type="button" class="analytics-subtab myteam-tab active" onclick="showMyTeamSubtab('squad',this)">Squad</button>
@@ -24232,6 +24501,9 @@ replacements = {
     "__MY_TEAM_CARDS__":
         my_team_cards(),
 
+    "__SQUAD_VULNERABILITY_DATA__":
+        safe_js_json(squad_vulnerability_json),
+
     "__TRADES_TABLE__":
         trades_table(latest_transfer_gw),
 
@@ -24450,7 +24722,7 @@ replacements = {
     "__MCDRAFT_CUP_HTML__": cup_page_html(mcdraft_cup, dashboard_target_gw, dashboard_game_state),
 
     "__CSS__":
-        css + radar_health_css + relationship_css + river_passport_css + war_room_css + simulator_css + wi_css + cup_css,
+        css + radar_health_css + vulnerability_css + relationship_css + river_passport_css + war_room_css + simulator_css + wi_css + cup_css,
 
     "__JAVASCRIPT__":
         javascript.replace("__WAIVER_INTELLIGENCE_DATA__", safe_js_json(waiver_intelligence_json)).replace("__SEASON_SIMULATOR_DATA__", safe_js_json(season_simulator_json)).replace("__HEALTH_ANALYTICS__", safe_js_json(json.dumps(health_analytics_data, ensure_ascii=False))).replace(
