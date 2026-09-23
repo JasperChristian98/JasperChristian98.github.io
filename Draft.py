@@ -7028,6 +7028,16 @@ def _player_weekly_projection(player_id, position_baselines, league_player_mean,
     if apply_availability:
         projection *= _availability_factor(player_id, target_gw)
 
+    # A small, bounded rating adjustment for ONLY the imminent GW. Long-term
+    # fixture projections keep the original forward-looking model unchanged.
+    ratings = globals().get("_player_ratings_by_id", {})
+    if (ratings and target_gw is not None
+            and int(target_gw) == int(dashboard_target_gw)
+            and int(target_gw) > int(dashboard_last_finished_gw)):
+        rating = ratings.get(int(player_id), {}).get("rating")
+        if rating is not None:
+            projection *= 1.0 + max(-0.07, min(0.07, (float(rating) - 65.0) / 250.0))
+
     return max(0.0, projection)
 
 
@@ -7145,6 +7155,174 @@ if _player_value_raw:
         _raw=_player_value_raw.get(int(_row.get('id',0) or 0),_lo)
         _availability_discount = 0.80 + 0.20 * _availability_factor(int(_row.get('id',0) or 0), dashboard_target_gw)
         _row['player_value']=round((25.0+75.0*((_raw-_lo)/_span)) * _availability_discount,1)
+
+# ============================================================
+# DYNAMIC FIFA-STYLE PLAYER RATINGS / 100
+# ============================================================
+# Current, positional FPL performance ratings; *not* the trade-value score.
+# Rebuilt on every GitHub run from the current API and live PL club form.
+# Every component is inspectable in Player Directory and squad pedigree.
+# Individual percentiles compare players at the SAME position; low-minute
+# newcomers retain a draft prior rather than receiving an invented PPG.
+import bisect as _rating_bisect
+
+
+def _rating_num(value, fallback=0.0):
+    try:
+        val = float(value)
+        return val if math.isfinite(val) else fallback
+    except (ValueError, TypeError):
+        return fallback
+
+
+def _rating_clamp(value, low=0.0, high=1.0):
+    return min(high, max(low, float(value)))
+
+
+def _club_last_five_form():
+    records = defaultdict(list)
+    for fx in _all_pl_fixtures:
+        if not isinstance(fx, dict) or not fx.get('finished'):
+            continue
+        try:
+            home = int(fx['team_h']); away = int(fx['team_a'])
+            hs = int(fx['team_h_score']); aws = int(fx['team_a_score'])
+        except (KeyError, TypeError, ValueError):
+            continue
+        order = (int(fx.get('event') or 0), str(fx.get('kickoff_time') or ''))
+        records[home].append((order, 3 if hs > aws else 1 if hs == aws else 0))
+        records[away].append((order, 3 if aws > hs else 1 if hs == aws else 0))
+    result = {}
+    for club in _pl_team_meta_by_id:
+        last = sorted(records.get(club, []), key=lambda x: x[0])[-5:]
+        # Prior-neutral until the first actual Premier League results exist.
+        result[club] = sum(v for _, v in last) / (3.0 * len(last)) if last else 0.5
+    return result
+
+
+_rating_club_form = _club_last_five_form()
+_rating_sample_gws = len(finished_gws)
+_rating_features = {}
+_rating_distributions = defaultdict(lambda: defaultdict(list))
+
+for _entry in player_search_data:
+    pid = int(_entry['id'])
+    meta = elements.get(pid, {})
+    pos = _entry.get('position', '')
+    minutes = max(0.0, _rating_num(meta.get('minutes')))
+    played = max(0.0, _rating_num(meta.get('starts')))
+    per90 = 90.0 / max(270.0, minutes)  # stabilise tiny samples
+    history_pts = player_form.get(pid, {}) or {}
+    if history_pts and finished_gws:
+        three = statistics.mean([_rating_num(history_pts.get(gw)) for gw in finished_gws[-3:]])
+        five = statistics.mean([_rating_num(history_pts.get(gw)) for gw in finished_gws[-5:]])
+    else:
+        # FPL's own rolling form covers the full player pool, even unowned FAs.
+        three = five = _rating_num(meta.get('form'))
+    season_ppgw = _rating_num(meta.get('total_points')) / max(1, _rating_sample_gws)
+    xgi = _rating_num(meta.get('expected_goal_involvements')) * per90
+    goals = _rating_num(meta.get('goals_scored')) * per90
+    assists = _rating_num(meta.get('assists')) * per90
+    bonus = _rating_num(meta.get('bonus')) * per90
+    bps = _rating_num(meta.get('bps')) * per90
+    defensive = _rating_num(meta.get('defensive_contribution')) * per90
+    clean = _rating_num(meta.get('clean_sheets')) * per90
+    saves = _rating_num(meta.get('saves')) * per90
+    xgc = _rating_num(meta.get('expected_goals_conceded')) * per90
+    if pos == 'GKP':
+        advanced = 0.42 * clean + 0.24 * saves + 0.20 * bonus + 0.14 * bps / 20.0
+    elif pos == 'DEF':
+        advanced = 0.30 * clean + 0.24 * defensive + 0.20 * xgi + 0.14 * bonus + 0.12 * bps / 20.0
+    elif pos == 'MID':
+        advanced = 0.41 * xgi + 0.22 * goals + 0.16 * assists + 0.13 * defensive + 0.08 * bonus
+    else:
+        advanced = 0.49 * xgi + 0.28 * goals + 0.17 * assists + 0.06 * bonus
+    club = meta.get('team')
+    try:
+        club = int(club)
+    except (ValueError, TypeError):
+        club = None
+    club_played = _pl_table_stats.get(club, {}).get('played', _rating_sample_gws)
+    # Game-time is a distinct reliability signal; an injury does not erase talent.
+    minutes_share = _rating_clamp(minutes / max(1.0, float(club_played) * 90.0))
+    availability = _rating_clamp(_availability_factor(pid, dashboard_target_gw))
+    draft_rank = _rating_num(_blended_draft_rank(pid), UNDRAFTED_PLAYER_RANK)
+    draft_score = _rating_clamp(1.0 - (draft_rank - 1.0) / (UNDRAFTED_PLAYER_RANK - 1)) ** 0.70
+    club_quality = _rating_clamp(0.65 * _pl_club_strength_score.get(club, 0.5) + 0.35 * _rating_club_form.get(club, 0.5))
+    _rating_features[pid] = dict(position=pos, three=three, five=five, season=season_ppgw,
+                                 advanced=advanced, availability=availability, minutes_share=minutes_share,
+                                 draft=draft_score, club=club_quality, club_form=_rating_club_form.get(club, 0.5),
+                                 minutes=minutes, starts=played)
+    if minutes >= 90:
+        for key in ('three', 'five', 'season', 'advanced'):
+            _rating_distributions[pos][key].append(_rating_features[pid][key])
+
+for _pos_groups in _rating_distributions.values():
+    for _values in _pos_groups.values():
+        _values.sort()
+
+
+def _rating_percentile(pos, key, value):
+    vals = _rating_distributions[pos].get(key, [])
+    if len(vals) < 2 or abs(vals[-1] - vals[0]) < 1e-8:
+        return 0.5
+    # A percentile (rather than the largest/minimum) resists single-GW outliers.
+    return _rating_bisect.bisect_right(vals, value) / len(vals)
+
+
+_player_ratings_by_id = {}
+_rating_previous = history.get('player_rating_previous', {}) or {}
+for _entry in player_search_data:
+    pid = int(_entry['id'])
+    f = _rating_features[pid]
+    pos = f['position']
+    recent3 = _rating_percentile(pos, 'three', f['three'])
+    recent5 = _rating_percentile(pos, 'five', f['five'])
+    season = _rating_percentile(pos, 'season', f['season'])
+    advanced = _rating_percentile(pos, 'advanced', f['advanced'])
+    # Cap what a single strong appearance can do before we trust the numbers.
+    sample_confidence = _rating_clamp(f['minutes'] / 720.0)
+    prior = 0.65 * f['draft'] + 0.35 * f['club']
+    recent3 = sample_confidence * recent3 + (1.0 - sample_confidence) * prior
+    recent5 = sample_confidence * recent5 + (1.0 - sample_confidence) * prior
+    season = sample_confidence * season + (1.0 - sample_confidence) * prior
+    advanced = sample_confidence * advanced + (1.0 - sample_confidence) * prior
+    # Availability and minutes are different: a brilliant but injured player
+    # can retain talent while his current usable squad rating moves down.
+    reliability = 0.60 * f['availability'] + 0.40 * f['minutes_share']
+    components = {
+        '3GW form': round(100 * recent3, 1),
+        '5GW form': round(100 * recent5, 1),
+        'Season output': round(100 * season, 1),
+        'Draft pedigree': round(100 * f['draft'], 1),
+        'PL club & form': round(100 * f['club'], 1),
+        'Availability & minutes': round(100 * reliability, 1),
+        'Underlying stats': round(100 * advanced, 1),
+    }
+    weighted = (0.23 * recent3 + 0.10 * recent5 + 0.20 * season
+                + 0.14 * f['draft'] + 0.13 * f['club']
+                + 0.11 * reliability + 0.09 * advanced)
+    # Fixed calibration: scores do not artificially inflate just because the
+    # weakest player in today's pool is poor or many players are injured.
+    rating = int(round(26.0 + 72.0 * _rating_clamp(weighted)))
+    prior_rating = _rating_previous.get(str(pid), {})
+    previous = prior_rating.get('rating') if isinstance(prior_rating, dict) else prior_rating
+    delta = rating - int(previous) if isinstance(previous, (int, float)) else None
+    detail = {'rating': rating, 'change': delta, 'breakdown': components,
+              'club_form': round(100 * f['club_form'], 1),
+              'minutes_share': round(100 * f['minutes_share'], 1),
+              'matches_missed_estimate': max(0, int(_pl_table_stats.get(elements.get(pid, {}).get('team'), {}).get('played', 0)) - int(f['starts'])),
+              'as_of': history.get('last_updated')}
+    _player_ratings_by_id[pid] = detail
+    _entry.update(player_rating=rating, rating_change=delta,
+                  rating_breakdown=components,
+                  club_form_score=detail['club_form'],
+                  minutes_share=detail['minutes_share'],
+                  matches_missed_estimate=detail['matches_missed_estimate'])
+
+# Existing trade and value calculations remain independent of the /100 rating.
+# Store the previous build for up/down indicators after the next scheduled run.
+history['player_rating_previous'] = {str(pid): {'rating': r['rating']} for pid, r in _player_ratings_by_id.items()}
 
 # Rebuild now that projection/value/heat/history fixture context has been added.
 player_search_json=json.dumps(player_search_data,ensure_ascii=False)
@@ -8381,47 +8559,100 @@ def _round_half_star(value):
     return min(5.0, max(0.0, round(float(value) * 2.0) / 2.0))
 
 
+def _pedigree_line_score(players, position, starters, fallback=38):
+    """FIFA-esque positional unit: best starting assets 85%, genuine depth 15%."""
+    scores = sorted((int(_player_ratings_by_id.get(int(p['id']), {}).get('rating', fallback))
+                     for p in players if p.get('position') == position), reverse=True)
+    top = scores[:starters]
+    # Missing legal starter slots lower a position's score; a zero-player
+    # position must not look stronger than a merely below-average unit.
+    first = (sum(top) + fallback * max(0, starters - len(top))) / float(starters)
+    depth = statistics.mean(scores[starters:]) if len(scores) > starters else first
+    return round(0.85 * first + 0.15 * depth, 1), scores
+
+
 def squad_pedigree_table():
-    """Blended player pedigree, current real-PL club strength and recent McDraft form."""
+    """Every current squad's evolving player ratings, FIFA-style positional OVR."""
+    all_cards = []
     rows_data = []
     for manager in managers:
-        p = season_prediction.get(manager, {})
         players = current_squad_strength.get(manager, {}).get('players', [])
-        total = int(p.get('squad_draft_rank_total', UNDRAFTED_PLAYER_RANK * 15) or UNDRAFTED_PLAYER_RANK * 15)
-        roster_size = len(players) or 15
-        avg_rank = total / roster_size
-        draft_stars = _pedigree_stars_from_average_rank(avg_rank)
-        # Weight the actual current squad's real clubs rather than using the
-        # manager's PL fixture schedule as a surrogate for underlying quality.
-        club_values = []
-        for player in players:
-            pid = player.get('id')
-            tid = elements.get(pid, {}).get('team')
-            try:
-                if tid is not None:
-                    club_values.append(float(_pl_club_strength_score.get(int(tid), 0.5)))
-            except (TypeError, ValueError):
-                pass
-        club_score = statistics.mean(club_values) if club_values else 0.5
-        # 0..1 real PL club strength -> 0.5..5 star contribution.
-        club_stars = min(5.0, max(0.5, 0.5 + 4.5 * club_score))
-        recent_scores = [float(score or 0) for _, score in sorted(raw_score_by_gw.get(manager, []))[-3:]]
-        form_3gw = statistics.mean(recent_scores) if recent_scores else None
-        form_stars = _form_stars_from_3gw_average(form_3gw)
-        stars = _round_half_star(0.50 * draft_stars + 0.25 * club_stars + 0.25 * form_stars)
-        undrafted_count = sum(1 for player in players if int(player.get('league_draft_rank', UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK) >= UNDRAFTED_PLAYER_RANK)
-        top30 = sum(1 for player in players if int(player.get('league_draft_rank', UNDRAFTED_PLAYER_RANK) or UNDRAFTED_PLAYER_RANK) <= 30)
-        rows_data.append((stars, total, manager, avg_rank, form_3gw, top30, undrafted_count, club_score))
-    rows_data.sort(key=lambda row: (-row[0], row[1], row[2]))
-    rows = ''
-    for stars, total, manager, avg_rank, form_3gw, top30, undrafted_count, club_score in rows_data:
-        form_text = f'{form_3gw:.1f}' if form_3gw is not None else '—'
-        rows += f'''<tr><td class="manager-name">{escape_html(manager)}</td>
-<td><b>{_star_text(stars)}</b> <span class="muted">{stars:.1f}</span></td>
-<td>{form_text}</td><td>{club_score*100:.0f}/100</td><td><b>{total}</b></td>
-<td>{avg_rank:.1f}</td><td>{top30}</td><td>{undrafted_count}</td></tr>'''
-    return f'''<p class="card-description">Pedigree: 50% blended McDraft/official FPL Draft picks, 25% evolving real-PL club quality across the current squad, 25% recent three-GW form.</p>
-<div class="table-wrap"><table><thead><tr><th>Manager</th><th>Pedigree</th><th>3GW Form</th><th>PL Club Quality</th><th>Blended Rank Total ↓</th><th>Blended Avg Rank ↓</th><th>Top-30 Picks</th><th>Undrafted</th></tr></thead><tbody>{rows}</tbody></table></div>'''
+        if not players:
+            continue
+        gk, gk_scores = _pedigree_line_score(players, 'GKP', 1)
+        defenders, def_scores = _pedigree_line_score(players, 'DEF', 4)
+        mid, mid_scores = _pedigree_line_score(players, 'MID', 4)
+        att, att_scores = _pedigree_line_score(players, 'FWD', 2)
+        # Goalkeepers explicitly contribute to DEF, as in a squad-strength
+        # measure; they are also displayed as a separate unit in the breakdown.
+        defense = round(0.80 * defenders + 0.20 * gk, 1)
+        ovr = round(0.34 * defense + 0.38 * mid + 0.28 * att, 1)
+        # Absolute bands: 35 OVR = 1★, 50 = 2★, 65 = 3★, 80 = 4★,
+        # 95 = 5★. No league-rank forcing or min/max stretching.
+        stars = _round_half_star(max(0.5, (ovr - 20.0) / 15.0))
+        p = season_prediction.get(manager, {})
+        rank_total = int(p.get('squad_draft_rank_total', sum(int(x.get('draft_rank', 151)) for x in players)) or 0)
+        avg_rank = rank_total / len(players)
+        recent = [float(score or 0) for _,score in sorted(raw_score_by_gw.get(manager, []))[-3:]]
+        recent_form = statistics.mean(recent) if recent else None
+        top30 = sum(1 for x in players if _league_draft_rank(x['id']) <= 30)
+        undrafted = sum(1 for x in players if _league_draft_rank(x['id']) >= UNDRAFTED_PLAYER_RANK)
+        all_ratings = [int(_player_ratings_by_id.get(int(x['id']),{}).get('rating',38)) for x in players]
+        squad_mean = statistics.mean(all_ratings)
+        club_mean = statistics.mean([_rating_features.get(int(x['id']),{}).get('club',0.5) for x in players])
+        rows_data.append(dict(manager=manager,ovr=ovr,stars=stars,defense=defense,mid=mid,att=att,
+                              gk=gk,defenders=defenders,avg=squad_mean,rank_total=rank_total,
+                              avg_rank=avg_rank,form=recent_form,top30=top30,
+                              undrafted=undrafted,club=club_mean,players=players))
+    rows_data.sort(key=lambda r: (-r['ovr'], r['manager']))
+    table_rows=[]
+    for idx, entry in enumerate(rows_data):
+        name=escape_html(entry['manager'])
+        score=entry['ovr']
+        tier='elite' if score >= 80 else 'strong' if score >= 65 else 'developing' if score >= 50 else 'building'
+        star_label=_star_text(entry['stars'])
+        form_text=f"{entry['form']:.1f}" if entry['form'] is not None else '—'
+        table_rows.append(f"""<tr><td class="manager-name">{name}</td>
+<td><b>{score:.0f}</b></td><td>{entry['defense']:.0f}</td><td>{entry['mid']:.0f}</td><td>{entry['att']:.0f}</td>
+<td title="{entry['stars']:.1f} out of 5">{star_label} <span class="muted">{entry['stars']:.1f}</span></td>
+<td>{entry['avg']:.0f}</td><td>{entry['rank_total']}</td><td>{form_text}</td></tr>""")
+        units=[('DEF',entry['defense']),('MID',entry['mid']),('ATT',entry['att'])]
+        bars=''.join(f'<div class="pedigree-unit"><span>{label}</span><b>{val:.0f}</b><i><em style="width:{val:.0f}%"></em></i></div>' for label,val in units)
+        players_sorted = sorted(entry['players'], key=lambda x: (
+            ['GKP','DEF','MID','FWD'].index(x.get('position')) if x.get('position') in ('GKP','DEF','MID','FWD') else 4,
+            -_player_ratings_by_id.get(int(x['id']),{}).get('rating',0)))
+        player_rows=[]
+        for player in players_sorted:
+            pid=int(player['id']); detail=_player_ratings_by_id.get(pid,{})
+            rating=int(detail.get('rating',38)); delta=detail.get('change')
+            trend=('+'+str(delta) if delta>0 else str(delta)) if delta is not None else '—'
+            club=teams_lookup.get(elements.get(pid,{}).get('team'),'—')
+            delta_class='rating-up' if delta is not None and delta>0 else 'rating-down' if delta is not None and delta<0 else 'rating-flat'
+            player_rows.append(f'<tr><td>{escape_html(player.get("position") or "—")}</td>'
+                f'<td><b>{escape_html(player.get("name") or "Unknown")}</b><small>{escape_html(club)}</small></td>'
+                f'<td><strong>{rating}</strong></td><td class="{delta_class}">{trend}</td>'
+                f'<td>{detail.get("club_form",50):.0f}</td>'
+                f'<td>{detail.get("minutes_share",0):.0f}%</td></tr>')
+        summary=f"""<summary class="pedigree-summary"><div class="pedigree-head">
+<div class="pedigree-overall {tier}"><strong>{score:.0f}</strong><small>OVR</small></div>
+<div class="pedigree-identity"><h3>{name}</h3><div class="pedigree-stars">{star_label} <span>{entry['stars']:.1f}/5</span></div>
+<small>{len(entry['players'])} players · Avg rating {entry['avg']:.0f} · 3GW {form_text} pts</small></div></div>
+<div class="pedigree-units">{bars}</div><span class="pedigree-open-hint">View all players &amp; unit breakdown ▾</span></summary>"""
+        breakdown=f"""<div class="pedigree-detail"><div class="pedigree-detail-stats">
+<span><b>{entry['gk']:.0f}</b> GK</span><span><b>{entry['defenders']:.0f}</b> Outfield DEF</span>
+<span><b>{entry['club']*100:.0f}</b> Club/form</span><span><b>{entry['top30']}</b> Top-30 picks</span>
+<span><b>{entry['undrafted']}</b> Undrafted</span><span><b>{entry['avg_rank']:.1f}</b> Avg draft pick</span></div>
+<div class="table-wrap"><table class="pedigree-players-table"><thead><tr><th>Pos</th><th>Player / PL club</th>
+<th>OVR</th><th>Change</th><th>Club form</th><th>Game-time</th></tr></thead><tbody>{''.join(player_rows)}</tbody></table></div>
+<p class="card-description">DEF = 80% best 4 defenders + 20% goalkeeper; each unit values its leading starters 85% and position depth 15%.
+OVR = 34% DEF, 38% MID, 28% ATT. Player ratings automatically follow recent FPL statistics and changing PL club form.</p></div>"""
+        all_cards.append(f'<details class="pedigree-fifa-card">{summary}{breakdown}</details>')
+    return f"""<p class="card-description">Live, FIFA-inspired squad ratings out of 100. Each team uses its current players, not its original draft-day lineup; transfers, player form, injury availability, game-time and real PL club results update the ratings each dashboard run. Click a team to see every individual rating and its positional makeup.</p>
+<div class="pedigree-cards">{''.join(all_cards)}</div>
+<h3 class="pedigree-comparison-title">League-wide squad comparison</h3>
+<div class="table-wrap"><table><thead><tr><th>Manager</th><th>OVR</th><th>DEF</th><th>MID</th><th>ATT</th><th>Stars /5</th><th>Avg player</th><th>Draft rank ↓</th><th>3GW pts</th></tr></thead>
+<tbody>{''.join(table_rows)}</tbody></table></div>
+<p class="card-description">Five-star bands are fixed to the same /100 scale (35 = ★, 50 = ★★, 65 = ★★★, 80 = ★★★★, 95 = ★★★★★), never forced relative to this league. Player ratings influence the immediately upcoming GW projection by at most ±7%; later-GW projections keep the original fixture model.</p>"""
 
 
 def season_prediction_table():
@@ -19662,7 +19893,12 @@ function renderPlayerDirectoryCard(player) {
 
     return '<div class="player-directory-card">' +
         '<div class="player-directory-main">' +
-            '<div class="player-directory-name">' + escapePlayerHTML(player.name) + '</div>' + (player.availability && (player.availability.status!=='a'||player.availability.news) ? availabilityBadge(player):'') +
+            '<div class="player-directory-name">' + escapePlayerHTML(player.name) + '</div>' +
+            '<div class="player-rating-pill" title="Current dynamic rating out of 100">' + Number(player.player_rating || 0).toFixed(0) + '<small>/100</small>' +
+            (player.rating_change === null || player.rating_change === undefined ? '' :
+             '<em class="' + (player.rating_change > 0 ? 'rating-up' : player.rating_change < 0 ? 'rating-down' : 'rating-flat') + '">' +
+             (player.rating_change > 0 ? '+' : '') + Number(player.rating_change) + '</em>') + '</div>' +
+            (player.availability && (player.availability.status!=='a'||player.availability.news) ? availabilityBadge(player):'') +
             '<div class="player-directory-meta">' +
                 escapePlayerHTML(player.position) + ' · ' +
                 escapePlayerHTML(player.team) + ' · ' +
@@ -19689,7 +19925,13 @@ function renderPlayerDirectoryCard(player) {
                 '<span class="player-stat-chip"><b>' + player.minutes + '</b> Minutes</span>' +
                 '<span class="player-stat-chip"><b>' + player.bonus + '</b> Bonus</span>' +
                 '<span class="player-stat-chip"><b>' + Number(player.projected_season_points || 0).toFixed(0) + '</b> Projected season</span>' +
-                '<span class="player-stat-chip"><b>' + Number(player.player_value || 0).toFixed(0) + '</b> Value /100</span>' +
+                '<span class="player-stat-chip"><b>' + Number(player.player_rating || 0).toFixed(0) + '</b> Dynamic rating /100</span>' +
+                '<span class="player-stat-chip"><b>' + Number(player.club_form_score || 0).toFixed(0) + '</b> PL club last-5 form /100</span>' +
+                '<span class="player-stat-chip"><b>' + Number(player.minutes_share || 0).toFixed(0) + '%</b> Game-time share</span>' +
+                '<span class="player-stat-chip"><b>' + Number(player.matches_missed_estimate || 0) + '</b> PL starts missed</span>' +
+                '<span class="player-stat-chip"><b>' + Number(player.player_value || 0).toFixed(0) + '</b> Separate trade value /100</span>' +
+                '<div class="rating-breakdown"><b>Rating breakdown</b><p>3GW 23% · 5GW 10% · season 20% · draft 14% · PL club/form 13% · game-time/availability 11% · advanced stats 9%. Low-minute results shrink to the draft/club prior.</p>' +
+                  Object.entries(player.rating_breakdown || {}).map(([label, value]) => '<div class="rating-factor"><span>' + escapePlayerHTML(label) + '</span><div class="rating-factor-track"><i style="width:' + Math.max(0,Math.min(100,Number(value))) + '%"></i></div><strong>' + Number(value).toFixed(0) + '</strong></div>').join('') + '</div>' +
                 '<span class="player-stat-chip"><b>' + escapePlayerHTML(player.hot_cold_label || 'Neutral') + '</b> ' + Number(player.hot_cold_score || 0).toFixed(0) + ' heat</span>' +
                 '<span class="player-stat-chip"><b>' + escapePlayerHTML(player.club_strength_label || 'Club') + '</b> ' + Number(player.club_strength || 0).toFixed(0) + '/100</span>' +
             '</div>' +
@@ -20180,7 +20422,7 @@ function filterPlayers() {
     const positionValue = position ? position.value : "";
     const clubValue = club ? club.value : "";
     const fantasyValue = fantasy ? fantasy.value : "";
-    const sortValue = sort ? sort.value : "points";
+    const sortValue = sort ? sort.value : "rating";
 
     let matches = playerSearchData.filter(function(player) {
         return (!query || player.name.toLowerCase().includes(query)) &&
@@ -20191,6 +20433,7 @@ function filterPlayers() {
 
     matches.sort(function(a, b) {
         if (sortValue === "name") return a.name.localeCompare(b.name);
+        if (sortValue === "rating") return Number(b.player_rating || 0) - Number(a.player_rating || 0) || Number(b.total_points || 0) - Number(a.total_points || 0);
         if (sortValue === "form") {
             return (Number(b.form || 0) - Number(a.form || 0)) ||
                    (Number(b.total_points || 0) - Number(a.total_points || 0));
@@ -20594,6 +20837,46 @@ radar_health_css = r"""
 # ============================================================
 # HTML TEMPLATE
 # ============================================================
+
+css += r"""
+/* FIFA-style squad cards and dynamic player ratings */
+.pedigree-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:18px 0 22px}
+.pedigree-fifa-card{background:linear-gradient(135deg,#233b51,#121b2d 70%);border:1px solid rgba(245,188,83,.35);border-radius:15px;overflow:hidden;min-width:0}
+.pedigree-fifa-card[open]{border-color:rgba(245,188,83,.8)}
+.pedigree-fifa-card summary{list-style:none;cursor:pointer;padding:16px}
+.pedigree-fifa-card summary::-webkit-details-marker{display:none}
+.pedigree-head{display:flex;align-items:center;gap:16px;margin-bottom:13px}
+.pedigree-overall{flex:none;width:82px;height:97px;border:2px solid #c4a15b;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-direction:column;background:linear-gradient(160deg,#f8db9b,#b88e43);color:#2d260f;box-shadow:0 3px 12px rgba(0,0,0,.25)}
+.pedigree-overall.strong{background:linear-gradient(160deg,#e8eef2,#879fb6);border-color:#aac0d4;color:#183044}
+.pedigree-overall.developing{background:linear-gradient(160deg,#eac39a,#995a36);border-color:#c68e60;color:#372013}
+.pedigree-overall.building{background:linear-gradient(160deg,#bac3cf,#52647b);border-color:#9aaec3;color:#102034}
+.pedigree-overall strong{font-size:39px;line-height:1;font-weight:900;letter-spacing:-2px}
+.pedigree-overall small{font-size:11px;font-weight:900;letter-spacing:2px;margin-top:4px}
+.pedigree-identity{min-width:0}.pedigree-identity h3{margin:0 0 6px;font-size:18px;overflow-wrap:anywhere;color:#fff}
+.pedigree-identity>small{font-size:11px;color:#c7d3e0}.pedigree-stars{font-size:20px;letter-spacing:1px;color:#f6c55c;margin-bottom:6px}
+.pedigree-stars span{font-size:12px;letter-spacing:0;color:#fff;margin-left:4px}
+.pedigree-units{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.pedigree-unit{display:grid;grid-template-columns:1fr auto;gap:6px;color:#d8e0eb;font-size:11px;font-weight:900;letter-spacing:.6px}
+.pedigree-unit>b{font-size:18px;color:#fff;line-height:1}
+.pedigree-unit>i{grid-column:span 2;height:5px;background:#465268;border-radius:8px;overflow:hidden}
+.pedigree-unit>i em{display:block;height:100%;background:linear-gradient(90deg,#5ce0b9,#f4ce73);border-radius:8px}
+.pedigree-open-hint{display:block;color:#aebccf;font-size:10px;margin-top:13px;text-align:right}
+.pedigree-detail{padding:0 14px 15px;border-top:1px solid rgba(255,255,255,.11)}
+.pedigree-detail-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:13px 0}
+.pedigree-detail-stats span{display:flex;flex-direction:column;background:#0d1829;border-radius:8px;padding:9px;font-size:10px;color:#9faebf}
+.pedigree-detail-stats b{font-size:18px;color:#f4e0b2}.pedigree-players-table{font-size:11px}
+.pedigree-players-table small{display:block;color:#95a9bd;margin-top:3px}
+.pedigree-comparison-title{margin:18px 0 10px}.rating-up{color:#48d8a4!important}.rating-down{color:#ff8c8c!important}.rating-flat{color:#a9b4c4!important}
+.player-rating-pill{display:inline-flex;align-items:center;gap:3px;width:max-content;margin-top:8px;border:1px solid #dbbc66;background:linear-gradient(110deg,#e8c572,#ac8335);color:#1d241c;border-radius:8px;padding:5px 8px;font-size:21px;font-weight:900;line-height:1}
+.player-rating-pill small{font-size:10px}.player-rating-pill em{font-size:10px;margin-left:3px;font-style:normal;background:#102339;padding:4px;border-radius:5px}
+.rating-breakdown{flex:1 1 100%;min-width:220px;background:#0d192b;border-radius:10px;padding:12px;margin-top:8px}
+.rating-breakdown>b{color:#e9d193}.rating-breakdown p{font-size:11px;line-height:1.6;color:#a8b8ca}
+.rating-factor{display:grid;grid-template-columns:minmax(100px,1fr) minmax(65px,2fr) 30px;align-items:center;gap:8px;font-size:11px;margin-top:8px}
+.rating-factor-track{height:6px;border-radius:6px;background:#263955;overflow:hidden}.rating-factor-track i{display:block;height:100%;background:linear-gradient(90deg,#3293ca,#80e6c5)}
+.rating-factor strong{text-align:right;color:#e9eef5}
+@media(max-width:850px){.pedigree-cards{grid-template-columns:1fr}.pedigree-detail-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:520px){.pedigree-head{gap:11px}.pedigree-overall{width:65px;height:80px}.pedigree-overall strong{font-size:30px}.pedigree-identity h3{font-size:15px}.pedigree-stars{font-size:16px}.pedigree-detail-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+"""
 
 html_template = r"""
 <!DOCTYPE html>
@@ -21190,7 +21473,7 @@ __CSS__
             <div class="player-subpage" id="player-sub-directory">
                 <div class="card">
                     <div class="player-directory-heading">
-                        <div><h2>Player Directory</h2><p class="card-description">Search the full player pool and filter by position, Premier League club or your draft fantasy team.</p></div>
+                        <div><h2>Player Directory</h2><p class="card-description">Live /100 ratings across the full player pool. Filter by position, Premier League club or your draft fantasy team, then open Details for the seven-factor breakdown.</p></div>
                         <div class="player-directory-count" id="player-directory-count"></div>
                     </div>
                     <div class="player-filter-grid">
@@ -21198,7 +21481,7 @@ __CSS__
                         <select id="player-position-filter" class="player-filter" onchange="filterPlayers()"><option value="">All positions</option><option value="GKP">Goalkeepers</option><option value="DEF">Defenders</option><option value="MID">Midfielders</option><option value="FWD">Forwards</option></select>
                         <select id="player-club-filter" class="player-filter" onchange="filterPlayers()"><option value="">All clubs</option>__PLAYER_CLUB_OPTIONS__</select>
                         <select id="player-fantasy-filter" class="player-filter" onchange="filterPlayers()"><option value="">All fantasy teams</option><option value="Free Agent">Free Agents</option>__PLAYER_FANTASY_OPTIONS__</select>
-                        <select id="player-sort" class="player-filter" onchange="filterPlayers()"><option value="points">Season points</option><option value="form">5 GW form</option><option value="goals">Goals</option><option value="assists">Assists</option><option value="name">Name</option></select>
+                        <select id="player-sort" class="player-filter" onchange="filterPlayers()"><option value="rating" selected>Rating /100</option><option value="points">Season points</option><option value="form">5 GW form</option><option value="goals">Goals</option><option value="assists">Assists</option><option value="name">Name</option></select>
                     </div>
                     <div id="player-search-results" class="player-search-results player-directory-results" style="display:block;"></div>
                 </div>
