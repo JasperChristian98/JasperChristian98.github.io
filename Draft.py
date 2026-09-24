@@ -22681,7 +22681,13 @@ function initialiseDashboard() {
     safeInit("colour theme", initialiseDashboardTheme);
 
     safeInit("page navigation", function() {
-        showPage("overview");
+        // The Live Centre section is only rendered when the GW is live.
+        // Use it as the initial landing page, otherwise keep Overview.
+        // This runs once on page load; visitors can still browse any page.
+        const landingPage = document.getElementById("page-live-centre")
+            ? "live-centre"
+            : "overview";
+        showPage(landingPage);
     });
 
     safeInit("Club Explorer", initialiseClubExplorer);
