@@ -8790,6 +8790,268 @@ def live_fixture_odds_table():
 <thead><tr><th>Team</th><th>Now</th><th>Left</th><th>Win odds</th><th>Draw odds</th><th>Win odds</th><th>Left</th><th>Now</th><th>Team</th><th>Projected Final</th></tr></thead>
 <tbody>{rows}</tbody></table></div>"""
 
+# ============================================================
+# MCDRAFT LIVE CENTRE
+# ============================================================
+# Matchday-only hub. It deliberately reuses the same XI-derived score and
+# Monte Carlo functions as the Gameweeks page so there is one source of truth.
+
+def _live_full_stats_lookup():
+    """Return the Classic live payload keyed by Draft player id."""
+    classic = {}
+    for row in _dashboard_live_elements:
+        if not isinstance(row, dict) or row.get("id") is None:
+            continue
+        classic[int(row["id"])] = row.get("stats") or {}
+    return {
+        int(draft_id): classic[fpl_id_for_draft(draft_id)]
+        for draft_id in elements
+        if fpl_id_for_draft(draft_id) in classic
+    }
+
+
+def _live_centre_team_snapshot(manager):
+    snapshot = history.get("gameweeks", {}).get(str(dashboard_target_gw), {})
+    return next(
+        (td for td in snapshot.get("teams", {}).values() if td.get("manager") == manager),
+        None,
+    ) or {}
+
+
+def _live_centre_player_row(player, starter=True):
+    try:
+        pid = int(player.get("element_id"))
+    except (TypeError, ValueError):
+        return ""
+    meta = elements.get(pid, {})
+    stats = _live_full_stats_lookup().get(pid, {})
+    pts = int(stats.get("total_points", player.get("points", 0)) or 0)
+    mins = int(stats.get("minutes", player.get("minutes", 0)) or 0)
+    club = teams_lookup.get(meta.get("team"), player.get("team", "—"))
+    pos = positions_lookup.get(meta.get("element_type"), player.get("position", "—"))
+    remaining, fixture_state = _club_fixture_remaining_fraction(meta.get("team"))
+    if fixture_state == "finished":
+        state_label = "FT"
+    elif fixture_state == "live":
+        state_label = "LIVE"
+    else:
+        state_label = "TO PLAY"
+
+    stat_labels = [
+        ("goals_scored", "G"), ("assists", "A"), ("clean_sheets", "CS"),
+        ("goals_conceded", "GC"), ("own_goals", "OG"),
+        ("penalties_saved", "Pens saved"), ("penalties_missed", "Pens missed"),
+        ("yellow_cards", "YC"), ("red_cards", "RC"), ("saves", "Saves"),
+        ("bonus", "Bonus"), ("bps", "BPS"),
+    ]
+    stat_bits = []
+    for key, label in stat_labels:
+        value = stats.get(key)
+        if value not in (None, 0, 0.0, "0"):
+            stat_bits.append(f'<span><b>{escape_html(label)}</b> {escape_html(value)}</span>')
+    if not stat_bits:
+        stat_bits.append('<span class="live-centre-stat-muted">No event stats yet</span>')
+
+    captain = " · C" if player.get("is_captain") else (" · VC" if player.get("is_vice_captain") else "")
+    player_name = player.get("web_name") or meta.get("web_name", f"Player {pid}")
+    return f'''
+<details class="live-centre-player {'starter' if starter else 'bench'}">
+  <summary>
+    <span class="live-centre-player-main"><b>{escape_html(player_name)}</b><small>{escape_html(pos)} · {escape_html(club)}{captain}</small></span>
+    <span class="live-centre-player-state state-{fixture_state}">{state_label}</span>
+    <span class="live-centre-player-mins">{mins}'</span>
+    <strong class="live-centre-player-pts">{pts}</strong>
+  </summary>
+  <div class="live-centre-player-stats">{''.join(stat_bits)}</div>
+</details>'''
+
+
+def _live_centre_team_panel(manager, side_label):
+    squad = _live_centre_team_snapshot(manager)
+    starters = list(squad.get("starters", []) or [])
+    bench = list(squad.get("bench", []) or [])
+    by_pos = {"GKP": [], "DEF": [], "MID": [], "FWD": []}
+    for player in starters:
+        pos = player.get("position") or positions_lookup.get(elements.get(player.get("element_id"), {}).get("element_type"), "")
+        if pos in by_pos:
+            by_pos[pos].append(player)
+    formation = f"{len(by_pos['DEF'])}-{len(by_pos['MID'])}-{len(by_pos['FWD'])}"
+
+    def chip(player):
+        try:
+            pid = int(player.get("element_id"))
+        except (TypeError, ValueError):
+            pid = -1
+        stats = _live_full_stats_lookup().get(pid, {})
+        pts = int(stats.get("total_points", player.get("points", 0)) or 0)
+        mins = int(stats.get("minutes", player.get("minutes", 0)) or 0)
+        remaining, state = _club_fixture_remaining_fraction(elements.get(pid, {}).get("team"))
+        state_text = "FT" if state == "finished" else ("LIVE" if state == "live" else "TO PLAY")
+        return (
+            f'<div class="live-centre-pitch-player state-{state}" title="{escape_html(state_text)} · {mins} minutes">'
+            f'<b>{escape_html(player.get("web_name", "Unknown"))}</b>'
+            f'<span>{pts} pts</span><small>{state_text}</small></div>'
+        )
+
+    pitch = f'''
+<div class="live-centre-pitch">
+  <div class="live-centre-pitch-line forwards">{''.join(chip(p) for p in by_pos['FWD'])}</div>
+  <div class="live-centre-pitch-line mids">{''.join(chip(p) for p in by_pos['MID'])}</div>
+  <div class="live-centre-pitch-line defs">{''.join(chip(p) for p in by_pos['DEF'])}</div>
+  <div class="live-centre-pitch-line keepers">{''.join(chip(p) for p in by_pos['GKP'])}</div>
+</div>'''
+    detail_rows = "".join(_live_centre_player_row(p, True) for p in starters)
+    bench_rows = "".join(_live_centre_player_row(p, False) for p in bench)
+    return f'''
+<div class="live-centre-team-column">
+  <div class="live-centre-team-head"><span>{escape_html(side_label)}</span><h3>{escape_html(manager)}</h3><small>{formation}</small></div>
+  {pitch}
+  <div class="live-centre-squad-detail"><h4>Starting XI · tap a player for live stats</h4>{detail_rows}</div>
+  <div class="live-centre-bench"><h4>Bench</h4>{bench_rows or '<div class="notice">Bench not captured.</div>'}</div>
+</div>'''
+
+
+def _live_centre_swing_score(odds):
+    """Higher = tighter and with more unresolved football, therefore worth watching."""
+    margin = abs(float(odds["current1"]) - float(odds["current2"]))
+    unresolved = int(odds["players_left1"]) + int(odds["players_left2"])
+    closeness = max(0.0, 35.0 - margin)
+    probability_tension = 100.0 - abs(float(odds["team1_win"]) - float(odds["team2_win"]))
+    return (closeness * 1.8) + (unresolved * 5.0) + (probability_tension * 0.35)
+
+
+def _live_centre_threats(manager):
+    profile = _live_manager_remaining_profile(manager)
+    details = sorted(profile.get("details", []), key=lambda r: r.get("remaining_mean", 0), reverse=True)
+    if not details:
+        return '<span class="live-centre-no-threat">Nobody with meaningful projected output left.</span>'
+    return "".join(
+        f'<span class="live-centre-threat"><b>{escape_html(r.get("name", "Unknown"))}</b> +{float(r.get("remaining_mean", 0)):.1f} exp.</span>'
+        for r in details[:5]
+    )
+
+
+def _live_centre_pl_fixture_board():
+    live_stats = _live_full_stats_lookup()
+    starters_by_club = defaultdict(list)
+    snapshot = history.get("gameweeks", {}).get(str(dashboard_target_gw), {})
+    for squad in snapshot.get("teams", {}).values():
+        manager = squad.get("manager", "Unknown")
+        for player in squad.get("starters", []) or []:
+            try:
+                pid = int(player.get("element_id"))
+            except (TypeError, ValueError):
+                continue
+            club_id = elements.get(pid, {}).get("team")
+            if club_id is None:
+                continue
+            stats = live_stats.get(pid, {})
+            starters_by_club[int(club_id)].append({
+                "name": player.get("web_name") or elements.get(pid, {}).get("web_name", "Unknown"),
+                "manager": manager,
+                "points": int(stats.get("total_points", player.get("points", 0)) or 0),
+            })
+
+    cards = []
+    for fx in sorted(_dashboard_pl_fixtures, key=lambda f: (str(f.get("kickoff_time") or ""), int(f.get("id", 0) or 0))):
+        home_id, away_id = int(fx.get("team_h", 0) or 0), int(fx.get("team_a", 0) or 0)
+        home, away = teams_lookup.get(home_id, str(home_id)), teams_lookup.get(away_id, str(away_id))
+        if fx.get("finished") or fx.get("finished_provisional"):
+            status = "FT"
+        elif fx.get("started"):
+            mins = fx.get("minutes")
+            status = f"{mins}'" if mins not in (None, "") else "LIVE"
+        else:
+            ko = str(fx.get("kickoff_time") or "")
+            status = "UPCOMING"
+            if ko:
+                try:
+                    kdt = datetime.fromisoformat(ko.replace("Z", "+00:00")).astimezone(ZoneInfo("Europe/London"))
+                    status = kdt.strftime("%a %H:%M")
+                except Exception:
+                    pass
+        hs = fx.get("team_h_score")
+        aw = fx.get("team_a_score")
+        score = f"{hs if hs is not None else '–'} – {aw if aw is not None else '–'}"
+        relevant = starters_by_club.get(home_id, []) + starters_by_club.get(away_id, [])
+        chips = "".join(
+            f'<span class="live-centre-pl-player"><b>{escape_html(r["name"])}</b><small>{escape_html(r["manager"])} · {r["points"]} pts</small></span>'
+            for r in relevant
+        ) or '<span class="live-centre-pl-none">No McDraft starters in this fixture.</span>'
+        cards.append(f'''
+<div class="live-centre-pl-fixture">
+  <div class="live-centre-pl-score"><span>{escape_html(home)}</span><strong>{score}</strong><span>{escape_html(away)}</span><em>{escape_html(status)}</em></div>
+  <div class="live-centre-pl-assets">{chips}</div>
+</div>''')
+    return "".join(cards) or '<div class="notice">Premier League live fixtures are not available yet.</div>'
+
+
+def live_centre_html():
+    if dashboard_game_state != "live":
+        return ""
+    matches = [
+        m for m in (league_matches_all or [])
+        if int(m.get("event", 0) or 0) == int(dashboard_target_gw)
+    ]
+    if not matches:
+        return '<div class="notice">The gameweek is live, but matchup data has not arrived yet.</div>'
+
+    matchup_rows = []
+    for match in matches:
+        odds = _live_fixture_odds_for_match(match)
+        odds["match"] = match
+        odds["derby"] = _derby_name(odds["team1"], odds["team2"])
+        odds["swing"] = _live_centre_swing_score(odds)
+        matchup_rows.append(odds)
+    matchup_rows.sort(key=lambda row: row["swing"], reverse=True)
+
+    switchers, panels = [], []
+    for i, odds in enumerate(matchup_rows):
+        active = " active" if i == 0 else ""
+        derby = odds.get("derby")
+        title = derby or f'{odds["team1"]} vs {odds["team2"]}'
+        diff = abs(int(odds["current1"]) - int(odds["current2"]))
+        left = int(odds["players_left1"]) + int(odds["players_left2"])
+        switchers.append(f'''
+<button class="live-centre-switch{active}" type="button" data-live-match="{i}" onclick="showLiveCentreMatch({i},this)">
+  <span>{escape_html(title)}</span><b>{odds['current1']}–{odds['current2']}</b><small>{left} left · margin {diff}</small>
+</button>''')
+        derby_html = f'<b class="live-centre-derby">{escape_html(derby)}</b>' if derby else ''
+        panels.append(f'''
+<section class="live-centre-match{active}" id="live-centre-match-{i}">
+  <div class="live-centre-scoreboard">
+    <div class="live-centre-score-team"><span>{escape_html(odds['team1'])}</span><strong>{odds['current1']}</strong><small>{odds['players_left1']} left</small></div>
+    <div class="live-centre-score-middle"><span class="live-pill">LIVE · GW{dashboard_target_gw}</span>{derby_html}<small>Projected final</small><strong>{odds['final1_mean']:.1f} – {odds['final2_mean']:.1f}</strong></div>
+    <div class="live-centre-score-team away"><span>{escape_html(odds['team2'])}</span><strong>{odds['current2']}</strong><small>{odds['players_left2']} left</small></div>
+  </div>
+  <div class="live-centre-probs">
+    <div style="--p:{odds['team1_win']:.2f}%"><span>{escape_html(odds['team1'])}</span><b>{odds['team1_win']:.1f}%</b></div>
+    <div class="draw" style="--p:{odds['draw']:.2f}%"><span>Draw</span><b>{odds['draw']:.1f}%</b></div>
+    <div style="--p:{odds['team2_win']:.2f}%"><span>{escape_html(odds['team2'])}</span><b>{odds['team2_win']:.1f}%</b></div>
+  </div>
+  <div class="live-centre-threat-grid">
+    <div><h4>{escape_html(odds['team1'])} threats</h4>{_live_centre_threats(odds['team1'])}</div>
+    <div><h4>{escape_html(odds['team2'])} threats</h4>{_live_centre_threats(odds['team2'])}</div>
+  </div>
+  <div class="live-centre-xi-grid">
+    {_live_centre_team_panel(odds['team1'], 'HOME')}
+    {_live_centre_team_panel(odds['team2'], 'AWAY')}
+  </div>
+</section>''')
+
+    top = matchup_rows[0]
+    top_title = top.get("derby") or f'{top["team1"]} vs {top["team2"]}'
+    return f'''
+<div class="live-centre-hero card">
+  <div><span class="live-centre-kicker">MCDRAFT LIVE CENTRE · GW{dashboard_target_gw}</span><h2>Every matchup. Every relevant player. One mildly unhinged control room.</h2><p>The most volatile tie right now is <b>{escape_html(top_title)}</b>. Matchups below are ordered by how close they are and how much football remains.</p></div>
+  <div class="live-centre-pulse"><i></i><span>LIVE</span></div>
+</div>
+<div class="live-centre-switcher">{''.join(switchers)}</div>
+{''.join(panels)}
+<div class="card live-centre-pl-card"><div class="live-centre-section-head"><div><span class="live-centre-kicker">PREMIER LEAGUE FEED</span><h2>What can still swing McDraft?</h2></div><p>All PL fixtures in GW{dashboard_target_gw}, with every McDraft starter involved and their current FPL points.</p></div><div class="live-centre-pl-grid">{_live_centre_pl_fixture_board()}</div></div>
+<div class="card live-centre-table-card"><div class="live-centre-section-head"><div><span class="live-centre-kicker">AS IT STANDS</span><h2>Live McDraft Table</h2></div><p>Provisional standings if every matchup froze right now.</p></div>{live_as_it_stands_table()}</div>
+'''
+
 
 # ============================================================
 # SQUAD PEDIGREE
@@ -23678,6 +23940,20 @@ __CSS__
 }
 
 
+/* McDraft Live Centre */
+.live-centre-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;overflow:hidden;position:relative;background:linear-gradient(135deg,color-mix(in srgb,var(--card) 82%,#ef4444),var(--card))}
+.live-centre-hero h2{margin:6px 0 8px;font-size:clamp(22px,3vw,34px)}.live-centre-hero p{margin:0;max-width:850px;color:var(--muted);line-height:1.55}.live-centre-kicker{font-size:10px;font-weight:900;letter-spacing:.14em;color:#fb7185}.live-centre-pulse{display:flex;align-items:center;gap:8px;border:1px solid rgba(251,113,133,.45);background:rgba(244,63,94,.12);border-radius:999px;padding:9px 13px;font-weight:900;color:#fb7185}.live-centre-pulse i{width:9px;height:9px;border-radius:50%;background:#fb7185;box-shadow:0 0 0 0 rgba(251,113,133,.55);animation:livePulse 1.6s infinite}@keyframes livePulse{70%{box-shadow:0 0 0 9px rgba(251,113,133,0)}100%{box-shadow:0 0 0 0 rgba(251,113,133,0)}}
+.live-centre-switcher{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:14px 0 18px;overflow-x:auto;padding-bottom:3px}.live-centre-switch{appearance:none;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:12px;padding:12px;text-align:left;cursor:pointer;min-width:160px;font:inherit}.live-centre-switch span,.live-centre-switch small{display:block}.live-centre-switch span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.live-centre-switch b{display:block;font-size:22px;margin:4px 0}.live-centre-switch small{font-size:10px;color:var(--muted)}.live-centre-switch.active{border-color:#fb7185;box-shadow:inset 0 0 0 1px #fb7185;background:color-mix(in srgb,var(--card) 90%,#fb7185)}
+.live-centre-match{display:none}.live-centre-match.active{display:block}.live-centre-scoreboard{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,.65fr) minmax(0,1fr);align-items:center;gap:14px;border:1px solid var(--border);background:var(--card);border-radius:18px;padding:20px;margin-bottom:10px}.live-centre-score-team{display:grid;grid-template-columns:1fr auto;gap:4px 14px;align-items:center}.live-centre-score-team span{font-weight:900;font-size:clamp(14px,2vw,21px)}.live-centre-score-team strong{grid-row:1/3;grid-column:2;font-size:clamp(42px,6vw,70px);line-height:1}.live-centre-score-team small{color:var(--muted)}.live-centre-score-team.away{text-align:right;grid-template-columns:auto 1fr}.live-centre-score-team.away strong{grid-column:1}.live-centre-score-team.away span,.live-centre-score-team.away small{grid-column:2}.live-centre-score-middle{text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px}.live-pill{font-size:10px;font-weight:900;letter-spacing:.12em;color:#fb7185}.live-centre-score-middle small{color:var(--muted);margin-top:3px}.live-centre-score-middle strong{font-size:19px}.live-centre-derby{font-size:12px;color:#fbbf24}
+.live-centre-probs{display:grid;grid-template-columns:1fr .45fr 1fr;gap:8px;margin-bottom:12px}.live-centre-probs>div{position:relative;overflow:hidden;border:1px solid var(--border);background:var(--card);border-radius:11px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px}.live-centre-probs>div:before{content:"";position:absolute;inset:auto 0 0;height:3px;width:var(--p);background:#38bdf8}.live-centre-probs .draw:before{background:#fbbf24}.live-centre-probs span{font-size:11px;color:var(--muted)}.live-centre-probs b{font-size:15px}
+.live-centre-threat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.live-centre-threat-grid>div{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--card)}.live-centre-threat-grid h4{margin:0 0 8px;font-size:12px}.live-centre-threat{display:inline-flex;gap:4px;margin:3px 5px 3px 0;padding:5px 7px;border-radius:999px;background:var(--bg-secondary);font-size:10px;color:var(--muted)}.live-centre-threat b{color:var(--text)}.live-centre-no-threat{font-size:11px;color:var(--muted)}
+.live-centre-xi-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}.live-centre-team-column{min-width:0}.live-centre-team-head{display:flex;align-items:baseline;gap:8px;margin:0 2px 8px}.live-centre-team-head span{font-size:9px;font-weight:900;color:var(--muted);letter-spacing:.12em}.live-centre-team-head h3{margin:0;flex:1;font-size:17px}.live-centre-team-head small{color:var(--muted);font-weight:800}.live-centre-pitch{min-height:470px;border-radius:18px;padding:18px 9px;display:flex;flex-direction:column;justify-content:space-around;gap:8px;background:linear-gradient(90deg,rgba(16,185,129,.16),rgba(16,185,129,.08)),repeating-linear-gradient(0deg,transparent,transparent 62px,rgba(255,255,255,.05) 63px,rgba(255,255,255,.05) 64px);border:1px solid rgba(52,211,153,.28);box-shadow:inset 0 0 0 2px rgba(255,255,255,.03)}.live-centre-pitch-line{display:flex;justify-content:space-evenly;gap:5px;align-items:center}.live-centre-pitch-player{min-width:65px;max-width:105px;flex:1;text-align:center;background:rgba(7,18,32,.88);border:1px solid rgba(255,255,255,.13);border-radius:9px;padding:7px 4px;box-shadow:0 4px 12px rgba(0,0,0,.18)}.live-centre-pitch-player b,.live-centre-pitch-player span,.live-centre-pitch-player small{display:block}.live-centre-pitch-player b{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.live-centre-pitch-player span{font-size:14px;font-weight:900;margin:2px 0}.live-centre-pitch-player small{font-size:8px;color:var(--muted);font-weight:900}.live-centre-pitch-player.state-live{border-color:#fb7185}.live-centre-pitch-player.state-upcoming{border-color:#38bdf8}.live-centre-pitch-player.state-finished{opacity:.72}
+.live-centre-squad-detail,.live-centre-bench{margin-top:10px;border:1px solid var(--border);background:var(--card);border-radius:13px;padding:11px}.live-centre-squad-detail h4,.live-centre-bench h4{margin:0 0 8px;font-size:11px;color:var(--muted)}.live-centre-player{border-top:1px solid var(--border)}.live-centre-player:first-of-type{border-top:0}.live-centre-player summary{display:grid;grid-template-columns:minmax(0,1fr) auto 42px 30px;gap:8px;align-items:center;padding:8px 2px;cursor:pointer;list-style:none}.live-centre-player summary::-webkit-details-marker{display:none}.live-centre-player-main b,.live-centre-player-main small{display:block}.live-centre-player-main b{font-size:11px}.live-centre-player-main small{font-size:9px;color:var(--muted)}.live-centre-player-state{font-size:8px;font-weight:900;border-radius:999px;padding:4px 6px;background:var(--bg-secondary)}.live-centre-player-state.state-live{color:#fb7185}.live-centre-player-state.state-upcoming{color:#38bdf8}.live-centre-player-state.state-finished{color:var(--muted)}.live-centre-player-mins{font-size:9px;color:var(--muted);text-align:right}.live-centre-player-pts{text-align:right;font-size:15px}.live-centre-player-stats{display:flex;gap:5px;flex-wrap:wrap;padding:0 0 9px}.live-centre-player-stats span{font-size:9px;padding:4px 6px;border-radius:6px;background:var(--bg-secondary);color:var(--muted)}.live-centre-player-stats b{color:var(--text)}
+.live-centre-section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:14px}.live-centre-section-head h2{margin:3px 0 0}.live-centre-section-head p{margin:0;color:var(--muted);font-size:11px;max-width:520px;text-align:right}.live-centre-pl-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.live-centre-pl-fixture{border:1px solid var(--border);border-radius:12px;background:var(--bg-secondary);padding:11px}.live-centre-pl-score{display:grid;grid-template-columns:1fr auto 1fr auto;gap:8px;align-items:center}.live-centre-pl-score span:last-of-type{text-align:right}.live-centre-pl-score strong{font-size:16px}.live-centre-pl-score em{font-size:9px;font-style:normal;font-weight:900;color:#fb7185}.live-centre-pl-assets{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.live-centre-pl-player{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px 7px}.live-centre-pl-player b{font-size:9px}.live-centre-pl-player small,.live-centre-pl-none{font-size:8px;color:var(--muted)}
+@media(max-width:980px){.live-centre-switcher{grid-template-columns:repeat(5,minmax(155px,1fr))}.live-centre-xi-grid{grid-template-columns:1fr}.live-centre-scoreboard{grid-template-columns:1fr auto 1fr}.live-centre-pl-grid{grid-template-columns:1fr}.live-centre-pitch{min-height:430px}.live-centre-section-head{align-items:flex-start;flex-direction:column}.live-centre-section-head p{text-align:left}}
+@media(max-width:620px){.live-centre-hero{align-items:flex-start}.live-centre-pulse{padding:7px 9px}.live-centre-scoreboard{padding:13px 9px;gap:7px}.live-centre-score-team{display:flex;flex-direction:column;gap:3px}.live-centre-score-team.away{display:flex}.live-centre-score-team strong{font-size:38px}.live-centre-score-middle{font-size:9px}.live-centre-score-middle strong{font-size:13px}.live-centre-probs{grid-template-columns:1fr .5fr 1fr}.live-centre-probs>div{padding:8px 6px;display:block;text-align:center}.live-centre-threat-grid{grid-template-columns:1fr}.live-centre-pitch{min-height:390px;padding:11px 5px}.live-centre-pitch-player{min-width:48px;padding:6px 3px}.live-centre-pitch-player b{font-size:9px}.live-centre-pitch-player span{font-size:12px}.live-centre-player summary{grid-template-columns:minmax(0,1fr) auto 34px 26px;gap:5px}.live-centre-pl-score{grid-template-columns:1fr auto 1fr}.live-centre-pl-score em{grid-column:1/-1;text-align:center}}
+
+
 /* McDraft navigation v1: the original pages and subtab handlers are preserved. */
 .mcd-workspace{display:grid;grid-template-columns:254px minmax(0,1fr);max-width:1770px;margin:0 auto;min-width:0;transition:grid-template-columns .2s ease}
 .mcd-workspace.mcd-compact{grid-template-columns:66px minmax(0,1fr)}
@@ -24003,6 +24279,9 @@ body[data-theme=light] .mcd-nav-link.is-active{background:#e6f3fd;color:#0369a1}
 
             </div>
         </section>
+
+
+        __LIVE_CENTRE_PAGE__
 
 
         <!-- ==================================================
@@ -24496,6 +24775,7 @@ __JAVASCRIPT__
 const MCD_MENU = [
  {id:'home',title:'Home',icon:'⌂',page:'overview',items:[
   ['League overview','overview','overview','standings'],
+  __LIVE_CENTRE_MENU_ITEM__
   ['Predictions & power rankings','overview','overview','intelligence'],
   ['Manager War Room','war-room'],
  ]},
@@ -24557,6 +24837,11 @@ const MCD_MENU = [
 ];
 let mcdSelectedGroup='home';
 let mcdMobilePreviousFocus=null;
+function showLiveCentreMatch(index,button){
+ document.querySelectorAll('.live-centre-match').forEach((panel,i)=>panel.classList.toggle('active',i===Number(index)));
+ document.querySelectorAll('.live-centre-switch').forEach((btn,i)=>btn.classList.toggle('active',i===Number(index)));
+ if(button && window.matchMedia('(max-width:850px)').matches){document.getElementById('live-centre-match-'+index)?.scrollIntoView({behavior:'smooth',block:'start'});}
+}
 function mcdTabSelector(kind){return ({overview:'.overview-tab',myteam:'.myteam-tab',players:'.player-page-tab',clubs:'.club-explorer-tab',transfers:'.transfer-subtab','season-summary':'.season-summary-tab','draft-centre':'.draft-centre-tab',analytics:'#page-analytics .analytics-subtab'})[kind];}
 function mcdSubtabHandler(kind){return ({overview:showOverviewSubtab,myteam:showMyTeamSubtab,players:showPlayerSubtab,clubs:showClubSubtab,transfers:showTransferSubtab,'season-summary':showSeasonSummarySubtab,'draft-centre':showDraftCentreSubtab,analytics:showAnalyticsSubtab})[kind];}
 function mcdActivePage(){return (document.querySelector('.page.active')?.id||'page-overview').replace(/^page-/,'');}
@@ -24891,6 +25176,15 @@ replacements = {
 
     "__MANAGER_WAR_ROOM_HTML__":
         manager_war_room_html(),
+
+    "__LIVE_CENTRE_PAGE__": (
+        '<section class="page" id="page-live-centre"><div class="page-heading"><h1>Live Centre</h1><p>Matchday control room for the whole McDraft league.</p></div>' + live_centre_html() + '</section>'
+        if dashboard_game_state == "live" else ""
+    ),
+
+    "__LIVE_CENTRE_MENU_ITEM__": (
+        "['Live Centre','live-centre']," if dashboard_game_state == "live" else ""
+    ),
 
     "__SEASON_SIMULATOR_HTML__":
         season_simulator_html(),
