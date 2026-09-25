@@ -46,7 +46,7 @@ from .war_room_layout import move_war_room, WAR_ROOM_NAV_JS
 from .layout_and_odds import update_layout, shared_fixture_odds, CSS as LAYOUT_CSS, JS as LAYOUT_JS
 from .editorial_expansion import RADAR_CSS, RADAR_JS, add_column_desks, humanise_column_story
 from .mobile_header_and_war_countdown import (CSS as MOBILE_HEADER_CSS,
-    next_gameweek_kickoff, countdown_javascript, insert_war_room_countdown)
+    next_gameweek_kickoff, countdown_javascript, insert_header_countdown)
 from .manager_styles_page import (
     build_manager_styles,
     PAGE_HTML as MANAGER_STYLES_HTML,
@@ -185,7 +185,8 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
                     state['league_storyline_for_gw'] = humanise_column_story(
                         state['league_storyline_for_gw'], state['league_honours'])
                     state['html_template'] = update_layout(move_war_room(state['html_template']))
-                    state['html_template'] = insert_war_room_countdown(state['html_template'])
+                    state['html_template'] = insert_header_countdown(
+                        state['html_template'], live=bool(state.get('dashboard_target_is_live')))
                     analytics_anchor = '__ANALYTICS_PAGE__'
                     if state['html_template'].count(analytics_anchor) != 1:
                         raise RuntimeError('Analytics insertion point changed')

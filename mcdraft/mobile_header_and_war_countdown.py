@@ -1,6 +1,7 @@
-"""Compact two-control mobile header and fixture-backed War Room countdown.
+"""Mobile search/team header and fixture-backed kickoff countdown in the header.
 
-Presentation-only integration; never changes existing prediction calculations.
+The existing module filename is preserved so users only replace two Python files.
+No countdown is inserted while the gameweek is live.
 """
 from __future__ import annotations
 
@@ -9,54 +10,70 @@ import json
 from typing import Iterable, Mapping
 
 CSS = r'''
-/* Keep global search and the team picker on the SAME row on small screens. */
+/* The legacy mobile header uses flex-direction:column. Override that with an
+   explicit grid; the two controls therefore cannot wrap onto separate rows. */
 @media (max-width:850px) {
-  .header .header-top {display:flex; flex-wrap:wrap; column-gap:8px; row-gap:9px; align-items:center;}
-  .header .global-search-wrap {
-    order:10; flex:1 1 0; width:auto; min-width:0; max-width:none;
-    margin:0; box-sizing:border-box;
-  }
-  .header .mcd-header-manager {
-    order:11; flex:0 0 42%; width:42%; min-width:0; max-width:160px;
-    margin:0; gap:0; box-sizing:border-box;
-  }
-  .header .mcd-header-manager span {display:none;}
-  .header .global-search-input,
-  .header .mcd-header-manager select {
-    width:100%; min-width:0; height:38px; min-height:38px;
-    box-sizing:border-box; border-radius:9px; font-size:12px;
-  }
-  .header .global-search-input {padding:8px 9px; text-overflow:ellipsis;}
-  .header .mcd-header-manager select {padding:7px 22px 7px 7px; text-overflow:ellipsis;}
-  .header .global-search-results {min-width:min(285px,calc(100vw - 24px));}
+ .header .header-top {
+   display:grid!important;
+   grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+   grid-template-areas:"logo logo" "theme theme" "meta meta" "search manager";
+   column-gap:8px;
+   row-gap:9px;
+   align-items:center!important;
+   justify-items:stretch;
+   flex-direction:row!important;
+   flex-wrap:nowrap!important;
+   width:100%;
+   min-width:0;
+   box-sizing:border-box;
+ }
+ .header .logo {grid-area:logo;min-width:0;}
+ .header .theme-control {grid-area:theme;justify-self:center;min-width:0;margin:0;}
+ .header .header-meta {grid-area:meta;min-width:0;margin:0;width:100%;text-align:left;}
+ .header .global-search-wrap {
+   grid-area:search;position:relative;width:100%;max-width:none;min-width:0;
+   margin:0!important;flex:none!important;order:unset!important;
+ }
+ .header .mcd-header-manager {
+   grid-area:manager;display:block;width:100%;max-width:none;min-width:0;
+   margin:0!important;flex:none!important;order:unset!important;
+ }
+ .header .mcd-header-manager span {display:none;}
+ .header .global-search-input,
+ .header .mcd-header-manager select {
+   display:block;width:100%;max-width:100%;min-width:0;height:39px;min-height:39px;
+   box-sizing:border-box;border-radius:9px;font-size:12px;line-height:1.3;
+ }
+ .header .global-search-input {padding:8px 9px;text-overflow:ellipsis;}
+ .header .mcd-header-manager select {padding:8px 23px 8px 8px;text-overflow:ellipsis;}
+ .header .global-search-results {min-width:min(285px,calc(100vw - 24px));}
 }
 @media (max-width:380px) {
-  .header .mcd-header-manager {flex-basis:43%; width:43%;}
-  .header .global-search-input,
-  .header .mcd-header-manager select {font-size:11px;}
+ .header .header-top {column-gap:6px;}
+ .header .global-search-input,
+ .header .mcd-header-manager select {font-size:11px;}
 }
-/* Prominent but compact countdown above the War Room's matchup content. */
-#myteam-sub-war-room .wr-countdown {
-  display:flex; align-items:center; gap:16px; justify-content:space-between;
-  border:1px solid var(--border); background:var(--card);
-  border-radius:14px; padding:15px 18px; margin:0 0 16px;
+/* Shared header metadata on desktop and mobile. */
+.header .header-meta {display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap;}
+.header .mcd-updated-info {min-width:0;line-height:1.45;}
+.header .mcd-kickoff-countdown {
+ display:flex;flex-direction:column;gap:2px;align-items:flex-start;
+ border-left:1px solid var(--border);padding-left:13px;white-space:nowrap;
+ font-variant-numeric:tabular-nums;
 }
-#myteam-sub-war-room .wr-countdown-eyebrow {color:var(--accent);font-size:11px;font-weight:800;letter-spacing:.07em;}
-#myteam-sub-war-room .wr-countdown h3 {color:var(--text);font-size:18px;margin:4px 0;}
-#myteam-sub-war-room .wr-countdown-detail {color:var(--muted);font-size:12px;line-height:1.4;}
-#myteam-sub-war-room .wr-countdown-time {font-variant-numeric:tabular-nums;font-size:clamp(20px,4vw,31px);font-weight:850;color:var(--text);white-space:nowrap;}
-@media(max-width:540px){
-  #myteam-sub-war-room .wr-countdown {gap:8px;flex-wrap:wrap;padding:13px;}
-  #myteam-sub-war-room .wr-countdown h3{font-size:16px;}
-  #myteam-sub-war-room .wr-countdown-time {font-size:23px;}
+.header .mcd-kickoff-countdown-label {font-size:10px;font-weight:800;letter-spacing:.045em;color:var(--accent);}
+.header .mcd-kickoff-countdown-value {font-size:13px;font-weight:800;color:var(--text);}
+.header .mcd-kickoff-countdown[hidden] {display:none!important;}
+@media(max-width:850px){
+ .header .header-meta {justify-content:flex-start;gap:9px;}
+ .header .mcd-kickoff-countdown {padding-left:10px;}
+ .header .mcd-kickoff-countdown-value {font-size:12px;}
 }
 '''
 
-WAR_ROOM_COUNTDOWN_HTML = '''<div id="wr-next-gw-countdown" class="wr-countdown" role="status" aria-live="off">
-  <div><span class="wr-countdown-eyebrow">NEXT GAMEWEEK</span>
-  <h3 id="wr-countdown-title">Checking kickoff…</h3>
-  <div id="wr-countdown-detail" class="wr-countdown-detail"></div></div>
-  <div id="wr-countdown-time" class="wr-countdown-time" aria-label="Time until kickoff">—</div>
+HEADER_COUNTDOWN_HTML = '''<div id="mcd-kickoff-countdown" class="mcd-kickoff-countdown" role="timer" aria-live="off">
+    <span id="mcd-kickoff-countdown-label" class="mcd-kickoff-countdown-label">NEXT KICKOFF</span>
+    <span id="mcd-kickoff-countdown-value" class="mcd-kickoff-countdown-value">Checking…</span>
 </div>'''
 
 
@@ -74,12 +91,7 @@ def _parse_utc(raw):
 
 def next_gameweek_kickoff(fixtures: Iterable[Mapping], *, current_gw: int,
                           live: bool, now: datetime | None = None) -> dict:
-    """Find the earliest future kickoff of the next *unstarted* gameweek.
-
-    If the current GW is live, skip its remaining fixtures and target GW+1.
-    A double gameweek uses its earliest scheduled match. Missing TBD times are
-    ignored and never replaced by a fabricated deadline-time estimate.
-    """
+    """Choose the earliest known future match of the next not-yet-live GW."""
     now = now or datetime.now(timezone.utc)
     if now.tzinfo is None:
         raise ValueError('now must be timezone aware')
@@ -96,51 +108,66 @@ def next_gameweek_kickoff(fixtures: Iterable[Mapping], *, current_gw: int,
         if when and when > now:
             future.append((gw, when))
     if not future:
-        return {'gw': target, 'kickoff': None}
-    # Prefer the next gameweek with a confirmed future fixture, not the
-    # physically earliest date of an unrelated later fixture.
+        return {'gw': target, 'kickoff': None, 'live': bool(live)}
     gw = min(g for g, _ in future)
     kickoff = min(t for g, t in future if g == gw)
-    return {'gw': gw, 'kickoff': kickoff.isoformat().replace('+00:00', 'Z')}
+    return {'gw': gw, 'kickoff': kickoff.isoformat().replace('+00:00', 'Z'), 'live': bool(live)}
 
 
 def countdown_javascript(data: dict) -> str:
     payload = json.dumps(data, ensure_ascii=False).replace('<', '\\u003c')
     return r'''
-const MCD_WAR_ROOM_KICKOFF = __DATA__;
-function updateWarRoomCountdown(){
- const root=document.getElementById('wr-next-gw-countdown');if(!root)return;
- const title=document.getElementById('wr-countdown-title');
- const detail=document.getElementById('wr-countdown-detail');
- const remaining=document.getElementById('wr-countdown-time');
- const info=MCD_WAR_ROOM_KICKOFF;
- if(!info||!info.kickoff){
-   title.textContent='GW'+(info?.gw||'?')+' · Date to be confirmed';
-   detail.textContent='Kickoff time is not available in the fixture feed yet.';
-   remaining.textContent='TBC';return;
- }
+const MCD_HEADER_KICKOFF = __DATA__;
+function updateHeaderKickoffCountdown(){
+ const root=document.getElementById('mcd-kickoff-countdown');
+ if(!root)return;
+ const label=document.getElementById('mcd-kickoff-countdown-label');
+ const remaining=document.getElementById('mcd-kickoff-countdown-value');
+ const info=MCD_HEADER_KICKOFF;
+ if(!info||info.live){root.hidden=true;return;}
+ if(!info.kickoff){label.textContent='GW'+(info.gw||'?')+' KICKOFF';remaining.textContent='Date TBC';return;}
  const kickoff=new Date(info.kickoff),ms=kickoff.getTime()-Date.now();
- if(!Number.isFinite(kickoff.getTime())){title.textContent='Kickoff date unavailable';remaining.textContent='TBC';return;}
- title.textContent='GW'+info.gw+' kicks off';
- detail.textContent=kickoff.toLocaleString(undefined,{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
- if(ms<=0){remaining.textContent='Kickoff underway';return;}
+ if(!Number.isFinite(kickoff.getTime())){remaining.textContent='Date TBC';return;}
+ // If someone keeps the page open past kickoff, remove the countdown rather than
+ // display a misleading negative time while waiting for the next GitHub build.
+ if(ms<=0){root.hidden=true;return;}
+ label.textContent='GW'+info.gw+' KICKOFF';
  const days=Math.floor(ms/86400000),hours=Math.floor(ms%86400000/3600000),mins=Math.floor(ms%3600000/60000);
  remaining.textContent=days+'d '+hours+'h '+mins+'m';
+ remaining.title=kickoff.toLocaleString(undefined,{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
  remaining.setAttribute('aria-label',days+' days '+hours+' hours '+mins+' minutes until GW'+info.gw);
 }
 document.addEventListener('DOMContentLoaded',()=>{
- updateWarRoomCountdown();
- // The page can stay open through kickoff; updates once per minute.
- window.setInterval(updateWarRoomCountdown,60000);
+ updateHeaderKickoffCountdown();
+ window.setInterval(updateHeaderKickoffCountdown,60000);
 });
 '''.replace('__DATA__', payload)
 
 
-def insert_war_room_countdown(template: str) -> str:
-    """Inject into relocated My Team War Room (not the old standalone page)."""
-    marker = '<div class="myteam-subpage" id="myteam-sub-war-room">'
-    if template.count(marker) != 1:
-        raise RuntimeError('My Team War Room countdown insertion point changed')
+def insert_header_countdown(template: str, *, live: bool = False) -> str:
+    """Keep last updated next to kickoff countdown; never show it during live GWs."""
+    if 'id="mcd-kickoff-countdown"' in template:
+        raise RuntimeError('Header kickoff countdown already inserted')
     if 'id="wr-next-gw-countdown"' in template:
-        raise RuntimeError('War Room countdown already inserted')
-    return template.replace(marker, marker + '\n' + WAR_ROOM_COUNTDOWN_HTML, 1)
+        raise RuntimeError('Obsolete War Room countdown still present')
+    anchor = '''            <div class="header-meta">
+
+                Last updated:
+                __LAST_UPDATED__
+
+                <br>
+
+                __FINISHED_COUNT__
+                completed gameweeks
+
+            </div>'''
+    if template.count(anchor) != 1:
+        raise RuntimeError('Header metadata insertion point changed')
+    insert = '''            <div class="header-meta">
+                <div class="mcd-updated-info">
+                    Last updated: __LAST_UPDATED__<br>
+                    __FINISHED_COUNT__ completed gameweeks
+                </div>
+                ''' + ('' if live else HEADER_COUNTDOWN_HTML) + '''
+            </div>'''
+    return template.replace(anchor, insert, 1)
