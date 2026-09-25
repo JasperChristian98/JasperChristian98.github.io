@@ -62,3 +62,24 @@ briefing: no waiver or lineup changes are submitted.
 integrates it after stage 07, attaches its CSS and JS after stage 09, and inserts
 the Overview card after stage 10. The original 11 legacy stages remain unchanged,
 so the original-source preservation checks continue to pass.
+
+## Matchup stats and trade packages
+
+My Team → Stats includes completed-fixture records, weekly schedule luck,
+opponent records, and player contributions from captured starting lineups.
+Expected league points average the points a manager would earn against every
+other completed score that week (three for a win, one for a draw). Fixture luck
+is actual minus expected league points; it is not a player-performance forecast.
+Missing historical lineups are shown as missing coverage, not inferred.
+
+The Negotiation Room searches position-compatible 1-for-1, 2-for-2 and 3-for-3
+packages. The first results rotate through all three sizes, and filters select
+the partner, package size and negotiation type. Labels always use the selected
+manager's perspective: Ambitious asks for a value upgrade, Safe gives the partner
+a value advantage without reducing their modelled fit, and Even has similar
+values and acceptable fit on both sides. These are model judgements, not measured
+acceptance probabilities. Trade Lab and Trade History have separate tabs;
+loading an offer selects the entire package in Trade Lab.
+
+`mcdraft/matchup_stats.py` and `mcdraft/trade_negotiation.py` are integrated by the
+pipeline without modifying the preserved legacy stages.

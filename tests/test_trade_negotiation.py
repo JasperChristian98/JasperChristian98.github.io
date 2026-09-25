@@ -38,6 +38,11 @@ class TradeNegotiationTests(unittest.TestCase):
         self.assertIn('__HISTORICAL_TRADES__',history)
         self.assertIn('__TRADES_TABLE__',history)
         self.assertIn("['Trade History','transfers','transfers','history']",html)
+        room=html[html.index('id="transfer-subpanel-trades"'):html.index('id="transfer-subpanel-lab"')]
+        lab=html[html.index('id="transfer-subpanel-lab"'):html.index('id="transfer-subpanel-history"')]
+        self.assertNotIn('__TRADE_SIMULATOR__',room)
+        self.assertIn('__TRADE_SIMULATOR__',lab)
+        self.assertIn("['Trade Lab','transfers','transfers','lab']",html)
 
     def test_invalid_html_anchor_fails_loudly(self):
         with self.assertRaises(RuntimeError):
@@ -53,6 +58,21 @@ class TradeNegotiationTests(unittest.TestCase):
         self.assertIn('mcdNegOriginalSyncManagerSelection',JS)
         self.assertIn('Safe',ROOM_HTML)
         self.assertIn('Ambitious',ROOM_HTML)
+
+    @unittest.skipUnless(shutil.which('node'),'Node not installed')
+    def test_package_generation_and_viewer_labels(self):
+        import json
+        rosters={name:[dict(id=side*100+i,name=f'{name} {i}',position=pos,
+                           value=40+i*2+side,projection=4+i*.05,form=4,importance=5)
+                       for i,pos in enumerate(['GKP']*2+['DEF']*5+['MID']*5+['FWD']*3)]
+                 for side,name in enumerate(['A','B'])}
+        script=('const TRADE_SIMULATOR_DATA='+json.dumps(rosters)+';'
+                'const document={addEventListener(){}};'
+                'function evaluateTradeSimulator(){} function draftScoutTrade(){}'
+                'function escapePlayerHTML(s){return String(s);}' + JS
+                + (Path(__file__).parent/'negotiation_behaviour.js').read_text())
+        result=subprocess.run(['node','-e',script],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
 
     @unittest.skipUnless(shutil.which('node'),'Node not installed')
     def test_trade_negotiation_javascript_syntax(self):

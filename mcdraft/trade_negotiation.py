@@ -1,4 +1,4 @@
-"""Extend the existing Trade Lab with mutual-deal discovery and separate trade history.
+"""Discover position-compatible trade packages from the viewing manager's side.
 
 The existing Trade Lab remains the authoritative manual deal builder. Suggestions
 reuse its current ownership, valuation and projection payload; they never claim
@@ -10,26 +10,27 @@ ROOM_HTML = '''
 <div class="card mcd-negotiation-room" id="mcd-negotiation-room">
   <div class="mcd-neg-header">
     <div><div class="eyebrow">THE NEGOTIATION ROOM</div><h2>Find a deal that works for both sides</h2>
-      <p class="card-description">Uses today's owned players and the same player values as Trade Lab. Explore same-position trades, then load any offer into the existing simulator for a closer look.</p></div>
+      <p class="card-description">Explore one-, two- and three-player swaps using current rosters and Trade Lab values. Every package preserves both squads' position quotas.</p></div>
   </div>
   <div class="mcd-neg-controls">
     <label>My team<select id="mcd-neg-manager" onchange="renderNegotiationRoom()" aria-label="Your team for trade discovery"></select></label>
     <label>Potential trade partner<select id="mcd-neg-partner" onchange="renderNegotiationRoom()" aria-label="Potential trade partner"><option value="">All other managers</option></select></label>
     <label>Deal type<select id="mcd-neg-filter" onchange="renderNegotiationRoom()"><option value="">All proposals</option><option value="Safe">Safe</option><option value="Even">Even</option><option value="Ambitious">Ambitious</option></select></label>
+    <label>Package size<select id="mcd-neg-size" onchange="renderNegotiationRoom()"><option value="">All sizes</option><option value="2">2 for 2</option><option value="3">3 for 3</option><option value="1">1 for 1</option></select></label>
   </div>
   <div class="mcd-neg-key">
-    <div><strong>Safe</strong><span>Close model value and lower disruption to both squads.</span></div>
+    <div><strong>Safe</strong><span>Likely to appeal to the other manager: they gain model value and do not lose projected squad fit.</span></div>
     <div><strong>Even</strong><span>Very close overall value, with a plausible gain in positional fit for each manager.</span></div>
-    <div><strong>Ambitious</strong><span>One manager has to accept a meaningful valuation gap for a possible squad-fit gain.</span></div>
+    <div><strong>Ambitious</strong><span>You ask for more value than you give. An upgrade for your team that may need a counteroffer to persuade the other manager.</span></div>
   </div>
-  <p class="card-description">Labels describe modelled negotiation difficulty, not guaranteed acceptance, official league legality or medical clearance. All recommendations are hypothetical.</p>
+  <p class="card-description">Labels are from My team's perspective. Safe means a stronger modelled case for acceptance, not a measured probability or a guarantee.</p>
   <div id="mcd-neg-results" aria-live="polite"><div class="notice">Choose your team to discover trades.</div></div>
 </div>
 '''
 
 CSS = r'''
 .mcd-negotiation-room{margin-bottom:16px}.mcd-neg-header{display:flex;justify-content:space-between;gap:15px;align-items:start}
-.mcd-neg-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:15px 0}
+.mcd-neg-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:15px 0}
 .mcd-neg-controls label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);font-weight:800}
 .mcd-neg-controls select{width:100%;min-width:0;border-radius:9px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text);padding:10px;font:inherit;font-size:13px}
 .mcd-neg-key{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
@@ -56,67 +57,84 @@ JS = r'''
 /* McDraft Negotiation Room: no independent market data or hidden model. */
 let mcdNegOffers=[];
 function mcdNegNum(x){return Number(x)||0;}
-function mcdNegByPos(players){const by={GKP:[],DEF:[],MID:[],FWD:[]};(players||[]).forEach(p=>{if(by[p.position])by[p.position].push(p)});return by;}
-function mcdNegPositionMean(players,pos){const items=(players||[]).filter(p=>p.position===pos);return items.length?items.reduce((s,p)=>s+mcdNegNum(p.value),0)/items.length:0;}
-function mcdNegFit(manager, outgoing, incoming){
- const roster=TRADE_SIMULATOR_DATA[manager]||[];
- // Baseline is the team's other options in the same role, not the entire pool.
- const other=roster.filter(p=>p.position===outgoing.position && p.id!==outgoing.id);
- const baseline=other.length?other.reduce((s,p)=>s+mcdNegNum(p.projection),0)/other.length:0;
- const newPotential=mcdNegNum(incoming.projection)-mcdNegNum(outgoing.projection);
- const formDifference=mcdNegNum(incoming.form)-mcdNegNum(outgoing.form);
- const importanceCost=Math.max(0,mcdNegNum(outgoing.importance)-mcdNegNum(incoming.importance))*0.035;
- const positionDepth=other.length<2?0.2:0;
- return newPotential*1.45+formDifference*.22+((mcdNegNum(incoming.projection)-baseline)*.13)-importanceCost-positionDepth;
-}
 function mcdNegClassify(a,b,fitA,fitB){
  const va=mcdNegNum(a.value),vb=mcdNegNum(b.value),avg=Math.max(1,(va+vb)/2);
  const fair=Math.max(0,Math.min(100,100-Math.abs(va-vb)/avg*100));
- // An offer must have some rationale for BOTH sides. A one-sided swap is not
- // labelled as mutual even when headline values are close.
- const mutual=fitA>=-.6&&fitB>=-.6;
- if(!mutual&&fair<69)return null;
- if(fair>=94&&fitA>=-.2&&fitB>=-.2)return {label:'Even',fair:fair};
- const disruption=(mcdNegNum(a.importance)+mcdNegNum(b.importance))/2;
- if(fair>=83&&disruption<=18&&mutual)return {label:'Safe',fair:fair};
- if(fair>=78&&mutual)return {label:'Even',fair:fair};
- if(fair>=57 && (fitA>0.6||fitB>0.6) && Math.min(fitA,fitB)>-1.1)return {label:'Ambitious',fair:fair};
+ // a is always what the viewer GIVES; b is what the viewer RECEIVES.
+ const edge=(vb-va)/avg;
+ if(fair<65)return null;
+ if(edge<=-.04&&fitB>=0&&fitA>=-.6)return {label:'Safe',fair};
+ if(Math.abs(edge)<.04&&fitA>=-.6&&fitB>=-.6)return {label:'Even',fair};
+ if(edge>=.04&&fitA>0&&fitB>=-1.5)return {label:'Ambitious',fair};
  return null;
 }
-function mcdNegDiscover(manager,partner){
- const managers=partner?[partner]:Object.keys(TRADE_SIMULATOR_DATA||{}).filter(name=>name!==manager);
- const mine=mcdNegByPos(TRADE_SIMULATOR_DATA[manager]||[]);let out=[];
- for(const other of managers){if(other===manager)continue;const theirs=mcdNegByPos(TRADE_SIMULATOR_DATA[other]||[]);
-  for(const pos of ['GKP','DEF','MID','FWD']){
-   for(const a of (mine[pos]||[]))for(const b of (theirs[pos]||[])){
-    const fitA=mcdNegFit(manager,a,b),fitB=mcdNegFit(other,b,a);
-    const category=mcdNegClassify(a,b,fitA,fitB);if(!category)continue;
-    const quality=Math.max(0,Math.min(100,category.fair*.67+Math.max(-10,Math.min(10,fitA+fitB))*2.2+((fitA>=0&&fitB>=0)?12:0)));
-    out.push({manager,partner:other,give:[a],receive:[b],category:category.label,fair:category.fair,quality,fitA,fitB});
+function mcdNegTotal(players,field){return players.reduce((s,p)=>s+mcdNegNum(p[field]),0);}
+function mcdNegBundleFit(manager,outgoing,incoming){
+ const ids=new Set(outgoing.map(p=>p.id)),roster=(TRADE_SIMULATOR_DATA[manager]||[]).filter(p=>!ids.has(p.id));
+ let fit=0;
+ for(const pos of ['GKP','DEF','MID','FWD']){
+  const give=outgoing.filter(p=>p.position===pos),receive=incoming.filter(p=>p.position===pos);if(!give.length)continue;
+  const other=roster.filter(p=>p.position===pos),baseline=other.length?mcdNegTotal(other,'projection')/other.length:0;
+  fit+=(mcdNegTotal(receive,'projection')-mcdNegTotal(give,'projection'))*1.45
+     +(mcdNegTotal(receive,'form')-mcdNegTotal(give,'form'))*.22
+     +(mcdNegTotal(receive,'projection')-baseline*give.length)*.13
+     -Math.max(0,mcdNegTotal(give,'importance')-mcdNegTotal(receive,'importance'))*.035
+     -(other.length<2?.2:0);
+ }
+ return fit/outgoing.length;
+}
+function mcdNegBundles(players,size){
+ const groups=new Map();
+ function visit(start,picks){
+  if(picks.length===size){const key=picks.map(p=>p.position).sort().join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push({players:picks,value:mcdNegTotal(picks,'value')});return;}
+  for(let i=start;i<=players.length-(size-picks.length);i++)visit(i+1,[...picks,players[i]]);
+ }
+ visit(0,[]);return groups;
+}
+const mcdNegCache=new Map();
+function mcdNegDiscover(manager,partner,categoryFilter='',sizeFilter=''){
+ const cacheKey=JSON.stringify([manager,partner,categoryFilter,sizeFilter]);if(mcdNegCache.has(cacheKey))return mcdNegCache.get(cacheKey);
+ const managers=partner?[partner]:Object.keys(TRADE_SIMULATOR_DATA||{}).filter(name=>name!==manager),buckets={1:[],2:[],3:[]};
+ for(const size of [2,3,1]){
+  if(sizeFilter&&size!==Number(sizeFilter))continue;
+  const mine=mcdNegBundles(TRADE_SIMULATOR_DATA[manager]||[],size);
+  for(const other of managers){if(other===manager)continue;
+   const theirs=mcdNegBundles(TRADE_SIMULATOR_DATA[other]||[],size),candidates=[];
+   for(const [signature,gives] of mine){const receives=theirs.get(signature)||[];
+    for(const a of gives)for(const b of receives){
+     if(Math.abs(a.value-b.value)/Math.max(1,(a.value+b.value)/2)>.35)continue;
+     const fitA=mcdNegBundleFit(manager,a.players,b.players),fitB=mcdNegBundleFit(other,b.players,a.players);
+     const category=mcdNegClassify(a,b,fitA,fitB);if(!category||(categoryFilter&&category.label!==categoryFilter))continue;
+     const quality=Math.max(0,Math.min(100,category.fair*.67+Math.max(-10,Math.min(10,fitA+fitB))*2.2+((fitA>=0&&fitB>=0)?12:0)));
+     candidates.push({manager,partner:other,give:a.players,receive:b.players,category:category.label,fair:category.fair,quality,fitA,fitB});
+    }
+   }
+   candidates.sort((a,b)=>b.quality-a.quality||b.fair-a.fair);
+   // Retain distinct packages per category, so the filters cannot be crowded out.
+   const counts=new Map(),usage=new Map();
+   for(const deal of candidates){const count=counts.get(deal.category)||0;if(count>=8)continue;
+    const key=deal.category+'|'+deal.give.map(p=>p.id).sort().join(',');if((usage.get(key)||0)>=2)continue;
+    counts.set(deal.category,count+1);usage.set(key,(usage.get(key)||0)+1);buckets[size].push(deal);
    }
   }
+  buckets[size].sort((a,b)=>b.quality-a.quality||a.partner.localeCompare(b.partner));
  }
- out.sort((a,b)=>b.quality-a.quality||b.fair-a.fair||a.partner.localeCompare(b.partner));
- // Limit duplicate variations for the same counterparty/position. Their
- // distinct offers remain visible in the manual simulator if desired.
- const seen=new Map(),selected=[];
- for(const deal of out){const key=deal.partner+'|'+deal.give[0].position;const used=seen.get(key)||0;
-  if(used>=3)continue;seen.set(key,used+1);selected.push(deal);if(selected.length>=100)break;
- }
- return selected;
+ // Round-robin sizes makes 2-for-2 and 3-for-3 visible on the first screen.
+ const selected=[];for(let i=0;selected.length<144;i++){let added=false;for(const size of [2,3,1])if(selected.length<144&&buckets[size][i]){selected.push(buckets[size][i]);added=true;}if(!added)break;}
+ mcdNegCache.set(cacheKey,selected);return selected;
 }
 function mcdNegExplain(deal){
- const gap=Math.abs(mcdNegNum(deal.give[0].value)-mcdNegNum(deal.receive[0].value)).toFixed(1);
- const gainA=(mcdNegNum(deal.receive[0].projection)-mcdNegNum(deal.give[0].projection)).toFixed(1);
- const gainB=(mcdNegNum(deal.give[0].projection)-mcdNegNum(deal.receive[0].projection)).toFixed(1);
- return 'Model value gap: '+gap+'. Next-GW projection change: '+deal.manager+' '+(Number(gainA)>=0?'+':'')+gainA+' pts; '+deal.partner+' '+(Number(gainB)>=0?'+':'')+gainB+' pts. One side may prefer current form or squad balance over raw projection.';
+ const value=mcdNegTotal(deal.receive,'value')-mcdNegTotal(deal.give,'value'),projection=mcdNegTotal(deal.receive,'projection')-mcdNegTotal(deal.give,'projection');
+ const signed=v=>(v>=0?'+':'')+v.toFixed(1);
+ const reason=deal.category==='Safe'?'The other manager gains value with non-negative modelled fit, making this a stronger acceptance candidate.':deal.category==='Ambitious'?'You receive the value upgrade; the other manager may want a sweeter offer.':'Similar package values give both managers a balanced starting point.';
+ return reason+' Your value change: '+signed(value)+'. Next-GW projection change: '+deal.manager+' '+signed(projection)+' pts; '+deal.partner+' '+signed(-projection)+' pts.';
 }
 function mcdNegCard(deal,index){
- const e=escapePlayerHTML;const a=deal.give[0],b=deal.receive[0];
+ const e=escapePlayerHTML,players=list=>list.map(p=>'<strong>'+e(p.name)+'</strong><small>'+e(p.position)+' · '+mcdNegNum(p.value).toFixed(1)+' value · '+mcdNegNum(p.projection).toFixed(1)+' projected</small>').join('');
  return '<article class="mcd-neg-offer">'
-  +'<div class="mcd-neg-offer-header"><div><strong>'+e(deal.manager)+' ↔ '+e(deal.partner)+'</strong><div class="mcd-neg-notes">'+e(a.position)+' · one-for-one</div></div><span class="mcd-neg-badge '+deal.category.toLowerCase()+'">'+deal.category+'</span></div>'
-  +'<div class="mcd-neg-exchange"><div><strong>'+e(a.name)+'</strong><small>'+e(deal.manager)+' gives · '+Number(a.value).toFixed(1)+' value</small></div><span>⇄</span><div><strong>'+e(b.name)+'</strong><small>'+e(deal.partner)+' gives · '+Number(b.value).toFixed(1)+' value</small></div></div>'
-  +'<div class="mcd-neg-metrics"><span>Deal fit<b>'+deal.quality.toFixed(0)+'/100</b></span><span>Value fairness<b>'+deal.fair.toFixed(0)+'/100</b></span><span>Next-GW projections<b>'+Number(a.projection).toFixed(1)+' ↔ '+Number(b.projection).toFixed(1)+'</b></span></div>'
+  +'<div class="mcd-neg-offer-header"><div><strong>'+e(deal.manager)+' ↔ '+e(deal.partner)+'</strong><div class="mcd-neg-notes">'+deal.give.length+' for '+deal.receive.length+'</div></div><span class="mcd-neg-badge '+deal.category.toLowerCase()+'">'+deal.category+'</span></div>'
+  +'<div class="mcd-neg-exchange"><div><small>You give</small>'+players(deal.give)+'</div><span>⇄</span><div><small>You receive from '+e(deal.partner)+'</small>'+players(deal.receive)+'</div></div>'
+  +'<div class="mcd-neg-metrics"><span>Your outgoing value<b>'+mcdNegTotal(deal.give,'value').toFixed(1)+'</b></span><span>Your incoming value<b>'+mcdNegTotal(deal.receive,'value').toFixed(1)+'</b></span><span>Value fairness<b>'+deal.fair.toFixed(0)+'/100</b></span></div>'
   +'<p class="mcd-neg-notes">'+e(mcdNegExplain(deal))+'</p>'
   +'<button class="mcd-neg-action" type="button" onclick="mcdNegLoadDeal('+index+')">Load in Trade Lab →</button></article>';
 }
@@ -132,7 +150,7 @@ function renderNegotiationRoom(){
  if(!own||!partner||!filter||!results)return;
  mcdNegPopulate();const manager=own.value;
  if(!manager||!TRADE_SIMULATOR_DATA[manager]){results.innerHTML='<div class="notice">Select your team to see suitable deals.</div>';return;}
- mcdNegOffers=mcdNegDiscover(manager,partner.value).filter(d=>!filter.value||d.category===filter.value);
+ mcdNegOffers=mcdNegDiscover(manager,partner.value,filter.value,document.getElementById('mcd-neg-size')?.value||'');
  const shown=mcdNegOffers.slice(0,16);
  results.innerHTML=shown.length?'<p class="card-description">'+mcdNegOffers.length+' model-compatible offer(s) found. Showing '+shown.length+'; proposals are not guaranteed to be accepted.</p>'+shown.map(mcdNegCard).join(''):
    '<div class="notice">No deals match these filters right now. Try another manager or switch to all proposal types.</div>';
@@ -142,6 +160,7 @@ function mcdNegShowMore(){const results=document.getElementById('mcd-neg-results
 function mcdNegLoadDeal(index){
  const deal=mcdNegOffers[index];if(!deal)return;
  const a=document.getElementById('trade-sim-manager-a'),b=document.getElementById('trade-sim-manager-b');if(!a||!b)return;
+ mcdOpenTradeLab();
  a.value=deal.manager;b.value=deal.partner;renderTradeSimulator();
  for(const [side,players] of [['a',deal.give],['b',deal.receive]])for(const p of players){
   const check=document.querySelector('.trade-sim-check[data-side="'+side+'"][data-id="'+Number(p.id)+'"]');if(check)check.checked=true;
@@ -165,19 +184,28 @@ function mcdNegAuditTrade(){
  checks.push([new Set(ids).size===ids.length,'No player is included twice.']);
  let html='<section class="mcd-neg-audit"><h4>Trade validity & negotiation</h4>';
  html+=checks.map(c=>'<div class="mcd-neg-check"><span>'+ (c[0]?'✓':'✕')+'</span><span>'+escapePlayerHTML(c[1])+'</span></div>').join('');
- if(checks.every(c=>c[0])&&outgoing.length===1&&incoming.length===1){
-  const pa=outgoing[0],pb=incoming[0];const fA=mcdNegFit(a.value,pa,pb),fB=mcdNegFit(b.value,pb,pa),label=mcdNegClassify(pa,pb,fA,fB);
-  const va=mcdNegNum(pa.value),vb=mcdNegNum(pb.value),fair=Math.max(0,100-Math.abs(va-vb)/Math.max(1,(va+vb)/2)*100);
-  const tag=label?label.label:'One-sided';
-  html+='<p class="mcd-neg-notes"><strong>Negotiation profile: '+escapePlayerHTML(tag)+'</strong> · Value fairness '+fair.toFixed(0)+'/100. '+escapePlayerHTML(mcdNegExplain({give:[pa],receive:[pb],manager:a.value,partner:b.value}))+'</p>';
+ if(checks.every(c=>c[0])){
+  const va=mcdNegTotal(outgoing,'value'),vb=mcdNegTotal(incoming,'value');
+  const fA=mcdNegBundleFit(a.value,outgoing,incoming),fB=mcdNegBundleFit(b.value,incoming,outgoing),label=mcdNegClassify({value:va},{value:vb},fA,fB);
+  const fair=Math.max(0,100-Math.abs(va-vb)/Math.max(1,(va+vb)/2)*100),tag=label?label.label:'Outside suggested range';
+  html+='<p class="mcd-neg-notes"><strong>Negotiation profile for '+escapePlayerHTML(a.value)+': '+escapePlayerHTML(tag)+'</strong> · Value fairness '+fair.toFixed(0)+'/100. '+(label?escapePlayerHTML(mcdNegExplain({give:outgoing,receive:incoming,manager:a.value,partner:b.value,category:tag})):'The model does not find a strong enough case to recommend this package.')+'</p>';
  }
- else if(checks.every(c=>c[0]))html+='<p class="mcd-neg-notes">Structurally compatible package. Bundle-level negotiation difficulty is not rated by the one-for-one discovery model.</p>';
  html+='<p class="card-description">Draft roster and position checks only. The dashboard cannot certify live league trade windows, pending transactions, other managers\' consent or official processing.</p></section>';
  result.insertAdjacentHTML('beforeend',html);
 }
 // Preserve all original Trade Lab narration, then append deterministic checks.
 const mcdOriginalEvaluateTradeSimulator=evaluateTradeSimulator;
 evaluateTradeSimulator=function(){mcdOriginalEvaluateTradeSimulator();mcdNegAuditTrade();};
+function mcdOpenTradeLab(){
+ showPage('transfers');
+ showTransferSubtab('lab',document.querySelector('#page-transfers .transfer-subtab[onclick*="lab"]'));
+ if(typeof mcdNavSync==='function')mcdNavSync();
+}
+const mcdOriginalDraftScoutTrade=draftScoutTrade;
+draftScoutTrade=function(playerId){mcdOriginalDraftScoutTrade(playerId);
+ const p=playerSearchData.find(r=>Number(r.id)===Number(playerId)),mine=currentMyTeamManager();
+ if(p&&mine&&p.fantasy_team&&p.fantasy_team!=='Free Agent'&&p.fantasy_team!==mine){mcdOpenTradeLab();document.querySelector('.trade-simulator')?.scrollIntoView({behavior:'smooth',block:'start'});}
+};
 document.addEventListener('DOMContentLoaded',()=>{
  const select=document.getElementById('mcd-neg-manager');if(!select)return;
  mcdNegPopulate();const header=document.getElementById('mcd-header-team');
@@ -201,15 +229,15 @@ if(typeof syncManagerSelection==='function'){
 
 
 def integrate_template(template: str) -> str:
-    """Rehouse completed trades and place discovery above the manual simulator."""
+    """Give discovery, the manual simulator and completed trades their own tabs."""
     old_tabs = '''<button class="transfer-subtab" type="button" onclick="showTransferSubtab('trades', this)">Trades</button>'''
     if template.count(old_tabs) != 1:
         raise RuntimeError('Transfer tab insertion point changed')
-    template = template.replace(old_tabs, old_tabs + '''<button class="transfer-subtab" type="button" onclick="showTransferSubtab('history', this)">Trade History</button>''', 1)
+    template = template.replace(old_tabs, old_tabs.replace('>Trades<', '>Negotiation Room<') + '''<button class="transfer-subtab" type="button" onclick="showTransferSubtab('lab', this)">Trade Lab</button><button class="transfer-subtab" type="button" onclick="showTransferSubtab('history', this)">Trade History</button>''', 1)
     trade_card = '''<div class="card">__TRADE_SIMULATOR__</div>'''
     if template.count(trade_card) != 1:
         raise RuntimeError('Trade Lab insertion point changed')
-    template = template.replace(trade_card, ROOM_HTML + '\n              ' + trade_card, 1)
+    template = template.replace(trade_card, ROOM_HTML, 1)
     recent = '''<div class="card"><h2>Recent League Trades · GW__LATEST_TRANSFER_GW__</h2>'''
     start = template.find(recent)
     if start == -1:
@@ -228,12 +256,12 @@ def integrate_template(template: str) -> str:
     end_anchor = '''\n        </section>'''
     trade_start = template.index(anchor)
     trade_end = template.index(end_anchor, trade_start)
-    insertion = '''\n            <div class="transfer-subpanel" id="transfer-subpanel-history">\n              ''' + history + '''\n            </div>'''
+    insertion = '''\n            <div class="transfer-subpanel" id="transfer-subpanel-lab">''' + trade_card + '''</div>\n            <div class="transfer-subpanel" id="transfer-subpanel-history">\n              ''' + history + '''\n            </div>'''
     template = template[:trade_end] + insertion + template[trade_end:]
     nav = "['Trades & Trade Lab','transfers','transfers','trades'],"
     if template.count(nav) != 1:
         raise RuntimeError('Transfer sidebar insertion point changed')
-    template = template.replace(nav, "['Trade Negotiation Room','transfers','transfers','trades'],\n  ['Trade History','transfers','transfers','history'],", 1)
+    template = template.replace(nav, "['Trade Negotiation Room','transfers','transfers','trades'],\n  ['Trade Lab','transfers','transfers','lab'],\n  ['Trade History','transfers','transfers','history'],", 1)
     return template
 
 __all__ = ['ROOM_HTML', 'CSS', 'JS', 'integrate_template']
