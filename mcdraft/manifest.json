@@ -1,0 +1,73 @@
+{
+  "source_sha256": "d687202985df0abc42d4cd990e3adb93ca2cadfb7f7e88dfcce17c12e43699f7",
+  "source_filename": "Draft (1)(6).py",
+  "original_line_count": 25514,
+  "stages": [
+    {
+      "file": "01_collect.py",
+      "original_start": 1,
+      "original_end": 1035,
+      "description": "Draft API ingestion, identity mapping and frozen gameweek history"
+    },
+    {
+      "file": "02_enrich.py",
+      "original_start": 1036,
+      "original_end": 2672,
+      "description": "FPL enrichment, availability, market data and manager snapshots"
+    },
+    {
+      "file": "03_match_analytics.py",
+      "original_start": 2673,
+      "original_end": 5157,
+      "description": "Head-to-head records, history, analytics and draft colours"
+    },
+    {
+      "file": "04_visualisations.py",
+      "original_start": 5158,
+      "original_end": 6368,
+      "description": "Charts, page components and HTML helper functions"
+    },
+    {
+      "file": "05_forecasts.py",
+      "original_start": 6369,
+      "original_end": 8798,
+      "description": "Season simulation, fixture-aware player forecasts and ratings"
+    },
+    {
+      "file": "06_live_and_planning.py",
+      "original_start": 8799,
+      "original_end": 11322,
+      "description": "Live Centre, squad planner, trade and waiver intelligence"
+    },
+    {
+      "file": "07_pages.py",
+      "original_start": 11323,
+      "original_end": 15520,
+      "description": "Results, player, squad, transfer, analytics and Draft Centre pages"
+    },
+    {
+      "file": "08_page_data.py",
+      "original_start": 15521,
+      "original_end": 18028,
+      "description": "Assemble dashboard payload, narrative data and core CSS"
+    },
+    {
+      "file": "09_client_assets.py",
+      "original_start": 18029,
+      "original_end": 22835,
+      "description": "Interactive client JavaScript and supplemental CSS"
+    },
+    {
+      "file": "10_cup_and_template.py",
+      "original_start": 22836,
+      "original_end": 25010,
+      "description": "Cup bracket, editorial commentary and HTML template"
+    },
+    {
+      "file": "11_publish.py",
+      "original_start": 25011,
+      "original_end": 25514,
+      "description": "Inject page payloads and write the finished site"
+    }
+  ]
+}

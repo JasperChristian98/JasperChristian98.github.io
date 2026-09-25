@@ -1,71 +1,66 @@
-name: Update FPL Draft Dashboard
+name: Update McDraft dashboard
 
 on:
-  # Every 2 hours from midnight to before noon UTC.
-  # Every 30 minutes from noon to midnight UTC.
   schedule:
-    # Every 10 minutes Friday to Monday (UTC)
-    - cron: '*/5 * * * 5,6,0,1'
-
-    # Every 20 minutes Tuesday to Thursday (UTC)
-    - cron: '*/20 * * * 2-4'
-
-  # Allow you to run it manually from the Actions tab.
+    # Cron is UTC. Every 10 minutes Friday-Monday, 20 minutes Tuesday-Thursday.
+    - cron: '*/10 * * * 5,6,0,1'
+    - cron: '*/20 * * * 2,3,4'
   workflow_dispatch:
-
-  # Also update the dashboard whenever the scraper/workflow files change.
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - 'Draft.py'
+      - 'mcdraft/**'
+      - 'run.py'
       - 'requirements.txt'
+      - 'tests/**'
+      - 'draft_player_mapping.csv'
       - '.github/workflows/update-dashboard.yml'
 
 permissions:
   contents: write
 
-jobs:
-  update-dashboard:
-    runs-on: ubuntu-latest
+concurrency:
+  group: mcdraft-dashboard
+  cancel-in-progress: false
 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
-
+          cache: pip
       - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Check module boundaries and retained features
+        run: python -m unittest discover -s tests -v
+      - name: Build dashboard
+        run: python run.py
+      - name: Verify generated output
+        shell: bash
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run FPL scraper and dashboard generator
-        run: python Draft.py
-
-      - name: Show generated files
-        run: |
-          echo 'Generated dashboard:'
-          ls -lh index.html
-          echo 'History file:'
-          ls -lh fpl_draft_history.json || true
-
-      - name: Commit and push changes
+          test -s index.html
+          grep -qi '</html>' index.html
+          test -s fpl_draft_history.json
+      - name: Commit generated dashboard and history
+        shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-
-          git add index.html fpl_draft_history.json
-
+          git add index.html fpl_draft_history.json draft_player_mapping_audit.csv
+          if test -f mcdraft_prediction_history.json; then git add mcdraft_prediction_history.json; fi
           if git diff --cached --quiet; then
-            echo 'No changes to commit.'
+            echo 'No changes to commit'
           else
-            git commit -m 'Update FPL Draft dashboard'
-            git push
+            git commit -m 'Update McDraft dashboard [skip ci]'
+            # Prevent data loss from scheduled jobs racing a manual push.
+            git pull --rebase origin main
+            git push origin HEAD:main
           fi

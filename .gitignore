@@ -1,0 +1,8 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+*.tmp
+.venv/
+# Keep these tracked if publishing the generated site and preserving gameweeks.
+# index.html
+# fpl_draft_history.json
