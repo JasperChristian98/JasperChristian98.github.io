@@ -47,6 +47,7 @@ from .layout_and_odds import update_layout, shared_fixture_odds, CSS as LAYOUT_C
 from .editorial_expansion import RADAR_CSS, RADAR_JS, add_column_desks, humanise_column_story
 from .mobile_header_and_war_countdown import (CSS as MOBILE_HEADER_CSS,
     next_gameweek_kickoff, countdown_javascript, insert_header_countdown)
+from .mobile_navigation import JS as MOBILE_NAV_JS, append_final_mobile_css
 from .manager_styles_page import (
     build_manager_styles,
     PAGE_HTML as MANAGER_STYLES_HTML,
@@ -178,6 +179,7 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
                         current_gw=int(state.get('dashboard_target_gw') or 1),
                         live=bool(state.get('dashboard_target_is_live')))
                     state['javascript'] += '\n' + countdown_javascript(countdown_data)
+                    state['javascript'] += '\n' + MOBILE_NAV_JS
                 elif file.name == '10_cup_and_template.py':
                     state['_mcdraft_column_intelligence'] = add_column_desks(
                         state['_mcdraft_column_intelligence'], state['league_honours'],
@@ -187,6 +189,7 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
                     state['html_template'] = update_layout(move_war_room(state['html_template']))
                     state['html_template'] = insert_header_countdown(
                         state['html_template'], live=bool(state.get('dashboard_target_is_live')))
+                    state['html_template'] = append_final_mobile_css(state['html_template'])
                     analytics_anchor = '__ANALYTICS_PAGE__'
                     if state['html_template'].count(analytics_anchor) != 1:
                         raise RuntimeError('Analytics insertion point changed')
