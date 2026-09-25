@@ -45,8 +45,32 @@ class DashboardLayoutTests(unittest.TestCase):
     def test_sticky_tabs_below_responsive_header(self):
         self.assertIn('position:sticky',CSS)
         self.assertIn('--mcd-sticky-top',CSS)
-        self.assertIn('header.getBoundingClientRect().height',JS)
+        self.assertIn('header.getBoundingClientRect()',JS)
+        self.assertIn("(max-width:850px)",JS)
+        self.assertIn('top=0',JS)
+        self.assertIn('overflow-x:clip!important',CSS)
         self.assertIn('renderTrendChart',JS)
+
+    def test_mobile_tabs_remain_scrollable_and_sticky(self):
+        self.assertIn('flex-wrap:nowrap', CSS)
+        self.assertIn('overflow-x:auto', CSS)
+        self.assertIn('flex:0 0 auto', CSS)
+        self.assertIn('overscroll-behavior-x:contain', CSS)
+        self.assertIn('--mcd-overview-tabs-height', CSS)
+
+    def test_decision_centre_is_inside_standings_below_tabs(self):
+        from mcdraft.decision_centre import DECISION_CENTRE_HTML
+        from mcdraft.pipeline import run
+        from pathlib import Path
+        import inspect
+        source = inspect.getsource(run)
+        self.assertIn("anchor + '\\n' + DECISION_CENTRE_HTML", source)
+        # Mirror the insertion on the transformed template: the outer tabs
+        # must precede the card, which must precede the actual standings.
+        anchor = '<div class="overview-subpage active" id="overview-sub-standings">'
+        result = self.template.replace(anchor, anchor + '\n' + DECISION_CENTRE_HTML, 1)
+        self.assertLess(result.index('class="analytics-subtabs overview-tabs"'), result.index('id="decision-centre"'))
+        self.assertLess(result.index('id="decision-centre"'), result.index('McDraft League Table'))
 
     def test_changed_template_anchors_fail_loudly(self):
         with self.assertRaises(RuntimeError):

@@ -8,37 +8,102 @@ from copy import deepcopy
 import re
 
 CSS = r'''
-/* Persistent page tabs below the sticky header. Recomputed on resize. */
+/* Sticky section navigation: do not trap it inside a clipped scrolling box. */
+.mcd-workspace > .main { overflow-x:clip; }
 #page-myteam>.myteam-tabs,
 #page-overview>.overview-tabs,
 #overview-sub-intelligence>.overview-insight-tabs {
- position:sticky;top:var(--mcd-sticky-top,94px);z-index:80;
- background:var(--bg);padding:10px 2px 11px;margin:0 0 16px;
- border-bottom:1px solid var(--border);scrollbar-width:thin;
+ position:sticky;
+ top:var(--mcd-sticky-top,0px);
+ z-index:81;
+ display:flex;
+ flex-wrap:nowrap;
+ align-items:center;
+ max-width:100%;
+ min-width:0;
+ gap:8px;
+ overflow-x:auto;
+ overflow-y:hidden;
+ overscroll-behavior-x:contain;
+ -webkit-overflow-scrolling:touch;
+ scrollbar-width:thin;
+ background:var(--bg);
+ padding:10px 2px 11px;
+ margin:0 0 16px;
+ border-bottom:1px solid var(--border);
+ box-sizing:border-box;
 }
-/* Nested intelligence tabs sit below the main Overview selector. */
+#page-myteam>.myteam-tabs>.myteam-tab,
+#page-overview>.overview-tabs>.overview-tab,
+#overview-sub-intelligence>.overview-insight-tabs>.overview-insight-tab {
+ flex:0 0 auto;
+ white-space:nowrap;
+ min-height:42px;
+}
 #overview-sub-intelligence>.overview-insight-tabs {
- top:calc(var(--mcd-sticky-top,94px) + var(--mcd-overview-tabs-height,64px));z-index:79;
+ top:calc(var(--mcd-sticky-top,0px) + var(--mcd-overview-tabs-height,0px));
+ z-index:80;
 }
 .overview-insight-panel{display:none}
 .overview-insight-panel.active{display:block}
-@media(max-width:650px){
- #page-myteam>.myteam-tabs,#page-overview>.overview-tabs{padding:8px 1px}
- #overview-sub-intelligence>.overview-insight-tabs{padding:6px 1px}
+/* The Overview tab bar is the structural parent of all content below it. */
+#page-overview>.overview-tabs { margin-top:0; }
+#overview-sub-standings>.decision-centre { margin:0 0 18px; }
+@media(max-width:850px){
+ /* Mobile header is in normal flow, so it must not leave an empty sticky gap. */
+ :root{--mcd-sticky-top:0px}
+ .mcd-workspace>.main {overflow-x:clip!important}
+ #page-myteam>.myteam-tabs,
+ #page-overview>.overview-tabs,
+ #overview-sub-intelligence>.overview-insight-tabs {
+   padding:8px 1px 10px;
+   gap:7px;
+   scroll-padding-inline:8px;
+ }
+ #page-myteam>.myteam-tabs>.myteam-tab,
+ #page-overview>.overview-tabs>.overview-tab,
+ #overview-sub-intelligence>.overview-insight-tabs>.overview-insight-tab {
+   padding:10px 12px;
+   font-size:12px;
+ }
+}
+@media(max-width:410px){
+ #page-overview>.overview-tabs>.overview-tab { font-size:11px;padding-inline:10px; }
 }
 '''
 
 JS = r'''
-/* Page tabs are position:sticky but the permanent header has responsive height. */
+/* Header is not sticky on mobile, so use zero offset there; on desktop only
+   reserve space for a header that is genuinely fixed or sticky and visible. */
 function mcdMeasureStickyTabs(){
  const header=document.querySelector('.header');
- const top=header?Math.ceil(header.getBoundingClientRect().height):0;
+ const mobile=window.matchMedia('(max-width:850px)').matches;
+ let top=0;
+ if(header&&!mobile){
+   const style=window.getComputedStyle(header);
+   const rect=header.getBoundingClientRect();
+   if((style.position==='fixed'||style.position==='sticky')&&rect.bottom>0&&rect.top<=1){
+     top=Math.ceil(rect.height);
+   }
+ }
  document.documentElement.style.setProperty('--mcd-sticky-top',top+'px');
  const tabs=document.querySelector('#page-overview>.overview-tabs');
- document.documentElement.style.setProperty('--mcd-overview-tabs-height',(tabs?Math.ceil(tabs.getBoundingClientRect().height):0)+'px');
+ const overviewActive=!!document.querySelector('#page-overview.active');
+ const tabHeight=(tabs&&overviewActive)?Math.ceil(tabs.getBoundingClientRect().height):0;
+ document.documentElement.style.setProperty('--mcd-overview-tabs-height',tabHeight+'px');
 }
 window.addEventListener('resize',mcdMeasureStickyTabs,{passive:true});
-document.addEventListener('DOMContentLoaded',mcdMeasureStickyTabs);
+window.addEventListener('orientationchange',mcdMeasureStickyTabs,{passive:true});
+document.addEventListener('DOMContentLoaded',()=>{
+ mcdMeasureStickyTabs();
+ const header=document.querySelector('.header');
+ const overview=document.querySelector('#page-overview>.overview-tabs');
+ if(typeof ResizeObserver!=='undefined'){
+   const observer=new ResizeObserver(mcdMeasureStickyTabs);
+   if(header)observer.observe(header);
+   if(overview)observer.observe(overview);
+ }
+});
 function showOverviewInsightSubtab(name,button){
  const top=document.querySelector('.overview-tab[onclick*="intelligence"]');
  showPage('overview');
@@ -56,6 +121,7 @@ function showOverviewInsightSubtab(name,button){
  if(typeof mcdNavSync==='function')requestAnimationFrame(()=>mcdNavSync('overview'));
 }
 '''
+
 
 
 def _extract_once(text: str, begin: str, end: str) -> tuple[str, int, int]:

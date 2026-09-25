@@ -206,7 +206,7 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
                         raise RuntimeError('Decision Centre standings insertion point changed')
                     state['html_template'] = state['html_template'].replace(
                         anchor,
-                        DECISION_CENTRE_HTML + '\n' + anchor,
+                        anchor + '\n' + DECISION_CENTRE_HTML,
                         1,
                     )
                     body_anchor = '<body>'
