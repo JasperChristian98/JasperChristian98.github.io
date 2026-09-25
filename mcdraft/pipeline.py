@@ -50,6 +50,7 @@ from .mobile_header_and_war_countdown import (CSS as MOBILE_HEADER_CSS,
 from .mobile_navigation import JS as MOBILE_NAV_JS, append_final_mobile_css
 from .trade_negotiation import integrate_template as integrate_trade_room, CSS as NEG_CSS, JS as NEG_JS
 from .matchup_stats import build_stats, CSS as MATCHUP_CSS, javascript_with_data as matchup_js
+from .league_chat import integrate_template as integrate_league_chat
 from .manager_styles_page import (
     build_manager_styles,
     PAGE_HTML as MANAGER_STYLES_HTML,
@@ -195,6 +196,7 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
                         state['html_template'], live=bool(state.get('dashboard_target_is_live')))
                     state['html_template'] = append_final_mobile_css(state['html_template'])
                     state['html_template'] = integrate_trade_room(state['html_template'])
+                    state['html_template'] = integrate_league_chat(state['html_template'])
                     analytics_anchor = '__ANALYTICS_PAGE__'
                     if state['html_template'].count(analytics_anchor) != 1:
                         raise RuntimeError('Analytics insertion point changed')

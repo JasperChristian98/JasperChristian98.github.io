@@ -136,7 +136,8 @@ function mcdNegCard(deal,index){
   +'<div class="mcd-neg-exchange"><div><small>You give</small>'+players(deal.give)+'</div><span>⇄</span><div><small>You receive from '+e(deal.partner)+'</small>'+players(deal.receive)+'</div></div>'
   +'<div class="mcd-neg-metrics"><span>Your outgoing value<b>'+mcdNegTotal(deal.give,'value').toFixed(1)+'</b></span><span>Your incoming value<b>'+mcdNegTotal(deal.receive,'value').toFixed(1)+'</b></span><span>Value fairness<b>'+deal.fair.toFixed(0)+'/100</b></span></div>'
   +'<p class="mcd-neg-notes">'+e(mcdNegExplain(deal))+'</p>'
-  +'<button class="mcd-neg-action" type="button" onclick="mcdNegLoadDeal('+index+')">Load in Trade Lab →</button></article>';
+  +'<button class="mcd-neg-action" type="button" onclick="mcdNegLoadDeal('+index+')">Load in Trade Lab →</button>'
+  +'<button class="mcd-neg-action" type="button" onclick="mcdChatShareTrade('+index+')">Share in chat</button></article>';
 }
 function mcdNegPopulate(){
  const own=document.getElementById('mcd-neg-manager'),opponent=document.getElementById('mcd-neg-partner');if(!own||!opponent)return;

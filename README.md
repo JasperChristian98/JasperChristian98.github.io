@@ -83,3 +83,20 @@ loading an offer selects the entire package in Trade Lab.
 
 `mcdraft/matchup_stats.py` and `mcdraft/trade_negotiation.py` are integrated by the
 pipeline without modifying the preserved legacy stages.
+
+## Shared league chat
+
+League → League chat adds a shared room while keeping GitHub Pages hosting.
+Supabase verifies a separate password for each team and supplies private message
+history and live updates. No email codes or SMTP are needed for chat login.
+The room stays disconnected until the organiser completes the
+[backend and membership setup](docs/league-chat-setup.md) and fills in the public
+project URL and publishable key in `assets/chat-config.js`.
+
+Create confirmed team accounts using the aliases in the setup guide, then run
+`supabase/setup_team_memberships.sql`. Passwords are never stored in the repository.
+
+Chat identities are assigned through backend membership, independently of the
+dashboard's team selector. Messages never enter the generated public HTML.
+The chat assets are committed static files; scheduled dashboard rebuilds retain
+the page and leave backend configuration and conversation history alone.
