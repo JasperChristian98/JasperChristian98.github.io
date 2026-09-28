@@ -1,26 +1,41 @@
-window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
+window.addEventListener('DOMContentLoaded',()=>setTimeout(async()=>{
   const checks=[],check=(ok,label)=>checks.push((ok?'OK: ':'FAILED: ')+label);
+  const wait=()=>new Promise(resolve=>setTimeout(resolve,80));
   try{
     enterManagerDashboard();
-    showPage('analytics');
     const tab=document.querySelector('.analytics-subtab[onclick*="visuals"]');
-    showAnalyticsSubtab('visuals',tab);
+    const sidebarLink=[...document.querySelectorAll('.mcd-nav-link')].find(link=>link.textContent.trim()==='Visual Analytics');
+    sidebarLink?.click();
     renderVisualAnalytics();
     check(Boolean(tab),'Visual Analytics tab exists');
+    check(Boolean(sidebarLink),'Visual Analytics sidebar quick link exists');
+    check(document.getElementById('page-analytics')?.classList.contains('active'),'sidebar quick link opens Analytics');
     check(document.getElementById('analytics-sub-visuals')?.classList.contains('active'),'Visual Analytics page opens');
     check(document.querySelectorAll('#visual-area-position path').length>=4,'position stacked area renders');
     check(document.querySelectorAll('#visual-area-ownership path').length>=2,'ownership stacked area renders');
+    check(document.querySelectorAll('#visual-area-managers path').length>=2,'manager scoring mix renders');
     check(document.querySelectorAll('#visual-treemap-clubs .visual-tree-cell').length>=10,'club convex treemap renders');
     check(document.querySelectorAll('#visual-treemap-owners .visual-tree-cell').length>=2,'owner convex treemap renders');
     check(document.querySelectorAll('#visual-beeswarm-rating .visual-bee').length>=20,'rating beeswarm renders');
     check(document.querySelectorAll('#visual-beeswarm-value .visual-bee').length>=20,'value beeswarm renders');
     check(document.querySelectorAll('#visual-heatmap-clubs .visual-heatmap-cell').length>=20,'club heatmap renders');
+    check(document.querySelectorAll('#visual-heatmap-players .visual-heatmap-cell').length>=20,'actual player output heatmap renders');
     check(document.querySelectorAll('#visual-heatmap-squads .visual-heatmap-cell').length>=4,'squad heatmap renders');
+    check(document.querySelector('#visual-heatmap-squads .visual-squad-heatmap')?.style.getPropertyValue('--visual-cell-width')==='92px','squad heatmap uses readable cells');
     check(document.querySelectorAll('#visual-table-players tbody tr').length>=10,'table chart renders');
     check(Boolean(document.getElementById('visual-analytics-status')?.textContent),'chart status describes data');
-    setAnalyticsManagerPreset('none');renderVisualAnalytics();
-    check(Boolean(document.querySelector('#visual-treemap-owners .visual-empty')),'owner charts follow manager filter');
-    setAnalyticsManagerPreset('all');renderVisualAnalytics();
+    const allCount=document.querySelectorAll('#visual-beeswarm-rating .visual-bee').length;
+    setAnalyticsManagerPreset('none');toggleAnalyticsManager(MANAGER_ORDER[0]);await wait();
+    const oneCount=document.querySelectorAll('#visual-beeswarm-rating .visual-bee').length;
+    check(oneCount>0&&oneCount<allCount,'manager filter updates every player chart');
+    setAnalyticsManagerPreset('none');await wait();
+    check(Boolean(document.querySelector('#visual-area-position .visual-empty')),'empty manager filter clears area charts');
+    check(Boolean(document.querySelector('#visual-treemap-owners .visual-empty')),'empty manager filter clears owner charts');
+    setAnalyticsManagerPreset('all');await wait();
+    document.querySelector('[data-visual-position="MID"]').click();
+    check(document.querySelectorAll('#visual-area-position path').length===1,'position filter updates stacked area');
+    check([...document.querySelectorAll('#visual-table-players .visual-player-meta')].every(meta=>meta.textContent.includes('MID')),'position filter updates player output');
+    document.querySelector('[data-visual-position="ALL"]').click();
   }catch(error){checks.push('FAILED: '+error.stack);}
   const report=document.createElement('pre');report.id='visual-analytics-report';report.textContent=JSON.stringify(checks);document.body.append(report);
 },450));

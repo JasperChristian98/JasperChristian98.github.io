@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import unittest
 
-from mcdraft.visual_analytics import integrate_template
+from mcdraft.visual_analytics import integrate_template, refresh_existing_template
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,10 +17,15 @@ class VisualAnalyticsTests(unittest.TestCase):
     def test_integration_adds_page_tab_and_assets_once(self):
         source = '''<body><div class="analytics-subtabs" role="tablist" aria-label="Analytics sections">
 <button class="analytics-subtab active" type="button" onclick="showAnalyticsSubtab('insights', this)">McDraft Insights</button></div>
-<div class="analytics-subpage active" id="analytics-sub-insights"></div></body>'''
+<div class="analytics-subpage active" id="analytics-sub-insights"></div>
+<script>const MCD_MENU=[{items:[['McDraft Insights','analytics','analytics','insights'],]}];</script></body>'''
         result = integrate_template(source)
         self.assertIn('analytics-sub-visuals', result)
         self.assertIn("showAnalyticsSubtab('visuals', this)", result)
+        self.assertIn("['Visual Analytics','analytics','analytics','visuals']", result)
+        refreshed = refresh_existing_template(result)
+        self.assertIn('Visual Analytics <span>11</span>', refreshed)
+        self.assertEqual(refreshed.count('id="analytics-sub-visuals"'), 1)
         self.assertIn('assets/visual-analytics.js', result)
         with self.assertRaises(RuntimeError):
             integrate_template(result)

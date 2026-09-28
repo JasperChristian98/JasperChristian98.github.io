@@ -4,6 +4,8 @@
   const palette = ['#38bdf8','#a78bfa','#34d399','#fbbf24','#fb7185','#22d3ee','#c084fc','#84cc16','#f97316','#60a5fa'];
   const positionColours = {GKP:'#fbbf24', DEF:'#38bdf8', MID:'#a78bfa', FWD:'#fb7185'};
   const positionLabels = {GKP:'Goalkeepers', DEF:'Defenders', MID:'Midfielders', FWD:'Forwards'};
+  const allPositions = ['GKP','DEF','MID','FWD'];
+  const visualPositionState = new Set(allPositions);
   const esc = value => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const num = value => Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -19,7 +21,30 @@
 
   function filteredPlayers() {
     const owners = activeOwners();
-    return owners ? allPlayers().filter(player => owners.has(ownerOf(player))) : allPlayers();
+    return allPlayers().filter(player => visualPositionState.has(player.position) && (!owners || owners.has(ownerOf(player))));
+  }
+
+  function positionFilteredPlayers() {
+    return allPlayers().filter(player => visualPositionState.has(player.position));
+  }
+
+  function renderPositionControls() {
+    const allSelected=visualPositionState.size===allPositions.length;
+    document.querySelectorAll('[data-visual-position]').forEach(button=>{
+      const position=button.dataset.visualPosition;
+      const active=position==='ALL' ? allSelected : visualPositionState.has(position);
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
+  }
+
+  function toggleVisualPosition(position) {
+    if(position==='ALL') allPositions.forEach(item=>visualPositionState.add(item));
+    else if(visualPositionState.size===allPositions.length){visualPositionState.clear();visualPositionState.add(position);}
+    else if(visualPositionState.has(position) && visualPositionState.size>1)visualPositionState.delete(position);
+    else visualPositionState.add(position);
+    renderPositionControls();
+    renderVisualAnalytics();
   }
 
   function empty(host, message='No matching data for the current filter.') {
@@ -144,26 +169,29 @@
     host.innerHTML=`<svg class="visual-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(axisLabel)} beeswarm chart">${ticks}${groupLabels}${points.join('')}<text class="visual-axis-label" x="${left+plotW/2}" y="${height-1}" text-anchor="middle">${esc(axisLabel)}</text></svg>`;
   }
 
-  function heatColour(value, maximum) {
-    const ratio=maximum>0 ? Math.max(0,Math.min(1,value/maximum)) : 0;
+  function heatColour(value, maximum, minimum=0) {
+    const ratio=maximum>minimum ? Math.max(0,Math.min(1,(value-minimum)/(maximum-minimum))) : .5;
     const light=18+ratio*40;
     return `hsl(${205-ratio*55} 72% ${light}%)`;
   }
 
-  function renderHeatmap(hostId, rows, columns, getter, formatter=value=>value.toFixed(0)) {
+  function renderHeatmap(hostId, rows, columns, getter, formatter=value=>value.toFixed(0), options={}) {
     const host=document.getElementById(hostId);if(!host)return;
     if(!rows.length || !columns.length)return empty(host);
     const values=rows.flatMap(row => columns.map(column => num(getter(row,column))));
     const maximum=Math.max(1,...values);
+    const positive=values.filter(value=>value>0), minimum=options.scaleFromMinimum&&positive.length?Math.min(...positive):0;
+    const cellWidth=options.cellWidth||30,cellHeight=options.cellHeight||27,labelWidth=options.labelWidth||145;
     let content='<div></div>'+columns.map(column=>`<div class="visual-heatmap-head">${esc(column.label)}</div>`).join('');
     rows.forEach(row => {
       content+=`<div class="visual-heatmap-label" title="${esc(row.label)}">${esc(row.label)}</div>`;
       columns.forEach(column => {
         const value=num(getter(row,column));
-        content+=`<div class="visual-heatmap-cell" style="background:${heatColour(value,maximum)}" title="${esc(row.label)} · ${esc(column.label)}: ${formatter(value)}">${formatter(value)}</div>`;
+        const background=value===0&&options.zeroIsMissing?'#334155':heatColour(value,maximum,minimum);
+        content+=`<div class="visual-heatmap-cell" style="background:${background}" title="${esc(row.label)} · ${esc(column.label)}: ${formatter(value)}">${formatter(value)}</div>`;
       });
     });
-    host.innerHTML=`<div class="visual-heatmap" style="grid-template-columns:145px repeat(${columns.length},30px)">${content}</div>`;
+    host.innerHTML=`<div class="visual-heatmap ${esc(options.className||'')}" style="--visual-cell-width:${cellWidth}px;--visual-cell-height:${cellHeight}px;--visual-cell-font:${options.fontSize||9}px;grid-template-columns:${labelWidth}px repeat(${columns.length},${cellWidth}px)">${content}</div>`;
   }
 
   function sparkline(player) {
@@ -192,47 +220,73 @@
 
   function renderVisualAnalytics() {
     if(!document.getElementById('analytics-sub-visuals'))return;
-    const players=allPlayers(), selected=filteredPlayers();
-    const byPosition=aggregateByGameweek(players,(player)=>player.position);
-    const orderedPositions=['GKP','DEF','MID','FWD'].filter(position=>byPosition.series.some(row=>row.key===position));
+    const players=positionFilteredPlayers(), selected=filteredPlayers(), owners=activeOwners();
+    const byPosition=aggregateByGameweek(selected,(player)=>player.position);
+    const orderedPositions=allPositions.filter(position=>visualPositionState.has(position)&&byPosition.series.some(row=>row.key===position));
     byPosition.series=orderedPositions.map(position=>byPosition.series.find(row=>row.key===position));
     renderArea('visual-area-position',byPosition,orderedPositions.map(position=>positionColours[position]),orderedPositions.map(position=>positionLabels[position]));
-    const byOwnership=aggregateByGameweek(players,(_player,row)=>(row.owners||[]).length?'Owned':'Free agent');
+    const byOwnership=aggregateByGameweek(selected,(_player,row)=>(row.owners||[]).length?'Owned':'Free agent');
     const ownerOrder=['Owned','Free agent'].filter(key=>byOwnership.series.some(row=>row.key===key));
     byOwnership.series=ownerOrder.map(key=>byOwnership.series.find(row=>row.key===key));
     renderArea('visual-area-ownership',byOwnership,['#38bdf8','#64748b'],ownerOrder);
 
-    const clubTotals=new Map();players.forEach(player=>clubTotals.set(player.team,(clubTotals.get(player.team)||0)+Math.max(0,num(player.total_points))));
+    const byManager=aggregateByGameweek(players,(_player,row)=>(row.owners||[])[0]||'Free agents');
+    const managerOrder=(typeof MANAGER_ORDER==='undefined'?[...new Set(byManager.series.map(row=>row.key))]:[...MANAGER_ORDER,'Free agents'])
+      .filter(manager=>(!owners||owners.has(manager))&&byManager.series.some(row=>row.key===manager));
+    byManager.series=managerOrder.map(manager=>byManager.series.find(row=>row.key===manager));
+    renderArea('visual-area-managers',byManager,managerOrder.map((manager,index)=>manager==='Free agents'?'#64748b':colourFor(manager,index)),managerOrder);
+
+    const clubTotals=new Map();selected.forEach(player=>clubTotals.set(player.team,(clubTotals.get(player.team)||0)+Math.max(0,num(player.total_points))));
     renderTreemap('visual-treemap-clubs',[...clubTotals].map(([label,value])=>({label,value})),'pts');
     const ownerTotals=new Map();selected.filter(player=>ownerOf(player)!=='Free agents').forEach(player=>ownerTotals.set(ownerOf(player),(ownerTotals.get(ownerOf(player))||0)+Math.max(0,num(player.player_value))));
     renderTreemap('visual-treemap-owners',[...ownerTotals].map(([label,value])=>({label,value})),'value');
 
-    const rated=players.filter(player=>num(player.minutes)>0 && Number.isFinite(Number(player.player_rating)));
-    renderBeeswarm('visual-beeswarm-rating',rated.map(player=>({...player,group:player.position})),['GKP','DEF','MID','FWD'],'player_rating','Player rating /100',[40,100]);
+    const rated=selected.filter(player=>num(player.minutes)>0 && Number.isFinite(Number(player.player_rating)));
+    renderBeeswarm('visual-beeswarm-rating',rated.map(player=>({...player,group:player.position})),allPositions.filter(position=>visualPositionState.has(position)),'player_rating','Player rating /100',[40,100]);
     const valued=selected.filter(player=>Number.isFinite(Number(player.player_value))).map(player=>({...player,group:ownerOf(player)==='Free agents'?'Free agents':'Owned'}));
     renderBeeswarm('visual-beeswarm-value',valued,['Owned','Free agents'],'player_value','Player value /100',[0,100]);
 
-    const weeks=gameweeks(players), clubRows=[...new Set(players.map(player=>player.team))].map(label=>({label}));
-    const clubWeek=new Map();players.forEach(player=>(player.history||[]).forEach(row=>clubWeek.set(player.team+'|'+row.gw,(clubWeek.get(player.team+'|'+row.gw)||0)+num(row.points))));
+    const weeks=gameweeks(selected), clubRows=[...new Set(selected.map(player=>player.team))].map(label=>({label}));
+    const clubWeek=new Map();selected.forEach(player=>(player.history||[]).forEach(row=>clubWeek.set(player.team+'|'+row.gw,(clubWeek.get(player.team+'|'+row.gw)||0)+num(row.points))));
     clubRows.sort((a,b)=>weeks.reduce((sum,gw)=>sum+num(clubWeek.get(b.label+'|'+gw)),0)-weeks.reduce((sum,gw)=>sum+num(clubWeek.get(a.label+'|'+gw)),0));
     renderHeatmap('visual-heatmap-clubs',clubRows,weeks.map(gw=>({key:gw,label:'GW'+gw})),(row,column)=>clubWeek.get(row.label+'|'+column.key)||0);
 
-    const positions=['GKP','DEF','MID','FWD'];
-    const chosenOwners=[...new Set(selected.map(ownerOf).filter(owner=>owner!=='Free agents'))];
+    const playerRows=selected.filter(player=>(player.history||[]).length).sort((a,b)=>num(b.total_points)-num(a.total_points)).slice(0,30)
+      .map(player=>({label:player.name+' · '+player.position,player}));
+    renderHeatmap('visual-heatmap-players',playerRows,weeks.map(gw=>({key:gw,label:'GW'+gw})),(row,column)=>{
+      const record=(row.player.history||[]).find(item=>Number(item.gw)===Number(column.key));
+      return record?num(record.points):0;
+    },value=>value.toFixed(0),{labelWidth:190,cellWidth:36,cellHeight:30,fontSize:10});
+
+    const positions=allPositions.filter(position=>visualPositionState.has(position));
+    const ownerPool=new Set(selected.map(ownerOf).filter(owner=>owner!=='Free agents'));
+    const chosenOwners=(typeof MANAGER_ORDER==='undefined'?[...ownerPool]:MANAGER_ORDER.filter(owner=>ownerPool.has(owner)));
     const squadRows=chosenOwners.map(label=>({label}));
-    renderHeatmap('visual-heatmap-squads',squadRows,positions.map(position=>({key:position,label:position})),(row,column)=>{
+    renderHeatmap('visual-heatmap-squads',squadRows,positions.map(position=>({key:position,label:positionLabels[position]})),(row,column)=>{
       const pool=selected.filter(player=>ownerOf(player)===row.label && player.position===column.key && Number.isFinite(Number(player.player_rating)));
       return pool.length ? pool.reduce((sum,player)=>sum+num(player.player_rating),0)/pool.length : 0;
-    },value=>value?value.toFixed(0):'—');
+    },value=>value?value.toFixed(0):'—',{className:'visual-squad-heatmap',labelWidth:205,cellWidth:92,cellHeight:48,fontSize:14,scaleFromMinimum:true,zeroIsMissing:true});
     renderTable();
+    renderPositionControls();
     const status=document.getElementById('visual-analytics-status');
-    if(status)status.textContent=`${selected.length} filtered players · ${weeks.length} completed GWs`;
+    if(status)status.textContent=`${selected.length} filtered players · ${visualPositionState.size===allPositions.length?'all positions':[...visualPositionState].join(', ')} · ${weeks.length} completed GWs`;
   }
 
   window.renderVisualAnalytics=renderVisualAnalytics;
   document.addEventListener('click',event=>{
-    if(event.target.closest('#analytics-manager-chips, .analytics-subtab[onclick*="visuals"]')) requestAnimationFrame(renderVisualAnalytics);
+    const position=event.target.closest('[data-visual-position]');
+    if(position){toggleVisualPosition(position.dataset.visualPosition);return;}
+    if(event.target.closest('.analytics-subtab[onclick*="visuals"]')) requestAnimationFrame(renderVisualAnalytics);
   });
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',renderVisualAnalytics,{once:true});
-  else renderVisualAnalytics();
+  function initialiseVisualAnalytics(){
+    const managerChips=document.getElementById('analytics-manager-chips');
+    if(managerChips){
+      let pending=false;
+      new MutationObserver(()=>{if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;renderVisualAnalytics();});})
+        .observe(managerChips,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+    }
+    renderPositionControls();renderVisualAnalytics();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialiseVisualAnalytics,{once:true});
+  else initialiseVisualAnalytics();
 })();
