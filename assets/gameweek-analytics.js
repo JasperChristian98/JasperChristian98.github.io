@@ -5,7 +5,16 @@
   const round=value=>Number(value||0).toFixed(1);
   const colour=(manager,index)=>typeof MANAGER_COLORS!=='undefined'&&MANAGER_COLORS[manager]?MANAGER_COLORS[manager]:['#38bdf8','#f472b6','#4ade80','#facc15','#a78bfa','#fb923c'][index%6];
 
-  function source(){return typeof TREND_DATA==='undefined'||!TREND_DATA.scores?{}:TREND_DATA.scores;}
+  function source(){
+    const original=typeof TREND_DATA==='undefined'||!TREND_DATA.scores?{}:TREND_DATA.scores;
+    if(!window.MCDraftPositionFilter||window.MCDraftPositionFilter.isAll()||typeof playerSearchData==='undefined')return original;
+    const allowed=window.MCDraftPositionFilter.positions(),totals=new Map();
+    playerSearchData.filter(player=>allowed.has(player.position)).forEach(player=>(player.history||[]).forEach(row=>{
+      const manager=(row.owners||[])[0];if(!manager)return;const key=manager+'|'+Number(row.gw);totals.set(key,(totals.get(key)||0)+(Number(row.points)||0));
+    }));
+    const managers=typeof MANAGER_ORDER==='undefined'?Object.keys(original):MANAGER_ORDER;
+    return Object.fromEntries(managers.map(manager=>[manager,[...totals].filter(([key])=>key.startsWith(manager+'|')).map(([key,value])=>[Number(key.slice(manager.length+1)),value]).sort((a,b)=>a[0]-b[0])]));
+  }
   function selectedManagers(){
     const data=source(),container=document.getElementById('analytics-manager-chips');
     if(!container||!container.querySelector('.chart-chip'))return (typeof MANAGER_ORDER==='undefined'?Object.keys(data):MANAGER_ORDER).filter(manager=>data[manager]?.length);
@@ -106,6 +115,7 @@
   }
   function initialise(){
     const chips=document.getElementById('analytics-manager-chips');if(chips){let pending=false;new MutationObserver(()=>{if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;renderGameweekLab();});}).observe(chips,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});}
+    if(window.MCDraftPositionFilter)window.MCDraftPositionFilter.subscribe(()=>renderGameweekLab());
     renderGameweekLab();
   }
   window.renderGameweekLab=renderGameweekLab;

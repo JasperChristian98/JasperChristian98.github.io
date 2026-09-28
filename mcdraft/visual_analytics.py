@@ -27,7 +27,9 @@ PAGE = '''<div class="analytics-subpage" id="analytics-sub-visuals">
   </div>
 </div>'''
 
-ASSETS = '''<link rel="stylesheet" href="assets/visual-analytics.css">
+ASSETS = '''<link rel="stylesheet" href="assets/analytics-position-filter.css">
+<script defer src="assets/analytics-position-filter.js"></script>
+<link rel="stylesheet" href="assets/visual-analytics.css">
 <script defer src="assets/visual-analytics.js"></script>
 '''
 

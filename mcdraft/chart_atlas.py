@@ -1,6 +1,10 @@
 """A client-rendered atlas of 100 supplemental charts across Analytics tabs."""
 
 
+POSITION_ASSETS = '''<link rel="stylesheet" href="assets/analytics-position-filter.css">
+<script defer src="assets/analytics-position-filter.js"></script>
+'''
+
 ASSETS = '''<link rel="stylesheet" href="assets/chart-atlas.css">
 <script defer src="assets/chart-atlas.js"></script>
 '''
@@ -18,4 +22,5 @@ def integrate_template(template: str) -> str:
     if ('assets/chart-atlas.js' in template or template.count('</body>') != 1
             or any(template.count(f'id="{page}"') != 1 for page in required_pages)):
         raise RuntimeError('Chart Atlas insertion point changed or already integrated')
-    return template.replace('</body>', ASSETS + '</body>', 1)
+    assets = ('' if 'assets/analytics-position-filter.js' in template else POSITION_ASSETS) + ASSETS
+    return template.replace('</body>', assets + '</body>', 1)

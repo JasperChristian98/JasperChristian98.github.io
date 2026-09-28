@@ -5,12 +5,13 @@
   const positionColours = {GKP:'#fbbf24', DEF:'#38bdf8', MID:'#a78bfa', FWD:'#fb7185'};
   const positionLabels = {GKP:'Goalkeepers', DEF:'Defenders', MID:'Midfielders', FWD:'Forwards'};
   const allPositions = ['GKP','DEF','MID','FWD'];
-  const visualPositionState = new Set(allPositions);
+  const fallbackPositionState = new Set(allPositions);
   const esc = value => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const num = value => Number.isFinite(Number(value)) ? Number(value) : 0;
   const allPlayers = () => typeof playerSearchData === 'undefined' ? [] : playerSearchData.filter(player => player && player.draft_active !== false);
   const ownerOf = player => (!player.fantasy_team || /^free agents?$/i.test(player.fantasy_team)) ? 'Free agents' : player.fantasy_team;
+  const positionState = () => window.MCDraftPositionFilter ? window.MCDraftPositionFilter.positions() : fallbackPositionState;
 
   function activeOwners() {
     const container = document.getElementById('analytics-manager-chips');
@@ -21,28 +22,30 @@
 
   function filteredPlayers() {
     const owners = activeOwners();
-    return allPlayers().filter(player => visualPositionState.has(player.position) && (!owners || owners.has(ownerOf(player))));
+    const selected=positionState();
+    return allPlayers().filter(player => selected.has(player.position) && (!owners || owners.has(ownerOf(player))));
   }
 
   function positionFilteredPlayers() {
-    return allPlayers().filter(player => visualPositionState.has(player.position));
+    const selected=positionState();return allPlayers().filter(player => selected.has(player.position));
   }
 
   function renderPositionControls() {
-    const allSelected=visualPositionState.size===allPositions.length;
+    const selected=positionState(),allSelected=selected.size===allPositions.length;
     document.querySelectorAll('[data-visual-position]').forEach(button=>{
       const position=button.dataset.visualPosition;
-      const active=position==='ALL' ? allSelected : visualPositionState.has(position);
+      const active=position==='ALL' ? allSelected : selected.has(position);
       button.classList.toggle('active',active);
       button.setAttribute('aria-pressed',String(active));
     });
   }
 
   function toggleVisualPosition(position) {
-    if(position==='ALL') allPositions.forEach(item=>visualPositionState.add(item));
-    else if(visualPositionState.size===allPositions.length){visualPositionState.clear();visualPositionState.add(position);}
-    else if(visualPositionState.has(position) && visualPositionState.size>1)visualPositionState.delete(position);
-    else visualPositionState.add(position);
+    if(window.MCDraftPositionFilter){window.MCDraftPositionFilter.set(position);return;}
+    if(position==='ALL') allPositions.forEach(item=>fallbackPositionState.add(item));
+    else if(fallbackPositionState.size===allPositions.length){fallbackPositionState.clear();fallbackPositionState.add(position);}
+    else if(fallbackPositionState.has(position) && fallbackPositionState.size>1)fallbackPositionState.delete(position);
+    else fallbackPositionState.add(position);
     renderPositionControls();
     renderVisualAnalytics();
   }
@@ -222,7 +225,7 @@
     if(!document.getElementById('analytics-sub-visuals'))return;
     const players=positionFilteredPlayers(), selected=filteredPlayers(), owners=activeOwners();
     const byPosition=aggregateByGameweek(selected,(player)=>player.position);
-    const orderedPositions=allPositions.filter(position=>visualPositionState.has(position)&&byPosition.series.some(row=>row.key===position));
+    const selectedPositions=positionState(),orderedPositions=allPositions.filter(position=>selectedPositions.has(position)&&byPosition.series.some(row=>row.key===position));
     byPosition.series=orderedPositions.map(position=>byPosition.series.find(row=>row.key===position));
     renderArea('visual-area-position',byPosition,orderedPositions.map(position=>positionColours[position]),orderedPositions.map(position=>positionLabels[position]));
     const byOwnership=aggregateByGameweek(selected,(_player,row)=>(row.owners||[]).length?'Owned':'Free agent');
@@ -242,7 +245,7 @@
     renderTreemap('visual-treemap-owners',[...ownerTotals].map(([label,value])=>({label,value})),'value');
 
     const rated=selected.filter(player=>num(player.minutes)>0 && Number.isFinite(Number(player.player_rating)));
-    renderBeeswarm('visual-beeswarm-rating',rated.map(player=>({...player,group:player.position})),allPositions.filter(position=>visualPositionState.has(position)),'player_rating','Player rating /100',[40,100]);
+    renderBeeswarm('visual-beeswarm-rating',rated.map(player=>({...player,group:player.position})),allPositions.filter(position=>selectedPositions.has(position)),'player_rating','Player rating /100',[40,100]);
     const valued=selected.filter(player=>Number.isFinite(Number(player.player_value))).map(player=>({...player,group:ownerOf(player)==='Free agents'?'Free agents':'Owned'}));
     renderBeeswarm('visual-beeswarm-value',valued,['Owned','Free agents'],'player_value','Player value /100',[0,100]);
 
@@ -258,7 +261,7 @@
       return record?num(record.points):0;
     },value=>value.toFixed(0),{labelWidth:190,cellWidth:36,cellHeight:30,fontSize:10});
 
-    const positions=allPositions.filter(position=>visualPositionState.has(position));
+    const positions=allPositions.filter(position=>selectedPositions.has(position));
     const ownerPool=new Set(selected.map(ownerOf).filter(owner=>owner!=='Free agents'));
     const chosenOwners=(typeof MANAGER_ORDER==='undefined'?[...ownerPool]:MANAGER_ORDER.filter(owner=>ownerPool.has(owner)));
     const squadRows=chosenOwners.map(label=>({label}));
@@ -269,7 +272,7 @@
     renderTable();
     renderPositionControls();
     const status=document.getElementById('visual-analytics-status');
-    if(status)status.textContent=`${selected.length} filtered players · ${visualPositionState.size===allPositions.length?'all positions':[...visualPositionState].join(', ')} · ${weeks.length} completed GWs`;
+    if(status)status.textContent=`${selected.length} filtered players · ${selectedPositions.size===allPositions.length?'all positions':[...selectedPositions].join(', ')} · ${weeks.length} completed GWs`;
   }
 
   window.renderVisualAnalytics=renderVisualAnalytics;
@@ -285,6 +288,7 @@
       new MutationObserver(()=>{if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;renderVisualAnalytics();});})
         .observe(managerChips,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
     }
+    if(window.MCDraftPositionFilter)window.MCDraftPositionFilter.subscribe(()=>renderVisualAnalytics());
     renderPositionControls();renderVisualAnalytics();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialiseVisualAnalytics,{once:true});

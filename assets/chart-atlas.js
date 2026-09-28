@@ -6,6 +6,7 @@
   const POSITION_COLOURS={GKP:'#fbbf24',DEF:'#38bdf8',MID:'#a78bfa',FWD:'#fb7185'};
   const PALETTE=['#38bdf8','#a78bfa','#34d399','#fbbf24','#fb7185','#22d3ee','#f97316','#60a5fa','#84cc16','#c084fc'];
   const activePositions=new Set(POSITIONS);
+  const positionState=()=>window.MCDraftPositionFilter?window.MCDraftPositionFilter.positions():new Set(activePositions);
   const esc=value=>String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const num=value=>Number.isFinite(Number(value))?Number(value):0;
   const average=values=>values.length?values.reduce((sum,value)=>sum+value,0)/values.length:0;
@@ -105,7 +106,7 @@
   }
   function filteredPlayers(){
     const owners=activeOwners();
-    return allPlayers().filter(player=>activePositions.has(player.position)&&(!owners||owners.has(ownerOf(player))));
+    const selected=positionState();return allPlayers().filter(player=>selected.has(player.position)&&(!owners||owners.has(ownerOf(player))));
   }
   function metric(player,key){
     if(key==='__count')return 1;
@@ -138,7 +139,7 @@
     rows=rows.filter(row=>Number.isFinite(row.value)).sort((a,b)=>b.value-a.value).slice(0,15);
     if(!rows.length)return empty(host);
     const maximum=Math.max(1,...rows.map(row=>Math.abs(row.value)));
-    host.innerHTML='<div class="atlas-bar-list">'+rows.map((row,index)=>`<div class="atlas-bar-row" data-atlas-position="${esc(row.position||'')}" data-atlas-owner="${esc(row.owner||'')}"><span class="atlas-bar-name" title="${esc(row.label)}">${esc(row.label)}</span><span class="atlas-bar-track"><i class="atlas-bar-fill" style="width:${Math.abs(row.value)/maximum*100}%;background:${colour(row.label,index)}"></i></span><strong class="atlas-bar-value">${format(row.value)}</strong></div>`).join('')+'</div>';
+    host.innerHTML='<div class="analytics-bar-chart atlas-bar-list">'+rows.map((row,index)=>`<div class="analytics-bar-row atlas-bar-row" role="button" tabindex="0" data-chart-detail="${esc(row.label)} · ${format(row.value)}" data-atlas-position="${esc(row.position||'')}" data-atlas-owner="${esc(row.owner||'')}"><span class="analytics-bar-label atlas-bar-name" title="${esc(row.label)}">${esc(row.label)}</span><span class="analytics-bar-track atlas-bar-track"><i class="analytics-bar-fill atlas-bar-fill" style="width:${Math.abs(row.value)/maximum*100}%;background:${colour(row.label,index)}"></i></span><strong class="analytics-bar-value atlas-bar-value">${format(row.value)}</strong></div>`).join('')+'</div>';
   }
   function playerRows(players,spec){return players.map(player=>({label:player.name,value:metric(player,spec.metric),position:player.position,owner:ownerOf(player)}));}
   function groupRows(players,spec,key=spec.metric,reducer=spec.reducer){return [...grouped(players,spec.group)].map(([label,pool])=>({label,value:reduce(pool,key,reducer),pool}));}
@@ -148,10 +149,10 @@
     const width=720,height=290,left=48,right=20,top=18,bottom=40,plotW=width-left-right,plotH=height-top-bottom;
     const minX=Math.min(0,...rows.map(row=>row.x)),maxX=Math.max(1,...rows.map(row=>row.x)),minY=Math.min(0,...rows.map(row=>row.y)),maxY=Math.max(1,...rows.map(row=>row.y));
     const x=value=>left+(value-minX)/Math.max(1,maxX-minX)*plotW,y=value=>top+(1-(value-minY)/Math.max(1,maxY-minY))*plotH;
-    const grid=[0,.25,.5,.75,1].map(f=>`<line class="atlas-gridline" x1="${left+plotW*f}" x2="${left+plotW*f}" y1="${top}" y2="${top+plotH}"/><line class="atlas-gridline" x1="${left}" x2="${left+plotW}" y1="${top+plotH*f}" y2="${top+plotH*f}"/>`).join('');
-    const dots=rows.map((row,index)=>`<circle class="atlas-dot" data-atlas-position="${esc(row.position||'')}" data-atlas-owner="${esc(row.owner||'')}" cx="${x(row.x).toFixed(1)}" cy="${y(row.y).toFixed(1)}" r="${rows.length>40?4:6}" fill="${colour(row.position||row.label,index)}"><title>${esc(row.label)} · ${format(row.x)} / ${format(row.y)}</title></circle>`).join('');
+    const grid=[0,.25,.5,.75,1].map(f=>`<line class="trend-chart-gridline atlas-gridline" x1="${left+plotW*f}" x2="${left+plotW*f}" y1="${top}" y2="${top+plotH}"/><line class="trend-chart-gridline atlas-gridline" x1="${left}" x2="${left+plotW}" y1="${top+plotH*f}" y2="${top+plotH*f}"/><text class="trend-chart-axis-label atlas-axis" x="${left+plotW*f}" y="${height-22}" text-anchor="middle">${format(minX+(maxX-minX)*f)}</text><text class="trend-chart-axis-label atlas-axis" x="${left-7}" y="${top+plotH*(1-f)+3}" text-anchor="end">${format(minY+(maxY-minY)*f)}</text>`).join('');
+    const dots=rows.map((row,index)=>`<circle class="atlas-dot" tabindex="0" data-chart-detail="${esc(row.label)} · ${format(row.x)} / ${format(row.y)}" data-atlas-position="${esc(row.position||'')}" data-atlas-owner="${esc(row.owner||'')}" cx="${x(row.x).toFixed(1)}" cy="${y(row.y).toFixed(1)}" r="${rows.length>40?4:6}" fill="${colour(row.position||row.label,index)}"><title>${esc(row.label)} · ${format(row.x)} / ${format(row.y)}</title></circle>`).join('');
     const labels=rows.length<=20?rows.map(row=>`<text class="atlas-axis" x="${x(row.x)+7}" y="${y(row.y)-5}">${esc(String(row.label).slice(0,15))}</text>`).join(''):'';
-    host.innerHTML=`<svg class="atlas-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(xLabel)} against ${esc(yLabel)}">${grid}${dots}${labels}<text class="atlas-axis" x="${left+plotW/2}" y="${height-7}" text-anchor="middle">${esc(xLabel)} →</text><text class="atlas-axis" transform="translate(12 ${top+plotH/2}) rotate(-90)" text-anchor="middle">${esc(yLabel)} →</text></svg>`;
+    host.innerHTML=`<div class="trend-chart-svg-wrap"><svg class="atlas-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(xLabel)} against ${esc(yLabel)}">${grid}${dots}${labels}<text class="analytics-svg-axis-title atlas-axis" x="${left+plotW/2}" y="${height-7}" text-anchor="middle">${esc(xLabel)} →</text><text class="analytics-svg-axis-title atlas-axis" transform="translate(12 ${top+plotH/2}) rotate(-90)" text-anchor="middle">${esc(yLabel)} →</text></svg></div>`;
   }
   function renderHistogram(host,players,spec){
     const values=players.map(player=>metric(player,spec.metric)).filter(Number.isFinite);if(!values.length)return empty(host);
@@ -169,7 +170,7 @@
   function renderStack(host,players,spec){
     const rows=[...grouped(players,spec.group)].map(([label,pool])=>({label,values:Object.fromEntries(POSITIONS.map(position=>[position,reduce(pool.filter(player=>player.position===position),spec.metric,spec.reducer)]))}));
     rows.sort((a,b)=>Object.values(b.values).reduce((x,y)=>x+y,0)-Object.values(a.values).reduce((x,y)=>x+y,0));if(!rows.length)return empty(host);
-    host.innerHTML='<div class="atlas-stack-list">'+rows.slice(0,15).map(row=>{const total=Math.max(.001,Object.values(row.values).reduce((sum,value)=>sum+Math.max(0,value),0));return `<div class="atlas-stack-row"><span class="atlas-stack-name" title="${esc(row.label)}">${esc(row.label)}</span><span class="atlas-stack-track">${POSITIONS.filter(position=>activePositions.has(position)).map(position=>`<i style="width:${Math.max(0,row.values[position])/total*100}%;background:${POSITION_COLOURS[position]}" title="${POSITION_LABELS[position]}: ${format(row.values[position])}"></i>`).join('')}</span></div>`;}).join('')+'</div><div class="atlas-legend">'+POSITIONS.filter(position=>activePositions.has(position)).map(position=>`<span><i style="background:${POSITION_COLOURS[position]}"></i>${POSITION_LABELS[position]}</span>`).join('')+'</div>';
+    const selected=positionState();host.innerHTML='<div class="atlas-stack-list">'+rows.slice(0,15).map(row=>{const total=Math.max(.001,Object.values(row.values).reduce((sum,value)=>sum+Math.max(0,value),0));return `<div class="atlas-stack-row"><span class="atlas-stack-name" title="${esc(row.label)}">${esc(row.label)}</span><span class="atlas-stack-track">${POSITIONS.filter(position=>selected.has(position)).map(position=>`<i style="width:${Math.max(0,row.values[position])/total*100}%;background:${POSITION_COLOURS[position]}" title="${POSITION_LABELS[position]}: ${format(row.values[position])}"></i>`).join('')}</span></div>`;}).join('')+'</div><div class="atlas-legend">'+POSITIONS.filter(position=>selected.has(position)).map(position=>`<span><i style="background:${POSITION_COLOURS[position]}"></i>${POSITION_LABELS[position]}</span>`).join('')+'</div>';
   }
   function weeklyDataset(players,group){
     const weeks=[...new Set(players.flatMap(player=>(player.history||[]).map(row=>num(row.gw))))].filter(Boolean).sort((a,b)=>a-b),values=new Map();
@@ -180,10 +181,10 @@
     const {weeks,series}=weeklyDataset(players,spec.group);if(!weeks.length||!series.length)return empty(host,'No completed player gameweeks for this filter.');
     const width=720,height=300,left=42,right=15,top=18,bottom=43,plotW=width-left-right,plotH=height-top-bottom,max=Math.max(1,...series.flatMap(row=>row.values));
     const x=index=>left+(weeks.length===1?plotW/2:index*plotW/(weeks.length-1)),y=value=>top+(1-value/max)*plotH;
-    const grid=[0,.25,.5,.75,1].map(f=>`<line class="atlas-gridline" x1="${left}" x2="${width-right}" y1="${top+plotH*f}" y2="${top+plotH*f}"/>`).join('');
-    const paths=series.map((row,index)=>{const points=row.values.map((value,i)=>`${x(i)},${y(value)}`);const line=`M${points.join(' L')}`;return `${spec.area?`<path d="${line} L${x(weeks.length-1)},${top+plotH} L${x(0)},${top+plotH} Z" fill="${colour(row.label,index)}" opacity=".09"/>`:''}<path d="${line}" fill="none" stroke="${colour(row.label,index)}" stroke-width="2"><title>${esc(row.label)}</title></path>`;}).join('');
+    const grid=[0,.25,.5,.75,1].map(f=>`<line class="trend-chart-gridline atlas-gridline" x1="${left}" x2="${width-right}" y1="${top+plotH*f}" y2="${top+plotH*f}"/><text class="trend-chart-axis-label atlas-axis" x="${left-7}" y="${top+plotH*f+3}" text-anchor="end">${format(max*(1-f))}</text>`).join('');
+    const paths=series.map((row,index)=>{const points=row.values.map((value,i)=>`${x(i)},${y(value)}`),line=`M${points.join(' L')}`,seriesColour=colour(row.label,index);return `${spec.area?`<path class="atlas-series-area" d="${line} L${x(weeks.length-1)},${top+plotH} L${x(0)},${top+plotH} Z" style="fill:${seriesColour}"/>`:''}<path class="atlas-series-line" d="${line}" style="stroke:${seriesColour}"><title>${esc(row.label)}</title></path>${row.values.map((value,i)=>`<circle class="atlas-series-point" cx="${x(i)}" cy="${y(value)}" r="3.5" style="fill:${seriesColour}"><title>${esc(row.label)} · GW${weeks[i]}: ${format(value)}</title></circle>`).join('')}`;}).join('');
     const step=Math.max(1,Math.ceil(weeks.length/8)),labels=weeks.map((week,index)=>index%step===0||index===weeks.length-1?`<text class="atlas-axis" x="${x(index)}" y="${height-10}" text-anchor="middle">GW${week}</text>`:'').join('');
-    host.innerHTML=`<svg class="atlas-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(spec.title)}">${grid}${paths}${labels}</svg><div class="atlas-legend">${series.map((row,index)=>`<span><i style="background:${colour(row.label,index)}"></i>${esc(row.label)}</span>`).join('')}</div>`;
+    host.innerHTML=`<div class="trend-chart-svg-wrap"><svg class="atlas-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(spec.title)}">${grid}${paths}${labels}</svg></div><div class="atlas-legend">${series.map((row,index)=>`<span><i style="background:${colour(row.label,index)}"></i>${esc(row.label)}</span>`).join('')}</div>`;
   }
   function renderWeeklyStat(host,players,spec){
     const {series}=weeklyDataset(players,'owner'),rows=series.map(row=>({label:row.label,value:spec.stat==='average'?average(row.values):spec.stat==='volatility'?deviation(row.values):spec.stat==='high'?Math.max(0,...row.values):Math.min(...row.values)}));renderBars(host,rows);
@@ -205,16 +206,17 @@
     Object.entries(pages).forEach(([target,pageId])=>{
       const page=document.getElementById(pageId);if(!page||page.querySelector('.chart-atlas'))return;
       const targetSpecs=specs.filter(spec=>spec.target===target),section=document.createElement('section');section.className='chart-atlas';section.dataset.atlasTarget=target;
-      section.innerHTML=`<div class="chart-atlas-head"><div><span class="chart-atlas-kicker">Extended Chart Atlas</span><h2>${esc(pageNames[target])}: deeper cuts</h2><p>Supplemental views respond to the dashboard manager filter and the position filter below.</p></div><strong class="chart-atlas-count">${targetSpecs.length} extra charts</strong>${controls()}</div><div class="chart-atlas-grid">${targetSpecs.map((spec,index)=>`<article class="chart-card atlas-card"><h3>${esc(spec.title)}</h3><p class="card-description">${esc(spec.description)}</p><div class="atlas-host" data-atlas-index="${specs.indexOf(spec)}"><div class="atlas-section-loading">Open this page to draw the chart.</div></div></article>`).join('')}</div>`;
+      section.innerHTML=`<div class="card chart-atlas-head"><div><span class="chart-atlas-kicker">Extended Chart Atlas</span><h2>${esc(pageNames[target])}: deeper cuts</h2><p class="card-description">Supplemental views respond to the dashboard manager filter and the position filter below.</p></div><strong class="chart-atlas-count">${targetSpecs.length} extra charts</strong>${controls()}</div><div class="analytics-chart-grid chart-atlas-grid">${targetSpecs.map(spec=>`<article class="card analytics-chart-card atlas-card"><h2>${esc(spec.title)}</h2><p class="card-description">${esc(spec.description)}</p><div class="atlas-host" data-atlas-index="${specs.indexOf(spec)}"><div class="atlas-section-loading">Open this page to draw the chart.</div></div></article>`).join('')}</div>`;
       page.append(section);
     });
     syncControls();renderActive();
   }
   function syncControls(){
-    const all=activePositions.size===POSITIONS.length;
-    document.querySelectorAll('[data-atlas-position-filter]').forEach(button=>{const position=button.dataset.atlasPositionFilter,isActive=position==='ALL'?all:activePositions.has(position);button.classList.toggle('active',isActive);button.setAttribute('aria-pressed',String(isActive));});
+    const selected=positionState(),all=selected.size===POSITIONS.length;
+    document.querySelectorAll('[data-atlas-position-filter]').forEach(button=>{const position=button.dataset.atlasPositionFilter,isActive=position==='ALL'?all:selected.has(position);button.classList.toggle('active',isActive);button.setAttribute('aria-pressed',String(isActive));});
   }
   function setPosition(position){
+    if(window.MCDraftPositionFilter){window.MCDraftPositionFilter.set(position);return;}
     if(position==='ALL')POSITIONS.forEach(item=>activePositions.add(item));
     else if(activePositions.size===POSITIONS.length){activePositions.clear();activePositions.add(position);}
     else if(activePositions.has(position)&&activePositions.size>1)activePositions.delete(position);else activePositions.add(position);
@@ -239,6 +241,7 @@
   }
   function initialise(){
     if(specs.length!==100)throw new Error(`Chart Atlas expected 100 specs, received ${specs.length}`);build();connectManagerFilter();
+    if(window.MCDraftPositionFilter)window.MCDraftPositionFilter.subscribe(()=>{syncControls();document.querySelectorAll('.chart-atlas[data-atlas-rendered="true"]').forEach(section=>renderTarget(section.dataset.atlasTarget));});
     const chips=document.getElementById('analytics-manager-chips');if(chips){let pending=false;new MutationObserver(()=>{if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;document.querySelectorAll('.chart-atlas[data-atlas-rendered="true"]').forEach(section=>renderTarget(section.dataset.atlasTarget));});}).observe(chips,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});}
   }
   document.addEventListener('click',event=>{const position=event.target.closest('[data-atlas-position-filter]');if(position){setPosition(position.dataset.atlasPositionFilter);return;}if(event.target.closest('.analytics-subtab,.mcd-nav-link'))requestAnimationFrame(renderActive);});

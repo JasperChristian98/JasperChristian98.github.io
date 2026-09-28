@@ -27,6 +27,8 @@ class ChartAtlasTests(unittest.TestCase):
         result = integrate_template(source)
         self.assertIn('assets/chart-atlas.css', result)
         self.assertIn('assets/chart-atlas.js', result)
+        self.assertIn('assets/analytics-position-filter.css', result)
+        self.assertIn('assets/analytics-position-filter.js', result)
         with self.assertRaises(RuntimeError):
             integrate_template(result)
 
