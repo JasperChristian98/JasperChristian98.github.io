@@ -93,7 +93,35 @@
     const subject=subjects[hash(day+':subject')%subjects.length];
     return eligible.filter(f=>f.entity===subject).sort((a,b)=>hash(day+':'+a.id)-hash(day+':'+b.id)||a.id.localeCompare(b.id))[0];
   }
-  let facts=[],currentDay='';
+  let facts=[],currentDay='',players=[];
+  function pickPlayer(pool,allFacts,day=londonDay(),saved=null) {
+    const priorities=['best_haul','goal_involvements','double_digits','goals','assists','clean_sheets','saves','total_points','bonus','points_per_90','minutes','owners'];
+    const available=pool.filter(p=>p.id!=null&&p.name&&p.draft_active!==false&&allFacts.some(f=>f.type==='Player'&&f.entity===String(p.id)));
+    if(!available.length)return null;
+    const retained=saved?.day===day?available.find(p=>String(p.id)===String(saved.id)):null;
+    const p=retained||[...available].sort((a,b)=>hash(day+':daily-player:'+a.id)-hash(day+':daily-player:'+b.id)||String(a.id).localeCompare(String(b.id)))[0];
+    const candidates=allFacts.filter(f=>f.type==='Player'&&f.entity===String(p.id));
+    const fact=(retained&&candidates.find(f=>f.id===saved.factId))||candidates.sort((a,b)=>{
+      const rank=f=>{const i=priorities.indexOf(JSON.parse(f.id)[2]);return i<0?99:i;};
+      return rank(a)-rank(b)||a.id.localeCompare(b.id);
+    })[0];
+    return {player:p,fact};
+  }
+  function renderPlayer(day,date){
+    const card=document.getElementById('mcd-player-of-day');if(!card)return;
+    const key='mcdraft-player-of-day-v1';let saved=null;
+    try{saved=JSON.parse(localStorage.getItem(key)||'null');}catch{}
+    const chosen=pickPlayer(players,facts,day,saved);card.hidden=!chosen;if(!chosen)return;
+    const {player:p,fact}=chosen;
+    try{localStorage.setItem(key,JSON.stringify({day,id:String(p.id),factId:fact.id}));}catch{}
+    const set=(id,value)=>{document.getElementById(id).textContent=value;};
+    set('mcd-player-name',p.name);
+    set('mcd-player-position',({GKP:'Goalkeeper',DEF:'Defender',MID:'Midfielder',FWD:'Forward'})[p.position]||p.position||'Unknown');
+    set('mcd-player-club',p.team||'Unknown club');
+    set('mcd-player-owner',p.fantasy_team||'Free Agent');
+    set('mcd-player-headline',fact.sentence);set('mcd-player-context',fact.context);
+    set('mcd-player-date',new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',day:'numeric',month:'long',year:'numeric'}).format(date)+' · Daily pick · Current dashboard data');
+  }
   function dailyFact(day) {
     // Retain today's identity across frequent dashboard rebuilds, but always
     // show its latest value. Never cache a sentence that could become stale.
@@ -109,6 +137,7 @@
   function render(date=new Date()) {
     const card=document.getElementById('mcd-stat-of-day');if(!card)return;
     currentDay=londonDay(date);const fact=dailyFact(currentDay);
+    renderPlayer(currentDay,date);
     card.hidden=!fact;if(!fact)return;
     document.getElementById('mcd-stat-category').textContent=fact.type;
     document.getElementById('mcd-stat-fact').textContent=fact.sentence;
@@ -116,13 +145,14 @@
     document.getElementById('mcd-stat-date').textContent=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',day:'numeric',month:'long',year:'numeric'}).format(date)+' · A new pick each day (UK time)';
   }
   function init() {
-    facts=buildFacts({players:typeof playerSearchData==='undefined'?[]:playerSearchData,
+    players=typeof playerSearchData==='undefined'?[]:playerSearchData;
+    facts=buildFacts({players,
       clubs:typeof CLUB_EXPLORER_DATA==='undefined'?{}:CLUB_EXPLORER_DATA,
       teams:typeof MCD_MATCHUP_STATS==='undefined'?{}:MCD_MATCHUP_STATS});render();
     const refresh=()=>{if(londonDay()!==currentDay)render();};
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
     setInterval(refresh,60000);
   }
-  window.McDraftDailyStat={buildFacts,pick,londonDay,render};
+  window.McDraftDailyStat={buildFacts,pick,pickPlayer,londonDay,render};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

@@ -29,7 +29,7 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
     check(!fixture.some(f=>JSON.parse(f.id)[2]==='win_streak'),'missing gameweeks do not create a winning streak');
     const card=document.getElementById('mcd-stat-of-day'),welcome=document.getElementById('mcd-manager-welcome');
     check(!card.hidden&&!!document.getElementById('mcd-stat-fact').textContent,'daily card is populated');
-    check(card.parentElement.classList.contains('mcd-welcome-card')&&card===card.parentElement.lastElementChild,'card sits at the bottom of welcome selection');
+    check(card.parentElement.classList.contains('mcd-daily-cards')&&card.parentElement===card.closest('.mcd-welcome-card').lastElementChild,'daily cards sit at the bottom of welcome selection');
     api.render(new Date('2026-09-28T12:00:00Z'));check(document.getElementById('mcd-stat-fact').textContent===chosen.sentence,'render uses correct daily fact');
     api.render(new Date('2026-09-29T12:00:00Z'));check(document.getElementById('mcd-stat-fact').textContent===api.pick(facts,'2026-09-29').sentence,'render advances at next date');
     const savedFact=facts.find(f=>f.id!==chosen.id);
@@ -39,11 +39,25 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
     localStorage.setItem('mcdraft-stat-of-day-v1','invalid JSON');api.render(new Date(day+'T12:00:00Z'));
     check(document.getElementById('mcd-stat-fact').textContent===chosen.sentence,'corrupt storage falls back to daily selection');
     welcome.scrollTop=0;
-    check(card.parentElement.getBoundingClientRect().top>=0,'welcome heading remains reachable on short screens');
+    check(card.closest('.mcd-welcome-card').getBoundingClientRect().top>=0,'welcome heading remains reachable on short screens');
     welcome.scrollTop=welcome.scrollHeight;
     check(card.getBoundingClientRect().bottom<=welcome.getBoundingClientRect().bottom+1,'bottom of stat can be reached by scrolling');
     check(welcome.scrollWidth<=welcome.clientWidth,'welcome has no horizontal overflow');
     check(!document.getElementById('mcd-welcome-continue').disabled,'team selection remains usable');
+    const dailyPlayer=document.getElementById('mcd-player-of-day');
+    check(!dailyPlayer.hidden&&dailyPlayer.parentElement===card.parentElement,'player card appears alongside stat card');
+    const chosenPlayer=api.pickPlayer(playerSearchData,facts,day);
+    check(chosenPlayer.player.id===api.pickPlayer([...playerSearchData].reverse(),facts,day).player.id,'player pick is stable across data ordering');
+    const storage=JSON.parse(localStorage.getItem('mcdraft-player-of-day-v1'));
+    const retained=api.pickPlayer(playerSearchData,facts,storage.day,storage);
+    check(document.getElementById('mcd-player-name').textContent===retained.player.name,'saved player identity renders');
+    check(document.getElementById('mcd-player-club').textContent===retained.player.team&&document.getElementById('mcd-player-owner').textContent===(retained.player.fantasy_team||'Free Agent'),'club and fantasy team come from current data');
+    check(document.getElementById('mcd-player-headline').textContent===retained.fact.sentence,'headline uses a real fact for chosen player');
+    check(api.pickPlayer([],facts,day)===null,'no invented player for empty dataset');
+    const stale=api.pickPlayer(playerSearchData,facts,day,{day,id:'missing',factId:'missing'});
+    check(!!stale&&stale.player.id===chosenPlayer.player.id,'missing saved player gets a valid replacement');
+    check(dailyPlayer.getBoundingClientRect().top>=card.getBoundingClientRect().bottom,'daily cards stack on mobile');
+    check(dailyPlayer.getBoundingClientRect().bottom<=welcome.getBoundingClientRect().bottom+1,'player card bottom is reachable on mobile');
     checks.push('Fact pool: '+facts.length+' ('+['Player','Fantasy team','Club'].map(type=>type+': '+facts.filter(f=>f.type===type).length).join(', ')+')');
   }catch(error){checks.push('FAILED: '+error.stack);}
   const report=document.createElement('pre');report.id='daily-stat-test-report';report.textContent=JSON.stringify(checks);document.body.append(report);

@@ -18,6 +18,7 @@ class StatOfDayTests(unittest.TestCase):
     def test_welcome_card_and_assets(self):
         result = integrate_template('<body>' + MANAGER_WELCOME_HTML + '</body>')
         self.assertEqual(result.count('id="mcd-stat-of-day"'), 1)
+        self.assertEqual(result.count('id="mcd-player-of-day"'), 1)
         self.assertLess(result.index('class="mcd-welcome-foot"'), result.index('id="mcd-stat-of-day"'))
         self.assertLess(result.index('id="mcd-stat-of-day"'), result.index('</section>'))
         for asset in re.findall(r'(?:src|href)="([^"]+)"', ASSETS):

@@ -9,4 +9,15 @@
 /* Auto margins centre short cards, but leave the top reachable on short screens. */
 .mcd-manager-welcome{align-items:flex-start}
 .mcd-manager-welcome .mcd-welcome-card{margin-block:auto;flex-shrink:0}
+.mcd-manager-welcome .mcd-welcome-card:has(.mcd-daily-cards){width:min(100%,800px)}
+.mcd-daily-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:24px}
+.mcd-daily-cards .mcd-stat-of-day{margin-top:0;min-width:0}
+#mcd-player-name{font-size:23px;margin:14px 0;color:var(--text)}
+.mcd-player-daily-details{margin:0;display:grid;gap:8px;font-size:13px}
+.mcd-player-daily-details dt{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.mcd-player-daily-details dd{margin:3px 0 0;color:var(--text)}
+#mcd-player-headline{font-size:16px;font-weight:700;line-height:1.5;margin:16px 0 8px}
+#mcd-player-context{color:var(--muted);font-size:12px;line-height:1.5}
+#mcd-player-date{display:block;font-size:10px;color:var(--muted);line-height:1.5}
+@media(max-width:640px){.mcd-daily-cards{grid-template-columns:1fr}}
 @media(max-width:520px){.mcd-stat-of-day{padding:16px}#mcd-stat-fact{font-size:15px}}
