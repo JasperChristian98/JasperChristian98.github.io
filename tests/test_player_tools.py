@@ -8,6 +8,7 @@ import tempfile
 import unittest
 
 from mcdraft.player_tools import integrate_template
+from mcdraft.club_badges import integrate_template as integrate_badges
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,6 +27,8 @@ class PlayerToolsTests(unittest.TestCase):
             source = (ROOT / 'index.html').read_text(encoding='utf-8')
             if 'assets/player-tools.js' not in source:
                 source = integrate_template(source)
+            if 'assets/club-badges.js' not in source:
+                source = integrate_badges(source)
             source = source.replace('<head>', '<head><base href="' + ROOT.as_uri() + '/">', 1)
             source = re.sub(r'<script[^>]+src="https?://[^>]+></script>', '', source)
             source = source.replace('</body>', '<script src="tests/player_tools_browser.js"></script></body>')

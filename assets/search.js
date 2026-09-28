@@ -222,6 +222,7 @@
       content.append(node('small',kinds[r.type]+' · '+r.breadcrumb));const h=node('h2');h.append(link(r));content.append(h,node('p',(fuzzy?'Similar match · ':'')+r.description));
       const rel=related(r);if(rel)content.append(rel);
       if(r.type==='player'&&window.McDraftCompare)content.append(window.McDraftCompare.button(r.value));
+      if(r.type==='player'&&window.McDraftWatchlist)content.append(window.McDraftWatchlist.button(r.value));
       const fav=node('button',favourites.has(r.id)?'★':'☆','search-favourite');fav.type='button';
       fav.setAttribute('aria-label',(favourites.has(r.id)?'Remove favourite: ':'Save favourite: ')+r.label);fav.setAttribute('aria-pressed',String(favourites.has(r.id)));
       fav.addEventListener('click',()=>{favourites.has(r.id)?favourites.delete(r.id):favourites.add(r.id);save('mcd-search-favourites',[...favourites]);render();const replacement=Array.from($('search-list').querySelectorAll('.search-favourite')).find(b=>b.getAttribute('aria-label').endsWith(': '+r.label));(replacement||$('search-title')).focus();});

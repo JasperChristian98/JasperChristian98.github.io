@@ -58,6 +58,20 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(async()=>{
     const badge=fixture.querySelector('img');badge.dispatchEvent(new Event('error'));check(badge.hidden&&fixture.querySelector('td').textContent==='Arsenal','broken badge leaves readable club name');
     fixture.querySelector('td').textContent='Chelsea';await wait();check(fixture.querySelector('td img')?.src.endsWith('/8.svg'),'rerendered club updates badge: '+fixture.querySelector('td').innerHTML);
     fixture.remove();
+    const watched=playerSearchData[0],watch=window.McDraftWatchlist;
+    if(watch.ids().includes(String(watched.id)))watch.toggle(watched.id);
+    watch.toggle(watched.id);
+    check(JSON.parse(localStorage.getItem('mcdraft-player-watchlist-v1')).some(p=>p.id===String(watched.id)),'watchlist persists to localStorage');
+    check($('watchlist-rows').textContent.includes(watched.name)&&$('watchlist-rows').textContent.includes('Fixtures:'),'watchlist displays latest player details');
+    McDraftSearch.open(watched.name,'player');
+    check($('search-list').querySelector('[data-watch-player]').getAttribute('aria-pressed')==='true','search reflects saved watch state');
+    const frame=document.createElement('iframe');frame.hidden=true;
+    const loaded=new Promise(resolve=>frame.onload=resolve);
+    frame.srcdoc='<script>const playerSearchData=[];</script><script src="'+new URL('assets/watchlist.js',document.baseURI).href+'"></script>';
+    document.body.append(frame);await loaded;
+    check(frame.contentWindow.McDraftWatchlist.ids().includes(String(watched.id)),'fresh browser context restores saved watchlist');frame.remove();
+    $('watchlist-rows').querySelector('button[aria-label^="Remove "]').click();
+    check(!watch.ids().includes(String(watched.id))&&!JSON.parse(localStorage.getItem('mcdraft-player-watchlist-v1')).some(p=>p.id===String(watched.id)),'removal persists');
   }catch(error){checks.push('FAILED: '+error.stack);}
   const report=document.createElement('pre');report.id='player-tools-report';report.textContent=JSON.stringify(checks);document.body.append(report);
 },400));
