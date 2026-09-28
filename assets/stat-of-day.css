@@ -1,0 +1,12 @@
+.mcd-stat-of-day{margin-top:24px;padding:20px;border:1px solid var(--border);border-radius:12px;background:var(--bg-secondary);position:relative;overflow-wrap:anywhere}
+.mcd-stat-of-day[hidden]{display:none!important}
+.mcd-stat-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.mcd-welcome-card .mcd-stat-heading h2{margin:0;color:var(--accent);font-size:11px;font-weight:850;letter-spacing:.09em;text-transform:uppercase}
+#mcd-stat-category{color:var(--muted);font-size:10px;font-weight:750;border:1px solid var(--border);border-radius:20px;padding:4px 8px}
+#mcd-stat-fact{margin:14px 0 9px;font-size:17px;font-weight:700;line-height:1.55;color:var(--text)}
+#mcd-stat-context{margin:0 0 10px;font-size:12px;line-height:1.5;color:var(--muted)}
+#mcd-stat-date{display:block;font-size:10px;line-height:1.5;color:var(--muted)}
+/* Auto margins centre short cards, but leave the top reachable on short screens. */
+.mcd-manager-welcome{align-items:flex-start}
+.mcd-manager-welcome .mcd-welcome-card{margin-block:auto;flex-shrink:0}
+@media(max-width:520px){.mcd-stat-of-day{padding:16px}#mcd-stat-fact{font-size:15px}}

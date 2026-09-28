@@ -52,6 +52,7 @@ from .trade_negotiation import integrate_template as integrate_trade_room, CSS a
 from .matchup_stats import build_stats, CSS as MATCHUP_CSS, javascript_with_data as matchup_js
 from .league_chat import integrate_template as integrate_league_chat
 from .search import integrate_template as integrate_search
+from .stat_of_day import integrate_template as integrate_stat_of_day
 from .manager_styles_page import (
     build_manager_styles,
     PAGE_HTML as MANAGER_STYLES_HTML,
@@ -250,6 +251,7 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
                         header_search + '\n' + MANAGER_HEADER_HTML,
                         1,
                     )
+                    state['html_template'] = integrate_stat_of_day(state['html_template'])
             except Exception as exc:
                 print(f"FAILED at stage {file.name}: {exc}", flush=True)
                 raise

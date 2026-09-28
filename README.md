@@ -84,6 +84,20 @@ loading an offer selects the entire package in Trade Lab.
 `mcdraft/matchup_stats.py` and `mcdraft/trade_negotiation.py` are integrated by the
 pipeline without modifying the preserved legacy stages.
 
+## Stat of the day
+
+The welcome/team selection screen ends with a daily fact drawn from the current
+player, fantasy-team and club data. Categories rotate each day at midnight UK
+time; the subject and fact are selected deterministically, with today's fact ID
+remembered in the browser across dashboard rebuilds. Its value always comes from
+the latest loaded snapshot. Missing data produces no invented or zero-filled facts.
+
+`mcdraft/stat_of_day.py` attaches the card and its static assets during the build.
+The fact templates live in `assets/stat-of-day.js`. Run
+`python -m unittest discover -s tests -p test_stat_of_day.py -v`; setting
+`MCD_SEARCH_BROWSER` to Chrome/Edge also runs calculation, daily rollover and
+small-screen welcome checks against the generated dashboard.
+
 ## Universal search
 
 The header search offers quick suggestions; Enter opens a full results page.
