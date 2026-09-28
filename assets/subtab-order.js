@@ -15,20 +15,40 @@
   const collator = new Intl.Collator('en-GB', {sensitivity: 'base', numeric: true});
   const label = button => button.textContent.replace(/\s+/g, ' ').trim();
 
-  function sortBar(bar) {
-    const buttons = [...bar.children].filter(child => child.matches('button'));
+  function sortButtons(container) {
+    const buttons = [...container.children].filter(child => child.matches('button'));
     const sorted = [...buttons].sort((a, b) => collator.compare(label(a), label(b)));
-    sorted.forEach(button => bar.appendChild(button));
+    if (buttons.every((button, index) => button === sorted[index])) return;
+    sorted.forEach(button => container.appendChild(button));
   }
 
   function sortMcDraftSubtabs() {
-    selectors.forEach(selector => document.querySelectorAll(selector).forEach(sortBar));
+    selectors.forEach(selector => document.querySelectorAll(selector).forEach(sortButtons));
+  }
+
+  function sortMcDraftQuickLinks() {
+    document.querySelectorAll('#mcd-sidebar-sections .mcd-nav-children').forEach(sortButtons);
+  }
+
+  function sortMcDraftNavigation() {
+    sortMcDraftSubtabs();
+    sortMcDraftQuickLinks();
   }
 
   window.sortMcDraftSubtabs = sortMcDraftSubtabs;
+  window.sortMcDraftQuickLinks = sortMcDraftQuickLinks;
+  const quickLinkRoot = document.getElementById('mcd-sidebar-sections');
+  if (quickLinkRoot) {
+    new MutationObserver(sortMcDraftQuickLinks).observe(quickLinkRoot, {childList: true, subtree: true});
+  }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', sortMcDraftSubtabs, {once: true});
+    document.addEventListener('DOMContentLoaded', () => {
+      sortMcDraftNavigation();
+      // The sidebar is also assembled on DOMContentLoaded. Run once more after
+      // every listener in that event has had a chance to build its links.
+      setTimeout(sortMcDraftQuickLinks, 0);
+    }, {once: true});
   } else {
-    sortMcDraftSubtabs();
+    sortMcDraftNavigation();
   }
 })();

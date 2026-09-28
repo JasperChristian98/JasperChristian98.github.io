@@ -20,6 +20,11 @@ class SubtabOrderTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             integrate_template(result)
 
+    def test_asset_covers_sidebar_quick_links(self):
+        script = (ROOT / 'assets' / 'subtab-order.js').read_text(encoding='utf-8')
+        self.assertIn('#mcd-sidebar-sections .mcd-nav-children', script)
+        self.assertIn('sortMcDraftQuickLinks', script)
+
     @unittest.skipUnless(os.environ.get('MCD_SEARCH_BROWSER'), 'Set MCD_SEARCH_BROWSER to Chrome/Edge')
     def test_all_subtab_bars_are_alphabetical(self):
         with tempfile.TemporaryDirectory(prefix='mcd-subtabs-') as directory:

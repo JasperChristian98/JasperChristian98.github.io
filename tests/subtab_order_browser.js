@@ -21,6 +21,21 @@ window.addEventListener('DOMContentLoaded', () => setTimeout(() => {
       ? 'OK: ' + selector
       : 'FAILED: ' + selector + ' => ' + labels.join(' | ');
   });
+  const quickLinkGroups = [...document.querySelectorAll('#mcd-sidebar-sections .mcd-nav-children')];
+  checks.push(quickLinkGroups.length >= 6 ? 'OK: sidebar quick-link groups exist' : 'FAILED: sidebar quick-link groups missing');
+  quickLinkGroups.forEach((group, index) => {
+    const labels = [...group.children].filter(child => child.matches('button')).map(button => button.textContent.trim());
+    const sorted = [...labels].sort(collator.compare);
+    checks.push(labels.every((item, itemIndex) => item === sorted[itemIndex])
+      ? 'OK: quick links group ' + (index + 1)
+      : 'FAILED: quick links group ' + (index + 1) + ' => ' + labels.join(' | '));
+  });
+  const planner = [...document.querySelectorAll('.mcd-nav-link')].find(button => button.textContent.trim() === 'Five-GW planner');
+  if (planner) planner.click();
+  checks.push(planner && document.getElementById('page-myteam')?.classList.contains('active') &&
+    document.getElementById('myteam-sub-planner')?.classList.contains('active')
+    ? 'OK: sorted quick link keeps its route'
+    : 'FAILED: sorted quick link route changed');
   const report = document.createElement('pre');
   report.id = 'subtab-order-report';
   report.textContent = JSON.stringify(checks);
