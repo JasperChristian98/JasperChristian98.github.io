@@ -48,6 +48,7 @@ from .editorial_expansion import RADAR_CSS, RADAR_JS, add_column_desks, humanise
 from .column_personality import STORE_NAME as COLUMN_PROFILES, snapshot as snapshot_column, integrate_writer as integrate_column_writer, brand_column
 from .wide_desktop import integrate_template as integrate_wide_desktop
 from .subtab_order import integrate_template as integrate_subtab_order
+from .visual_analytics import integrate_template as integrate_visual_analytics
 from .mobile_header_and_war_countdown import (CSS as MOBILE_HEADER_CSS,
     next_gameweek_kickoff, countdown_javascript, insert_header_countdown)
 from .mobile_navigation import JS as MOBILE_NAV_JS, append_final_mobile_css
@@ -275,6 +276,7 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
                     state['html_template'] = integrate_club_badges(state['html_template'])
                     state['html_template'] = integrate_watchlist(state['html_template'])
                     state['html_template'] = integrate_wide_desktop(state['html_template'])
+                    state['html_template'] = integrate_visual_analytics(state['html_template'])
                     state['html_template'] = integrate_subtab_order(state['html_template'])
             except Exception as exc:
                 print(f"FAILED at stage {file.name}: {exc}", flush=True)
