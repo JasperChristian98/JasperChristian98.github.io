@@ -46,6 +46,7 @@ from .war_room_layout import move_war_room, WAR_ROOM_NAV_JS
 from .layout_and_odds import update_layout, shared_fixture_odds, CSS as LAYOUT_CSS, JS as LAYOUT_JS
 from .editorial_expansion import RADAR_CSS, RADAR_JS, add_column_desks, humanise_column_story
 from .column_personality import STORE_NAME as COLUMN_PROFILES, snapshot as snapshot_column, integrate_writer as integrate_column_writer, brand_column
+from .wide_desktop import integrate_template as integrate_wide_desktop
 from .mobile_header_and_war_countdown import (CSS as MOBILE_HEADER_CSS,
     next_gameweek_kickoff, countdown_javascript, insert_header_countdown)
 from .mobile_navigation import JS as MOBILE_NAV_JS, append_final_mobile_css
@@ -272,6 +273,7 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
                     state['html_template'] = integrate_player_tools(state['html_template'])
                     state['html_template'] = integrate_club_badges(state['html_template'])
                     state['html_template'] = integrate_watchlist(state['html_template'])
+                    state['html_template'] = integrate_wide_desktop(state['html_template'])
             except Exception as exc:
                 print(f"FAILED at stage {file.name}: {exc}", flush=True)
                 raise

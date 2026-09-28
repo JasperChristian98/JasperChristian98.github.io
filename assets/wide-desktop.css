@@ -1,0 +1,28 @@
+/* Respond to usable CSS viewport width, including Windows scaling/browser zoom. */
+@media (min-width:1800px){
+  :root{--mcd-desktop-width:min(2320px,calc(100vw - 64px))}
+  .header .header-top,.header .nav{max-width:var(--mcd-desktop-width)}
+  .mcd-workspace{max-width:var(--mcd-desktop-width);grid-template-columns:270px minmax(0,1fr)}
+  .mcd-workspace.mcd-compact{grid-template-columns:72px minmax(0,1fr)}
+  .mcd-workspace>.main{padding:28px 32px;box-sizing:border-box;min-width:0}
+  .mcd-workspace .page{min-width:0}
+  .header .global-search-wrap{max-width:620px}
+  .mcd-sidebar .mcd-nav-link{font-size:13px;line-height:1.45}
+  .mcd-workspace .table-wrap{max-width:100%;overflow-x:auto}
+  .mcd-workspace table{font-size:14px}
+  .mcd-workspace th,.mcd-workspace td{line-height:1.5}
+  .analytics-chart-grid{gap:24px}
+  .analytics-chart-grid>*{min-width:0}
+  .war-room-pitch-wrap{gap:28px}
+  .war-room-player-card{max-width:150px}
+  .manager-styles-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+  /* Widen data views, not the lines of an article or a search result. */
+  .storyline-latest>p,.season-story p{max-width:80ch}
+  .storyline-latest>.mcdraft-column-headline{max-width:42ch}
+  .mcd-comparison{width:min(1500px,calc(100vw - 96px))}
+}
+@media(min-width:2200px){
+  .mcd-workspace>.main{padding-inline:40px}
+  .war-room-formation{min-height:580px}
+  .war-room-line{gap:16px}
+}
