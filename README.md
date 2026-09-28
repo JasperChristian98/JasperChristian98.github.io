@@ -84,6 +84,27 @@ loading an offer selects the entire package in Trade Lab.
 `mcdraft/matchup_stats.py` and `mcdraft/trade_negotiation.py` are integrated by the
 pipeline without modifying the preserved legacy stages.
 
+## Universal search
+
+The header search offers quick suggestions; Enter opens a full results page.
+Browse all opens an A–Z directory, with filters for pages, sections, players,
+fantasy teams, clubs and favourites. Search supports multiple words, club aliases,
+accent-insensitive names and small name typos. Search/result URLs are shareable;
+favourites and recent queries are stored only in the current browser.
+
+`mcdraft/search.py` integrates `assets/search.js` and `assets/search.css` on each
+build. Pages, navigation entries, tab panels, headings and entity data populate
+the index automatically. New custom sections can use `data-search-title` on a
+destination element; use a stable element ID for durable links. Add any new tab
+handler and panel prefix to the `panels` registry in `assets/search.js` so search
+can open its enclosing tabs. `McDraftSearch.audit()` reports missing destinations
+and unregistered tab handlers. Private league chat content is excluded.
+
+Run `python -m unittest discover -s tests -p test_search.py -v`. Set
+`MCD_SEARCH_BROWSER` to a Chrome/Edge executable to also check the generated
+dashboard in a real browser, including navigation, coverage, mobile layout,
+favourites, matching, pagination and browser history.
+
 ## Shared league chat
 
 League → League chat adds a shared room while keeping GitHub Pages hosting.

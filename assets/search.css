@@ -1,0 +1,27 @@
+#page-search{max-width:1000px;margin-inline:auto}
+#search-form{margin:20px 0}
+#search-form label{display:block;margin-bottom:8px;font-weight:700}
+.search-query-row{display:flex;gap:10px}
+.search-query-row input{flex:1;min-width:0;padding:14px;border:1px solid var(--border-light);border-radius:10px;background:var(--bg-secondary);color:var(--text);font:inherit}
+.global-search-wrap .search-browse{position:absolute;right:5px;top:5px;padding:6px 8px;font-size:12px}
+.global-search-wrap .global-search-input{padding-right:92px}
+#page-search button,.search-browse{border:1px solid var(--border-light);border-radius:8px;background:var(--bg-secondary);color:var(--text);padding:9px 13px;cursor:pointer;font:inherit}
+.search-filters{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}
+#page-search button[aria-pressed="true"]{background:var(--text);color:var(--bg-primary,#101827)}
+.search-result{padding:20px 0;border-bottom:1px solid var(--border);display:flex;gap:16px;align-items:flex-start}
+.search-result-content{flex:1;min-width:0}
+.search-result small{display:block;color:var(--muted);margin-bottom:6px;overflow-wrap:anywhere}
+.search-result h2{font-size:19px;margin:0 0 7px}
+.search-result a{color:var(--accent,#60a5fa);text-decoration:none}
+.search-result a:hover{text-decoration:underline}
+.search-result p{margin:0;color:var(--muted);font-size:14px;line-height:1.6}
+.search-related{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:13px}
+#search-more{margin:22px 0}
+#search-shortcuts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px}
+#search-count{color:var(--muted)}
+.global-search-results .global-search-result{width:100%;background:var(--bg-secondary);border:0;text-align:left;color:var(--text);font:inherit}
+.global-search-results .global-search-result:focus{outline:2px solid var(--accent,#60a5fa);outline-offset:-2px}
+.global-search-results .global-search-result span{max-width:50%}
+.search-hit{outline:2px solid var(--accent,#60a5fa);outline-offset:5px}
+#page-search :focus-visible,.search-browse:focus-visible{outline:2px solid var(--accent,#60a5fa);outline-offset:3px}
+@media(max-width:600px){.search-result{gap:8px}.search-result h2{font-size:17px}#page-search .search-favourite{padding:8px}.search-query-row{gap:6px}.search-browse{padding:7px;font-size:12px}}
