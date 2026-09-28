@@ -84,6 +84,27 @@ loading an offer selects the entire package in Trade Lab.
 `mcdraft/matchup_stats.py` and `mcdraft/trade_negotiation.py` are integrated by the
 pipeline without modifying the preserved legacy stages.
 
+## Player comparisons and War Room lineups
+
+Use Compare on player directory cards, player search results, or War Room player
+details to add up to four players to the comparison tray. The comparison dialog
+also has its own player finder and shows season statistics, availability,
+ratings, upcoming fixtures and three-gameweek projections.
+
+In My Team → War Room, choose a starter to bench and a replacement from the bench.
+Only swaps leaving 11 unique players in a legal formation are allowed: one
+goalkeeper, 3–5 defenders, 2–5 midfielders and 1–3 forwards, following the
+[official Draft rules](https://draft.premierleague.com/en/help/). The pitch and
+projected XI total update after each swap. Reset restores the optimal XI.
+Forecast probabilities and the other analyses retain their labelled original
+optimal-lineup baseline. These are local planning changes, not submissions to FPL.
+Comparison selections and lineup drafts last for the current browser visit;
+lineup drafts are separate for each manager and gameweek.
+
+`mcdraft/player_tools.py` attaches the static assets on each build. Run
+`python -m unittest discover -s tests -p test_player_tools.py -v`, with
+`MCD_SEARCH_BROWSER` set to Chrome/Edge for the interactive browser checks.
+
 ## Stat of the day
 
 The welcome/team selection screen ends with a daily fact drawn from the current

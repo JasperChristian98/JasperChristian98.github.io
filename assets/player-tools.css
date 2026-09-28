@@ -1,0 +1,28 @@
+.mcd-player-tool,.mcd-lineup-editor button,.mcd-comparison button{padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary);color:var(--text);font:inherit;cursor:pointer}
+.mcd-player-tool{margin-top:8px;font-size:12px}
+.mcd-compare-tray{position:fixed;z-index:900;bottom:16px;left:50%;transform:translateX(-50%);width:min(920px,calc(100% - 32px));padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card,var(--bg-secondary));box-shadow:0 6px 30px #0005;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mcd-compare-tray[hidden]{display:none}
+.mcd-compare-tray .mcd-player-tool{margin:0}
+body:has(.mcd-compare-tray:not([hidden])) .app-shell{padding-bottom:180px}
+.mcd-compare-tray p{margin:0;font-size:12px;color:var(--muted);width:100%}
+.mcd-comparison{width:min(1100px,calc(100% - 24px));max-height:85dvh;overflow:auto;box-sizing:border-box;border:1px solid var(--border);border-radius:16px;padding:22px;background:var(--card,var(--bg-secondary));color:var(--text)}
+.mcd-comparison::backdrop{background:#0009}
+.mcd-comparison header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.mcd-comparison h2{margin:0}
+.mcd-comparison label{display:block;margin:15px 0 6px}
+.mcd-comparison input,.mcd-lineup-editor select{font:inherit;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text);max-width:100%;box-sizing:border-box}
+.mcd-comparison input{width:100%}
+.mcd-compare-options{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mcd-compare-scroll{overflow:auto;margin-top:20px}
+.mcd-comparison table{width:100%;border-collapse:collapse;font-size:13px}
+.mcd-comparison th,.mcd-comparison td{padding:12px;border-bottom:1px solid var(--border);text-align:left;min-width:130px;vertical-align:top}
+.mcd-comparison th:first-child{min-width:150px}
+.mcd-comparison small{display:block;color:var(--muted)}
+.mcd-lineup-editor{border:1px solid var(--border);background:var(--bg-secondary);padding:14px;border-radius:12px;margin-bottom:14px}
+.mcd-lineup-controls{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.mcd-lineup-controls label{display:flex;flex:1 1 160px;min-width:0;flex-direction:column;gap:6px;font-size:12px}
+.mcd-lineup-editor p{font-size:12px;line-height:1.5;margin:8px 0;color:var(--muted)}
+.mcd-lineup-summary{font-size:15px!important;color:var(--text)!important;font-weight:700}
+.mcd-player-tool:focus-visible,.mcd-comparison :focus-visible,.mcd-lineup-editor :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+button:disabled{cursor:default}
+@media(max-width:850px){.mcd-compare-tray{bottom:calc(78px + env(safe-area-inset-bottom));gap:7px}.mcd-comparison{padding:14px}.mcd-compare-tray .mcd-player-tool{padding:6px 8px}}
