@@ -25,6 +25,13 @@ class VisualAnalyticsTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             integrate_template(result)
 
+    def test_pipeline_integrates_after_the_analytics_placeholder_is_published(self):
+        pipeline = (ROOT / 'mcdraft' / 'pipeline.py').read_text(encoding='utf-8')
+        self.assertNotIn("state['html_template'] = integrate_visual_analytics", pipeline)
+        integration = pipeline.index('rendered_html = integrate_visual_analytics(rendered_html)')
+        published_output_check = pipeline.index('if not output.is_file()')
+        self.assertGreater(integration, published_output_check)
+
     @unittest.skipUnless(os.environ.get('MCD_SEARCH_BROWSER'), 'Set MCD_SEARCH_BROWSER to Chrome/Edge')
     def test_charts_render_with_real_dashboard_data(self):
         with tempfile.TemporaryDirectory(prefix='mcd-visuals-') as directory:

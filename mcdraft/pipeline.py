@@ -276,7 +276,6 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
                     state['html_template'] = integrate_club_badges(state['html_template'])
                     state['html_template'] = integrate_watchlist(state['html_template'])
                     state['html_template'] = integrate_wide_desktop(state['html_template'])
-                    state['html_template'] = integrate_visual_analytics(state['html_template'])
                     state['html_template'] = integrate_subtab_order(state['html_template'])
             except Exception as exc:
                 print(f"FAILED at stage {file.name}: {exc}", flush=True)
@@ -285,7 +284,13 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
             raise RuntimeError("index.html is missing or unexpectedly small")
         if b"</html>" not in output.read_bytes().lower():
             raise RuntimeError("index.html does not contain a closing HTML tag")
-        output.write_text(brand_column(output.read_text(encoding='utf-8')), encoding='utf-8')
+        # Stage 11 replaces __ANALYTICS_PAGE__ with the rendered Analytics
+        # markup. Integrations that add content inside that page must therefore
+        # run against the published HTML, not the stage-10 template.
+        rendered_html = output.read_text(encoding='utf-8')
+        rendered_html = integrate_visual_analytics(rendered_html)
+        rendered_html = brand_column(rendered_html)
+        output.write_text(rendered_html, encoding='utf-8')
         if state.get('_column_store'):
             column_tmp = root / (COLUMN_PROFILES + '.tmp')
             column_tmp.write_text(json.dumps(state['_column_store'], ensure_ascii=True, indent=2), encoding='utf-8')
