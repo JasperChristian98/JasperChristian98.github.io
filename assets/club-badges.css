@@ -1,0 +1,6 @@
+.mcd-club-label{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;white-space:nowrap;font:inherit;color:inherit}
+.mcd-club-badge{display:inline-block;width:21px;height:21px;object-fit:contain;flex:0 0 21px;vertical-align:middle}
+.mcd-club-badge[hidden]{display:none!important}
+.war-room-player-card .mcd-club-badge,.global-search-result .mcd-club-badge{width:16px;height:16px;flex-basis:16px}
+h2 .mcd-club-badge,h3 .mcd-club-badge{width:28px;height:28px;flex-basis:28px}
+@media(max-width:600px){.mcd-club-label{gap:4px}.mcd-club-badge{width:18px;height:18px;flex-basis:18px}}

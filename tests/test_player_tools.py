@@ -24,6 +24,8 @@ class PlayerToolsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='mcd-player-tools-') as directory:
             folder = Path(directory)
             source = (ROOT / 'index.html').read_text(encoding='utf-8')
+            if 'assets/player-tools.js' not in source:
+                source = integrate_template(source)
             source = source.replace('<head>', '<head><base href="' + ROOT.as_uri() + '/">', 1)
             source = re.sub(r'<script[^>]+src="https?://[^>]+></script>', '', source)
             source = source.replace('</body>', '<script src="tests/player_tools_browser.js"></script></body>')

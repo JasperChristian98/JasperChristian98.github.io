@@ -54,6 +54,7 @@ from .league_chat import integrate_template as integrate_league_chat
 from .search import integrate_template as integrate_search
 from .stat_of_day import integrate_template as integrate_stat_of_day
 from .player_tools import integrate_template as integrate_player_tools
+from .club_badges import integrate_template as integrate_club_badges
 from .manager_styles_page import (
     build_manager_styles,
     PAGE_HTML as MANAGER_STYLES_HTML,
@@ -254,6 +255,7 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
                     )
                     state['html_template'] = integrate_stat_of_day(state['html_template'])
                     state['html_template'] = integrate_player_tools(state['html_template'])
+                    state['html_template'] = integrate_club_badges(state['html_template'])
             except Exception as exc:
                 print(f"FAILED at stage {file.name}: {exc}", flush=True)
                 raise

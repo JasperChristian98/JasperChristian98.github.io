@@ -46,6 +46,18 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(async()=>{
     showWarRoomPlayer(MANAGER_WAR_ROOM[manager].you.starters[0].id,'you');
     check(!!$('war-room-player-detail').querySelector('[data-compare-player]'),'War Room detail offers comparison');
     check($('mcd-compare-tray').getBoundingClientRect().width<=document.documentElement.clientWidth,'tray fits mobile viewport');
+    const badges=window.McDraftClubBadges;
+    check(Object.values(CLUB_EXPLORER_DATA).every(c=>badges.idFor(c.name)&&badges.idFor(c.short)),'all dashboard clubs and abbreviations have badges');
+    check(badges.idFor('Arsenal')===3&&badges.idFor('Man Utd')===1&&badges.idFor('Spurs')===6,'badge IDs differ correctly from internal team IDs');
+    const fixture=document.createElement('div');fixture.innerHTML='<table><tbody><tr><td>Arsenal</td><td>DEF · Nott’m Forest</td><td>ARS (H)</td><td>No Weimann No Cry</td></tr></tbody></table><select><option>Arsenal</option></select>';
+    document.body.append(fixture);await wait();
+    check(fixture.querySelectorAll('img').length===3,'tables and fixture abbreviations decorated after insertion');
+    check(fixture.querySelectorAll('td')[1].textContent==='DEF · Nott’m Forest','text remains unchanged for search and sorting');
+    badges.decorate(fixture);check(fixture.querySelectorAll('img').length===3,'badges do not duplicate');
+    check(!fixture.querySelector('option img'),'native select labels unchanged');
+    const badge=fixture.querySelector('img');badge.dispatchEvent(new Event('error'));check(badge.hidden&&fixture.querySelector('td').textContent==='Arsenal','broken badge leaves readable club name');
+    fixture.querySelector('td').textContent='Chelsea';await wait();check(fixture.querySelector('td img')?.src.endsWith('/8.svg'),'rerendered club updates badge: '+fixture.querySelector('td').innerHTML);
+    fixture.remove();
   }catch(error){checks.push('FAILED: '+error.stack);}
   const report=document.createElement('pre');report.id='player-tools-report';report.textContent=JSON.stringify(checks);document.body.append(report);
 },400));
