@@ -56,6 +56,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html fpl_draft_history.json draft_player_mapping_audit.csv
           if test -f mcdraft_prediction_history.json; then git add mcdraft_prediction_history.json; fi
+          if test -f mcdraft_column_profiles.json; then git add mcdraft_column_profiles.json; fi
           if git diff --cached --quiet; then
             echo 'No changes to commit'
           else

@@ -45,6 +45,7 @@ from .manager_preference import (
 from .war_room_layout import move_war_room, WAR_ROOM_NAV_JS
 from .layout_and_odds import update_layout, shared_fixture_odds, CSS as LAYOUT_CSS, JS as LAYOUT_JS
 from .editorial_expansion import RADAR_CSS, RADAR_JS, add_column_desks, humanise_column_story
+from .column_personality import STORE_NAME as COLUMN_PROFILES, snapshot as snapshot_column, integrate_writer as integrate_column_writer, brand_column
 from .mobile_header_and_war_countdown import (CSS as MOBILE_HEADER_CSS,
     next_gameweek_kickoff, countdown_javascript, insert_header_countdown)
 from .mobile_navigation import JS as MOBILE_NAV_JS, append_final_mobile_css
@@ -191,11 +192,24 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
                     state['javascript'] += '\n' + MOBILE_NAV_JS + '\n' + NEG_JS
                     state['javascript'] += matchup_js(state['matchup_stats'])
                 elif file.name == '10_cup_and_template.py':
+                    column_path = root / COLUMN_PROFILES
+                    column_store = json.loads(column_path.read_text(encoding='utf-8')) if column_path.exists() else {}
+                    column_profiles = {m: state['manager_style_profile'](m) for m in state['managers']}
+                    completed = state.get('finished_gws', [])
+                    if (column_store.get('league') != state['history'].get('league_id') or
+                            (completed and max(map(int, column_store.get('weeks', {}) or {'0': {}})) > int(max(completed)))):
+                        column_store = {}
+                    if completed and not state.get('dashboard_target_is_live'):
+                        snapshot_column(column_store, state['history'].get('league_id'), int(max(completed)), column_profiles)
+                    state['_column_store'] = column_store
                     state['_mcdraft_column_intelligence'] = add_column_desks(
                         state['_mcdraft_column_intelligence'], state['league_honours'],
                         state.get('enriched_matches', []), state['history'])
                     state['league_storyline_for_gw'] = humanise_column_story(
                         state['league_storyline_for_gw'], state['league_honours'])
+                    state['_mcdraft_column_intelligence'] = integrate_column_writer(
+                        state['_mcdraft_column_intelligence'], column_store.get('weeks', {}),
+                        column_profiles, state.get('enriched_matches', []))
                     state['html_template'] = update_layout(move_war_room(state['html_template']))
                     state['html_template'] = insert_header_countdown(
                         state['html_template'], live=bool(state.get('dashboard_target_is_live')))
@@ -265,6 +279,11 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
             raise RuntimeError("index.html is missing or unexpectedly small")
         if b"</html>" not in output.read_bytes().lower():
             raise RuntimeError("index.html does not contain a closing HTML tag")
+        output.write_text(brand_column(output.read_text(encoding='utf-8')), encoding='utf-8')
+        if state.get('_column_store'):
+            column_tmp = root / (COLUMN_PROFILES + '.tmp')
+            column_tmp.write_text(json.dumps(state['_column_store'], ensure_ascii=True, indent=2), encoding='utf-8')
+            column_tmp.replace(root / COLUMN_PROFILES)
         print(f"\nSuccessful McDraft build: {output} ({output.stat().st_size:,} bytes)")
         return output
     except BaseException:

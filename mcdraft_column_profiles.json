@@ -1,0 +1,453 @@
+{
+  "league": 17288,
+  "weeks": {
+    "5": {
+      "Kamararama FC": {
+        "manager": "Kamararama FC",
+        "position": 1,
+        "scores": [
+          78,
+          100,
+          92,
+          67,
+          52,
+          76
+        ],
+        "score_map": {
+          "activity": 78,
+          "trade_game": 100,
+          "efficiency": 92,
+          "bench_control": 67,
+          "stability": 52,
+          "form": 76
+        },
+        "tags": [
+          {
+            "name": "Waiver Hawk",
+            "description": "Makes roster changes aggressively and keeps working the market."
+          },
+          {
+            "name": "Tinkerman",
+            "description": "Treats the squad sheet as a living document and rarely leaves the roster alone for long."
+          },
+          {
+            "name": "Luxury Problems",
+            "description": "Owns enough depth to strand points on the bench while still selecting efficiently."
+          },
+          {
+            "name": "Mad Scientist",
+            "description": "High activity and volatile results: lots of experimentation, occasionally followed by smoke."
+          },
+          {
+            "name": "Steamroller",
+            "description": "Has won 5 consecutive matches."
+          },
+          {
+            "name": "Unbeaten Menace",
+            "description": "Unbeaten across 5 completed games."
+          }
+        ],
+        "headline": "Leans most heavily on trade game and xi efficiency, while stability and bench control show up less strongly in the current profile.",
+        "activity_per_gw": 1.8,
+        "trades": 2,
+        "efficiency": 91.9,
+        "bench_per_gw": 5.6,
+        "volatility": 10.0,
+        "recent_avg": 49.7
+      },
+      "Backstreet Moyes": {
+        "manager": "Backstreet Moyes",
+        "position": 2,
+        "scores": [
+          0,
+          0,
+          96,
+          83,
+          56,
+          100
+        ],
+        "score_map": {
+          "activity": 0,
+          "trade_game": 0,
+          "efficiency": 96,
+          "bench_control": 83,
+          "stability": 56,
+          "form": 100
+        },
+        "tags": [
+          {
+            "name": "XI Surgeon",
+            "description": "Consistently converts a high share of the squad's available points into the starting XI."
+          },
+          {
+            "name": "Ceiling Chaser",
+            "description": "Regularly gets high-upside players into the XI when they hit."
+          },
+          {
+            "name": "Steamroller",
+            "description": "Has won 3 consecutive matches."
+          },
+          {
+            "name": "Half-Century Club",
+            "description": "Has scored 50+ in 4 gameweeks."
+          },
+          {
+            "name": "Box Office",
+            "description": "Has topped the weekly scoring in 2 gameweeks."
+          }
+        ],
+        "headline": "Leans most heavily on recent form and xi efficiency, while activity and trade game show up less strongly in the current profile.",
+        "activity_per_gw": 0.4,
+        "trades": 0,
+        "efficiency": 96.2,
+        "bench_per_gw": 4.4,
+        "volatility": 9.7,
+        "recent_avg": 54.3
+      },
+      "PAUer Rangers": {
+        "manager": "PAUer Rangers",
+        "position": 3,
+        "scores": [
+          100,
+          84,
+          88,
+          0,
+          0,
+          97
+        ],
+        "score_map": {
+          "activity": 100,
+          "trade_game": 84,
+          "efficiency": 88,
+          "bench_control": 0,
+          "stability": 0,
+          "form": 97
+        },
+        "tags": [
+          {
+            "name": "Waiver Hawk",
+            "description": "Makes roster changes aggressively and keeps working the market."
+          },
+          {
+            "name": "Tinkerman",
+            "description": "Treats the squad sheet as a living document and rarely leaves the roster alone for long."
+          },
+          {
+            "name": "Bench Gambler",
+            "description": "Carries productive depth but frequently leaves useful points on the bench."
+          },
+          {
+            "name": "Bench Museum Curator",
+            "description": "Keeps an impressive collection of points safely preserved where they cannot affect the result."
+          },
+          {
+            "name": "Half-Century Club",
+            "description": "Has scored 50+ in 3 gameweeks."
+          },
+          {
+            "name": "Bench Hoarder",
+            "description": "Averages 10.4 bench points per completed GW."
+          }
+        ],
+        "headline": "Leans most heavily on activity and recent form, while bench control and stability show up less strongly in the current profile.",
+        "activity_per_gw": 2.2,
+        "trades": 0,
+        "efficiency": 88.4,
+        "bench_per_gw": 10.4,
+        "volatility": 14.6,
+        "recent_avg": 53.7
+      },
+      "Jaap? Best Stam": {
+        "manager": "Jaap? Best Stam",
+        "position": 4,
+        "scores": [
+          89,
+          75,
+          91,
+          50,
+          27,
+          29
+        ],
+        "score_map": {
+          "activity": 89,
+          "trade_game": 75,
+          "efficiency": 91,
+          "bench_control": 50,
+          "stability": 27,
+          "form": 29
+        },
+        "tags": [
+          {
+            "name": "Waiver Hawk",
+            "description": "Makes roster changes aggressively and keeps working the market."
+          },
+          {
+            "name": "Tinkerman",
+            "description": "Treats the squad sheet as a living document and rarely leaves the roster alone for long."
+          },
+          {
+            "name": "Chaos Merchant",
+            "description": "High weekly variance: dangerous ceiling, but the floor can disappear without warning."
+          },
+          {
+            "name": "Luxury Problems",
+            "description": "Owns enough depth to strand points on the bench while still selecting efficiently."
+          }
+        ],
+        "headline": "Leans most heavily on xi efficiency and activity, while stability and recent form show up less strongly in the current profile.",
+        "activity_per_gw": 2.0,
+        "trades": 0,
+        "efficiency": 91.5,
+        "bench_per_gw": 6.8,
+        "volatility": 12.3,
+        "recent_avg": 40.7
+      },
+      "Buendophilia": {
+        "manager": "Buendophilia",
+        "position": 5,
+        "scores": [
+          22,
+          19,
+          91,
+          61,
+          54,
+          48
+        ],
+        "score_map": {
+          "activity": 22,
+          "trade_game": 19,
+          "efficiency": 91,
+          "bench_control": 61,
+          "stability": 54,
+          "form": 48
+        },
+        "tags": [
+          {
+            "name": "Hot Hand Merchant",
+            "description": "Recent moves and selections have coincided with a sharp scoring upswing."
+          },
+          {
+            "name": "Luxury Problems",
+            "description": "Owns enough depth to strand points on the bench while still selecting efficiently."
+          },
+          {
+            "name": "Waiver Goblin",
+            "description": "Lives in the free-agent pool and would rather rummage through waivers than negotiate a trade."
+          },
+          {
+            "name": "On the Charge",
+            "description": "Recent scoring is running clearly above the season baseline."
+          },
+          {
+            "name": "Steamroller",
+            "description": "Has won 3 consecutive matches."
+          }
+        ],
+        "headline": "Leans most heavily on xi efficiency and bench control, while trade game and activity show up less strongly in the current profile.",
+        "activity_per_gw": 0.8,
+        "trades": 0,
+        "efficiency": 91.5,
+        "bench_per_gw": 6.0,
+        "volatility": 9.9,
+        "recent_avg": 44.3
+      },
+      "Ollie Gonna Squashya": {
+        "manager": "Ollie Gonna Squashya",
+        "position": 6,
+        "scores": [
+          44,
+          37,
+          97,
+          81,
+          51,
+          17
+        ],
+        "score_map": {
+          "activity": 44,
+          "trade_game": 37,
+          "efficiency": 97,
+          "bench_control": 81,
+          "stability": 51,
+          "form": 17
+        },
+        "tags": [
+          {
+            "name": "XI Surgeon",
+            "description": "Consistently converts a high share of the squad's available points into the starting XI."
+          },
+          {
+            "name": "Tinkerman",
+            "description": "Treats the squad sheet as a living document and rarely leaves the roster alone for long."
+          },
+          {
+            "name": "Waiver Goblin",
+            "description": "Lives in the free-agent pool and would rather rummage through waivers than negotiate a trade."
+          },
+          {
+            "name": "Searching for Form",
+            "description": "Recent scoring has slipped below the team's season baseline."
+          }
+        ],
+        "headline": "Leans most heavily on xi efficiency and bench control, while recent form and trade game show up less strongly in the current profile.",
+        "activity_per_gw": 1.2,
+        "trades": 0,
+        "efficiency": 97.0,
+        "bench_per_gw": 4.6,
+        "volatility": 10.1,
+        "recent_avg": 38.3
+      },
+      "Jacquet Potato": {
+        "manager": "Jacquet Potato",
+        "position": 7,
+        "scores": [
+          0,
+          0,
+          95,
+          100,
+          94,
+          38
+        ],
+        "score_map": {
+          "activity": 0,
+          "trade_game": 0,
+          "efficiency": 95,
+          "bench_control": 100,
+          "stability": 94,
+          "form": 38
+        },
+        "tags": [
+          {
+            "name": "Steady Hand",
+            "description": "Weekly scoring has been relatively consistent with fewer wild swings."
+          }
+        ],
+        "headline": "Leans most heavily on bench control and xi efficiency, while activity and trade game show up less strongly in the current profile.",
+        "activity_per_gw": 0.4,
+        "trades": 0,
+        "efficiency": 95.0,
+        "bench_per_gw": 3.2,
+        "volatility": 6.3,
+        "recent_avg": 42.3
+      },
+      "NoRSNoRB No Chance": {
+        "manager": "NoRSNoRB No Chance",
+        "position": 8,
+        "scores": [
+          22,
+          19,
+          92,
+          67,
+          96,
+          24
+        ],
+        "score_map": {
+          "activity": 22,
+          "trade_game": 19,
+          "efficiency": 92,
+          "bench_control": 67,
+          "stability": 96,
+          "form": 24
+        },
+        "tags": [
+          {
+            "name": "Steady Hand",
+            "description": "Weekly scoring has been relatively consistent with fewer wild swings."
+          },
+          {
+            "name": "Luxury Problems",
+            "description": "Owns enough depth to strand points on the bench while still selecting efficiently."
+          },
+          {
+            "name": "Waiver Goblin",
+            "description": "Lives in the free-agent pool and would rather rummage through waivers than negotiate a trade."
+          }
+        ],
+        "headline": "Leans most heavily on stability and xi efficiency, while trade game and activity show up less strongly in the current profile.",
+        "activity_per_gw": 0.8,
+        "trades": 0,
+        "efficiency": 92.4,
+        "bench_per_gw": 5.6,
+        "volatility": 6.1,
+        "recent_avg": 39.7
+      },
+      "danny\u2019s doggy dudes": {
+        "manager": "danny\u2019s doggy dudes",
+        "position": 9,
+        "scores": [
+          56,
+          47,
+          93,
+          86,
+          74,
+          0
+        ],
+        "score_map": {
+          "activity": 56,
+          "trade_game": 47,
+          "efficiency": 93,
+          "bench_control": 86,
+          "stability": 74,
+          "form": 0
+        },
+        "tags": [
+          {
+            "name": "Tinkerman",
+            "description": "Treats the squad sheet as a living document and rarely leaves the roster alone for long."
+          },
+          {
+            "name": "Waiver Goblin",
+            "description": "Lives in the free-agent pool and would rather rummage through waivers than negotiate a trade."
+          }
+        ],
+        "headline": "Leans most heavily on xi efficiency and bench control, while recent form and trade game show up less strongly in the current profile.",
+        "activity_per_gw": 1.4,
+        "trades": 0,
+        "efficiency": 93.5,
+        "bench_per_gw": 4.2,
+        "volatility": 8.0,
+        "recent_avg": 35.0
+      },
+      "No Weimann No Cry": {
+        "manager": "No Weimann No Cry",
+        "position": 10,
+        "scores": [
+          67,
+          91,
+          98,
+          81,
+          100,
+          2
+        ],
+        "score_map": {
+          "activity": 67,
+          "trade_game": 91,
+          "efficiency": 98,
+          "bench_control": 81,
+          "stability": 100,
+          "form": 2
+        },
+        "tags": [
+          {
+            "name": "XI Surgeon",
+            "description": "Consistently converts a high share of the squad's available points into the starting XI."
+          },
+          {
+            "name": "Tinkerman",
+            "description": "Treats the squad sheet as a living document and rarely leaves the roster alone for long."
+          },
+          {
+            "name": "Steady Hand",
+            "description": "Weekly scoring has been relatively consistent with fewer wild swings."
+          }
+        ],
+        "headline": "Leans most heavily on stability and xi efficiency, while recent form and activity show up less strongly in the current profile.",
+        "activity_per_gw": 1.6,
+        "trades": 2,
+        "efficiency": 97.6,
+        "bench_per_gw": 4.6,
+        "volatility": 5.8,
+        "recent_avg": 35.3
+      }
+    }
+  }
+}
