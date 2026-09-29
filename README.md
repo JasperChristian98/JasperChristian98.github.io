@@ -156,3 +156,16 @@ Chat identities are assigned through backend membership, independently of the
 dashboard's team selector. Messages never enter the generated public HTML.
 The chat assets are committed static files; scheduled dashboard rebuilds retain
 the page and leave backend configuration and conversation history alone.
+
+## Fixture calendar
+
+Home > Fixture calendar combines Premier League kickoffs/results and fantasy
+matchups in an August-to-May month view, with competition, team and result
+filters. It opens on the current month (May during June/July), supports previous
+and next month navigation, and lets you select a day to narrow the agenda.
+Times use Europe/London; fantasy matchups are placed on the first PL kickoff day
+of their gameweek and cover the whole gameweek. Undated matches stay in a
+separate dates-to-be-confirmed list. Results update with dashboard builds.
+
+The welcome screen displays today's UK date once above the team selector. Daily
+stat and player cards show their content without date or data-source footers.

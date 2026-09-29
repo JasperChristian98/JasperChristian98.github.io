@@ -21,3 +21,5 @@
 #mcd-player-date{display:block;font-size:10px;color:var(--muted);line-height:1.5}
 @media(max-width:640px){.mcd-daily-cards{grid-template-columns:1fr}}
 @media(max-width:520px){.mcd-stat-of-day{padding:16px}#mcd-stat-fact{font-size:15px}}
+
+#mcd-welcome-date{margin:0 0 18px;color:var(--muted);font-size:13px}

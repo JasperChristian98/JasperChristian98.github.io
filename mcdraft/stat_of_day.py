@@ -6,8 +6,6 @@ CARD_HTML = '''
     <aside id="mcd-stat-of-day" class="mcd-stat-of-day" aria-labelledby="mcd-stat-title" hidden>
       <div class="mcd-stat-heading"><h2 id="mcd-stat-title">Stat of the day</h2><span id="mcd-stat-category"></span></div>
       <p id="mcd-stat-fact"></p>
-      <p id="mcd-stat-context"></p>
-      <small id="mcd-stat-date"></small>
     </aside>
     <aside id="mcd-player-of-day" class="mcd-stat-of-day" aria-labelledby="mcd-player-title" hidden>
       <div class="mcd-stat-heading"><h2 id="mcd-player-title">Player of the day</h2></div>
@@ -18,8 +16,6 @@ CARD_HTML = '''
         <div><dt>Fantasy team</dt><dd id="mcd-player-owner"></dd></div>
       </dl>
       <p id="mcd-player-headline"></p>
-      <p id="mcd-player-context"></p>
-      <small id="mcd-player-date"></small>
     </aside>
     </div>'''
 
@@ -35,5 +31,6 @@ def integrate_template(template):
     anchor = re.compile(r'<div class="mcd-welcome-foot">[^<]*</div>')
     if len(anchor.findall(template)) != 1 or template.count('</body>') != 1:
         raise RuntimeError('Stat of the day welcome insertion point changed')
+    template = template.replace('<div class="mcd-welcome-eyebrow">', '<p id="mcd-welcome-date"></p><div class="mcd-welcome-eyebrow">', 1)
     return anchor.sub(lambda match: match[0] + CARD_HTML, template, count=1).replace(
         '</body>', ASSETS + '\n</body>', 1)

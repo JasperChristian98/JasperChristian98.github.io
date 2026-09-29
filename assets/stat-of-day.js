@@ -119,8 +119,7 @@
     set('mcd-player-position',({GKP:'Goalkeeper',DEF:'Defender',MID:'Midfielder',FWD:'Forward'})[p.position]||p.position||'Unknown');
     set('mcd-player-club',p.team||'Unknown club');
     set('mcd-player-owner',p.fantasy_team||'Free Agent');
-    set('mcd-player-headline',fact.sentence);set('mcd-player-context',fact.context);
-    set('mcd-player-date',new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',day:'numeric',month:'long',year:'numeric'}).format(date)+' · Daily pick · Current dashboard data');
+    set('mcd-player-headline',fact.sentence);
   }
   function dailyFact(day) {
     // Retain today's identity across frequent dashboard rebuilds, but always
@@ -136,13 +135,12 @@
   }
   function render(date=new Date()) {
     const card=document.getElementById('mcd-stat-of-day');if(!card)return;
+    document.getElementById('mcd-welcome-date').textContent=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(date);
     currentDay=londonDay(date);const fact=dailyFact(currentDay);
     renderPlayer(currentDay,date);
     card.hidden=!fact;if(!fact)return;
     document.getElementById('mcd-stat-category').textContent=fact.type;
     document.getElementById('mcd-stat-fact').textContent=fact.sentence;
-    document.getElementById('mcd-stat-context').textContent=fact.context;
-    document.getElementById('mcd-stat-date').textContent=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',day:'numeric',month:'long',year:'numeric'}).format(date)+' · A new pick each day (UK time)';
   }
   function init() {
     players=typeof playerSearchData==='undefined'?[]:playerSearchData;
