@@ -139,9 +139,9 @@
     rows=rows.filter(row=>Number.isFinite(row.value)).sort((a,b)=>b.value-a.value).slice(0,15);
     if(!rows.length)return empty(host);
     const maximum=Math.max(1,...rows.map(row=>Math.abs(row.value)));
-    host.innerHTML='<div class="analytics-bar-chart atlas-bar-list">'+rows.map((row,index)=>`<div class="analytics-bar-row atlas-bar-row" role="button" tabindex="0" data-chart-detail="${esc(row.label)} · ${format(row.value)}" data-atlas-position="${esc(row.position||'')}" data-atlas-owner="${esc(row.owner||'')}"><span class="analytics-bar-label atlas-bar-name" title="${esc(row.label)}">${esc(row.label)}</span><span class="analytics-bar-track atlas-bar-track"><i class="analytics-bar-fill atlas-bar-fill" style="width:${Math.abs(row.value)/maximum*100}%;background:${colour(row.label,index)}"></i></span><strong class="analytics-bar-value atlas-bar-value">${format(row.value)}</strong></div>`).join('')+'</div>';
+    host.innerHTML='<div class="analytics-bar-chart atlas-bar-list">'+rows.map((row,index)=>`<div class="analytics-bar-row atlas-bar-row" role="button" tabindex="0" data-chart-detail="${esc(row.label)} · ${format(row.value)}" ${row.playerId!=null?`data-atlas-player-id="${esc(row.playerId)}" aria-label="Open details for ${esc(row.label)}"`:""} data-atlas-position="${esc(row.position||'')}" data-atlas-owner="${esc(row.owner||'')}"><span class="analytics-bar-label atlas-bar-name" title="${esc(row.label)}">${esc(row.label)}</span><span class="analytics-bar-track atlas-bar-track"><i class="analytics-bar-fill atlas-bar-fill" style="width:${Math.abs(row.value)/maximum*100}%;background:${colour(row.label,index)}"></i></span><strong class="analytics-bar-value atlas-bar-value">${format(row.value)}</strong></div>`).join('')+'</div>';
   }
-  function playerRows(players,spec){return players.map(player=>({label:player.name,value:metric(player,spec.metric),position:player.position,owner:ownerOf(player)}));}
+  function playerRows(players,spec){return players.map(player=>({playerId:player.id,label:player.name,value:metric(player,spec.metric),position:player.position,owner:ownerOf(player)}));}
   function groupRows(players,spec,key=spec.metric,reducer=spec.reducer){return [...grouped(players,spec.group)].map(([label,pool])=>({label,value:reduce(pool,key,reducer),pool}));}
 
   function renderScatter(host,rows,xLabel,yLabel){
@@ -201,6 +201,35 @@
     if(spec.type==='scatter')return renderScatter(host,players.map(player=>({label:player.name,x:metric(player,spec.x),y:metric(player,spec.y),position:player.position,owner:ownerOf(player)})),spec.x.replaceAll('_',' '),spec.y.replaceAll('_',' '));
     if(spec.type==='group-scatter')return renderScatter(host,[...grouped(players,spec.group)].map(([label,pool])=>({label,x:reduce(pool,spec.x,spec.xReducer),y:reduce(pool,spec.y,spec.yReducer)})),spec.x.replaceAll('_',' '),spec.y.replaceAll('_',' '));
   }
+  function openPlayerDetails(playerId){
+    const player=allPlayers().find(player=>String(player.id)===playerId);
+    if(!player)return;
+    window.showPage('players');
+    window.showPlayerSubtab('directory',document.querySelector('.player-page-tab[onclick*="directory"]'));
+    ['player-position-filter','player-club-filter','player-fantasy-filter'].forEach(id=>{const control=document.getElementById(id);if(control)control.value='';});
+    document.getElementById('player-search').value=player.name;
+    // Wait for the directory's scheduled render, then select by ID even for duplicate names.
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const results=document.getElementById('player-search-results');
+    results.innerHTML=window.renderPlayerDirectoryCard(player);
+    document.getElementById('player-directory-count').textContent='1 player';
+    window.togglePlayerDetails(player.id);
+    const card=results.firstElementChild;
+    card.tabIndex=-1;card.focus({preventScroll:true});card.scrollIntoView({block:'start'});
+    }));
+  }
+  // Capture player activation before the generic chart inspector handles the row.
+  document.addEventListener('click',event=>{
+    const row=event.target.closest('.atlas-bar-row[data-atlas-player-id]');
+    if(!row)return;
+    event.preventDefault();event.stopPropagation();openPlayerDetails(row.dataset.atlasPlayerId);
+  },true);
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Enter'&&event.key!==' ')return;
+    const row=event.target.closest('.atlas-bar-row[data-atlas-player-id]');
+    if(!row)return;
+    event.preventDefault();event.stopPropagation();row.click();
+  },true);
   function controls(){return `<div class="chart-atlas-position-filter" role="group" aria-label="Chart Atlas position filter"><span>Position</span><button class="atlas-position-button" data-atlas-position-filter="ALL" type="button">All</button>${POSITIONS.map(position=>`<button class="atlas-position-button" data-atlas-position-filter="${position}" type="button">${POSITION_LABELS[position]}</button>`).join('')}</div>`;}
   function build(){
     Object.entries(pages).forEach(([target,pageId])=>{

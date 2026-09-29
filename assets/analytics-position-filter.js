@@ -27,7 +27,7 @@
     if(position==='ALL')positions.forEach(item=>selected.add(item));
     else if(isAll()){selected.clear();selected.add(position);}
     else if(selected.has(position)&&selected.size>1)selected.delete(position);else selected.add(position);
-    sync();applyLegacyCharts();listeners.forEach(listener=>listener(new Set(selected)));
+    sync();listeners.forEach(listener=>listener(new Set(selected)));applyLegacyCharts();
     document.dispatchEvent(new CustomEvent('mcdraft:positionchange',{detail:{positions:[...selected]}}));
   }
   function markLegacyPlayers(){
@@ -47,7 +47,7 @@
     if(typeof window.applyPlayerAnalyticsFilter==='function'&&!window.applyPlayerAnalyticsFilter.__positionConnected){
       const original=window.applyPlayerAnalyticsFilter;
       const connected=function(...args){
-        document.querySelectorAll('#page-analytics [data-position-hidden="true"]').forEach(element=>{element.removeAttribute('hidden');element.style.removeProperty('display');element.removeAttribute('data-position-hidden');});
+        document.querySelectorAll('#page-analytics [data-position-hidden="true"]').forEach(element=>{element.removeAttribute('hidden');element.removeAttribute('aria-hidden');element.style.removeProperty('display');element.removeAttribute('data-position-hidden');});
         const result=original.apply(this,args);applyLegacyCharts();return result;
       };
       connected.__positionConnected=true;window.applyPlayerAnalyticsFilter=connected;

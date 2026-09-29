@@ -1,6 +1,8 @@
 window.addEventListener('DOMContentLoaded',()=>setTimeout(async()=>{
   const checks=[],check=(ok,label)=>checks.push((ok?'OK: ':'FAILED: ')+label),wait=()=>new Promise(resolve=>setTimeout(resolve,100));
   try{
+    const welcome=document.getElementById('mcd-welcome-team');
+    if(welcome){welcome.value=MANAGER_ORDER[0];enterManagerDashboard();setAnalyticsManagerPreset('all');await wait();}
     const api=window.MCDChartAtlas;
     check(Boolean(api),'Chart Atlas API is available');
     check(Boolean(window.MCDraftPositionFilter),'shared Analytics position filter is available');
@@ -65,6 +67,38 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(async()=>{
       check(ownerMarks.length>0&&ownerMarks.every(mark=>mark.dataset.atlasOwner===MANAGER_ORDER[0]),'manager filter restricts player chart marks');
       setAnalyticsManagerPreset('all');
     }
+    for(const position of ['GKP','DEF','MID','FWD']){
+      api.setPosition('ALL');api.setPosition(position);
+      const cards=[...document.querySelectorAll('.analytics-player-bar-card')];
+      check(cards.length>0&&cards.every(card=>{
+        const rows=[...card.querySelectorAll('.analytics-player-bar')];
+        const eligible=rows.filter(row=>playerSearchData.find(player=>Number(player.id)===Number(row.dataset.playerId))?.position===position);
+        const expected=eligible.slice(0,Number(card.dataset.playerLimit||20));
+        const visible=rows.filter(row=>!row.hidden);
+        return expected.length===visible.length&&expected.every((row,index)=>row===visible[index]);
+      }),`${position} leaderboards filter before applying their row limit`);
+      const atlasPlayers=[...document.querySelectorAll('.atlas-bar-row[data-atlas-player-id]')];
+      check(atlasPlayers.length>0&&atlasPlayers.every(row=>row.dataset.atlasPosition===position),`${position} filters player bars across all atlas pages`);
+    }
+    api.setPosition('ALL');
+    check(playerSection.querySelectorAll('[data-atlas-position]').length===before,'All restores the original atlas player marks');
+    check([...document.querySelectorAll('.analytics-player-bar:not([hidden])')].every(row=>row.getAttribute('aria-hidden')!=='true'),'restored player bars are accessible');
+    for(const activation of ['click','Enter',' ']){
+      showPage('analytics');showAnalyticsSubtab('player',null);api.renderTarget('player');
+      const row=playerSection.querySelector('.atlas-bar-row[data-atlas-player-id]');
+      const id=row.dataset.atlasPlayerId;
+      document.getElementById('player-position-filter').value='GKP';
+      if(activation==='click')row.querySelector('.atlas-bar-fill').click();
+      else row.dispatchEvent(new KeyboardEvent('keydown',{key:activation,bubbles:true,cancelable:true}));
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));await wait();
+      const details=document.getElementById('player-details-'+id);
+      check(document.getElementById('page-players').classList.contains('active')&&details?.style.display==='block'&&details.getBoundingClientRect().height>0,`${JSON.stringify(activation)} opens the exact player's visible details`);
+      check(document.getElementById('player-search-results').firstElementChild===document.activeElement,'player details receive keyboard focus');
+    }
+    showPage('analytics');showAnalyticsSubtab('club',null);api.renderTarget('club');
+    const clubBar=document.querySelector('.chart-atlas[data-atlas-target="club"] .atlas-bar-row');
+    clubBar.click();
+    check(!clubBar.hasAttribute('data-atlas-player-id')&&document.getElementById('page-analytics').classList.contains('active'),'group bars keep chart inspection without opening a player');
   }catch(error){checks.push('FAILED: '+error.stack);}
   const report=document.createElement('pre');report.id='chart-atlas-report';report.textContent=JSON.stringify(checks);document.body.append(report);
 },650));
