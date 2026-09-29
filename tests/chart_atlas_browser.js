@@ -91,6 +91,7 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(async()=>{
       if(activation==='click')row.querySelector('.atlas-bar-fill').click();
       else row.dispatchEvent(new KeyboardEvent('keydown',{key:activation,bubbles:true,cancelable:true}));
       await wait();
+      for(let attempt=0;attempt<20&&document.getElementById('player-details-'+id)?.style.display!=='block';attempt++)await wait();
       const details=document.getElementById('player-details-'+id);
       check(document.getElementById('page-players').classList.contains('active')&&details?.style.display==='block'&&details.getBoundingClientRect().height>0,`${JSON.stringify(activation)} opens the exact player's visible details`);
       check(document.getElementById('player-search-results').firstElementChild===document.activeElement,'player details receive keyboard focus');

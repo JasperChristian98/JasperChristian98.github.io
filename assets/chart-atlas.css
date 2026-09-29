@@ -2,5 +2,22 @@
 .chart-atlas-position-filter{display:flex;align-items:center;gap:7px;flex-wrap:wrap;flex:1 0 100%;padding-top:12px;border-top:1px solid var(--border)}.chart-atlas-position-filter>span{font-size:10px;font-weight:900;color:var(--muted);letter-spacing:.09em;text-transform:uppercase;margin-right:3px}.atlas-position-button{appearance:none;border:1px solid var(--border);background:var(--bg-secondary);color:var(--muted);border-radius:999px;padding:7px 11px;font:800 11px/1 inherit;cursor:pointer}.atlas-position-button.active{color:var(--text);border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--bg-secondary))}
 .chart-atlas-grid{align-items:stretch}.atlas-card{min-width:0;min-height:390px;overflow:hidden}.atlas-card h2{margin:0 0 7px;font-size:16px}.atlas-card .card-description{min-height:34px;margin-bottom:10px}.atlas-host{min-height:285px;margin-top:12px;position:relative;overflow:hidden}.atlas-svg{display:block;width:100%;height:auto;overflow:visible}.atlas-gridline{stroke:var(--border,#475569);stroke-width:1;opacity:.7;vector-effect:non-scaling-stroke}.atlas-axis{fill:var(--muted,#94a3b8);font-size:10px;font-weight:700}.atlas-series-line{fill:none;stroke-width:3px;stroke-linecap:round;stroke-linejoin:round;opacity:.96;vector-effect:non-scaling-stroke}.atlas-series-area{opacity:.12}.atlas-series-point{stroke:var(--card,#111827);stroke-width:2;vector-effect:non-scaling-stroke}.atlas-bar-list{display:flex;flex-direction:column;gap:9px;margin-top:14px}.atlas-bar-row{cursor:pointer}.atlas-bar-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.atlas-empty{display:grid;place-items:center;min-height:220px;text-align:center;color:var(--muted);border:1px dashed var(--border);border-radius:10px;padding:16px}.atlas-dot{opacity:.82;stroke:var(--card,#111827);stroke-width:1.5;cursor:crosshair}.atlas-dot:hover,.atlas-dot:focus{opacity:1;stroke:#fff;stroke-width:2.5}.atlas-stack-list{display:grid;gap:11px;margin-top:14px}.atlas-stack-row{display:grid;grid-template-columns:minmax(100px,160px) 1fr;gap:10px;align-items:center}.atlas-stack-name{font-size:12px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.atlas-stack-track{height:17px;display:flex;border-radius:6px;overflow:hidden;background:var(--bg-secondary);border:1px solid var(--border)}.atlas-stack-track i{height:100%;min-width:1px}.atlas-legend{display:flex;gap:8px 13px;flex-wrap:wrap;margin-top:10px}.atlas-legend span{font-size:10px;font-weight:750;color:var(--muted);display:inline-flex;gap:6px;align-items:center}.atlas-legend i{width:9px;height:9px;border-radius:3px}.atlas-lollipop-line{stroke:var(--border,#475569);stroke-width:2;vector-effect:non-scaling-stroke}.atlas-lollipop-dot{stroke:var(--card,#111827);stroke-width:1.5}.atlas-section-loading{display:grid;place-items:center;min-height:220px;color:var(--muted)}
 .atlas-bar-fill{display:block}
+/* Keep movement brief and confined to chart content so labels stay readable. */
+@keyframes atlas-bar-enter{from{transform:scaleX(.04);opacity:.35}to{transform:scaleX(1);opacity:1}}
+@keyframes atlas-chart-enter{from{opacity:.45;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:no-preference){
+  .atlas-bar-fill{transform-origin:left center;animation:atlas-bar-enter 420ms cubic-bezier(.22,1,.36,1)}
+  .atlas-stack-track,.atlas-svg,.atlas-empty{animation:atlas-chart-enter 300ms ease-out}
+  .atlas-card{transition:border-color 180ms ease,box-shadow 180ms ease}
+  .atlas-bar-row{transition:background-color 150ms ease;border-radius:6px}
+  .atlas-position-button,.analytics-position-button{transition:background-color 160ms ease,border-color 160ms ease,box-shadow 160ms ease,transform 120ms ease}
+  .atlas-position-button:active,.analytics-position-button:active{transform:scale(.96)}
+  .atlas-dot{transition:opacity 150ms ease,stroke-width 150ms ease}
+}
+@media(hover:hover){
+  .atlas-card:hover{border-color:var(--accent);box-shadow:0 4px 18px rgba(0,0,0,.1)}
+  .atlas-bar-row:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+}
+.atlas-bar-row:focus-visible,.atlas-position-button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 body[data-theme="light"] .atlas-series-point,body[data-theme="light"] .atlas-dot,body[data-theme="light"] .atlas-lollipop-dot{stroke:#fff}
 @media(max-width:760px){.chart-atlas-grid{grid-template-columns:1fr}.atlas-card{min-height:300px}.atlas-bar-row{grid-template-columns:100px minmax(60px,1fr) 42px}}
