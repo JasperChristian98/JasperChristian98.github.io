@@ -2,9 +2,10 @@ name: Update McDraft dashboard
 
 on:
   schedule:
-    # Cron is UTC. Every 10 minutes Friday-Monday, 20 minutes Tuesday-Thursday.
-    - cron: '*/10 * * * 5,6,0,1'
-    - cron: '*/20 * * * 2,3,4'
+    # Cron is UTC. Offset by 3 minutes to avoid common scheduling boundaries.
+    # Every 10 minutes Friday-Monday, 20 minutes Tuesday-Thursday.
+    - cron: '3,13,23,33,43,53 * * * 5,6,0,1'
+    - cron: '3,23,43 * * * 2,3,4'
   workflow_dispatch:
   push:
     branches: [main]
