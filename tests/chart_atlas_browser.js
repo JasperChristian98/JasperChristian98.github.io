@@ -82,7 +82,26 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(async()=>{
     }
     api.setPosition('ALL');
     check(playerSection.querySelectorAll('[data-atlas-position]').length===before,'All restores the original atlas player marks');
+    showPage('analytics');showAnalyticsSubtab('player',null);
+    const ratingMoves=[...document.querySelectorAll('#analytics-sub-player .analytics-player-bar-card')].find(card=>card.querySelector('h2')?.textContent==='Largest player rating moves');
+    check(Boolean(ratingMoves),'Largest player rating moves exists above the atlas');
+    const visibleRatingRows=()=>[...ratingMoves.querySelectorAll('.analytics-player-bar')].filter(row=>row.getBoundingClientRect().height>0);
+    const originalRatingCount=visibleRatingRows().length;
+    check(originalRatingCount>0,'rating moves actually render visible player rows');
+    setAnalyticsManagerPreset('none');
+    check(visibleRatingRows().length===0&&!ratingMoves.querySelector('.analytics-player-chart-empty').hidden,'empty team selection displays an explanation');
+    toggleAnalyticsManager(MANAGER_ORDER[0]);
+    api.setPosition('GKP');
+    const eligibleRatingRows=[...ratingMoves.querySelectorAll('.analytics-player-bar')].filter(row=>row.dataset.playerOwner===MANAGER_ORDER[0]&&row.dataset.analyticsPlayerPosition==='GKP').slice(0,Number(ratingMoves.dataset.playerLimit));
+    check(eligibleRatingRows.length>0&&visibleRatingRows().length===eligibleRatingRows.length&&eligibleRatingRows.every(row=>row.getBoundingClientRect().height>0),'rating moves show matching goalkeepers even outside the original top twenty');
+    // Reproduce stale inline hiding left by earlier filter implementations.
+    eligibleRatingRows.forEach(row=>{row.style.display='none';row.dataset.positionHidden='true';});
+    window.MCDraftPositionFilter.refresh();
+    check(eligibleRatingRows.every(row=>row.getBoundingClientRect().height>0),'refresh clears stale inline hiding on matching players');
+    api.setPosition('ALL');setAnalyticsManagerPreset('all');
+    check(visibleRatingRows().length===originalRatingCount,'clearing team and position filters restores rating moves');
     check([...document.querySelectorAll('.analytics-player-bar:not([hidden])')].every(row=>row.getAttribute('aria-hidden')!=='true'),'restored player bars are accessible');
+    await wait();
     for(const activation of ['click','Enter',' ']){
       showPage('analytics');showAnalyticsSubtab('player',null);api.renderTarget('player');
       const row=playerSection.querySelector('.atlas-bar-row[data-atlas-player-id]');

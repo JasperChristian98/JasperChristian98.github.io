@@ -35,10 +35,36 @@
   }
   function applyLegacyCharts(){
     markLegacyPlayers();
-    document.querySelectorAll('#page-analytics .analytics-player-dot,#page-analytics .analytics-player-bar').forEach(element=>{
-      const position=element.dataset.analyticsPlayerPosition;
-      if(!allows(position)){element.dataset.positionHidden='true';element.hidden=true;element.setAttribute('hidden','');element.style.display='none';element.setAttribute('aria-hidden','true');}
-      else element.removeAttribute('data-position-hidden');
+    const matches=element=>{
+      const owner=element.dataset.playerOwner;
+      const ownerAllowed=typeof analyticsManagerState==='undefined'||analyticsManagerState.visible.has(owner)||(owner==='Free agents'&&analyticsManagerState.includeFreeAgents);
+      return ownerAllowed&&allows(element.dataset.analyticsPlayerPosition);
+    };
+    const setVisible=(element,visible)=>{
+      element.hidden=!visible;element.toggleAttribute('hidden',!visible);element.setAttribute('aria-hidden',String(!visible));
+      element.style.removeProperty('display');element.removeAttribute('data-position-hidden');
+    };
+    const showEmpty=(card,count)=>{
+      const empty=card.querySelector('.analytics-player-chart-empty');
+      if(empty){empty.hidden=count>0;empty.textContent='No players in this chart match the selected teams and positions.';}
+    };
+    // Select from the full roster before capping and scaling a leaderboard.
+    // Own visibility here so older generated pages cannot leave eligible rows hidden.
+    document.querySelectorAll('#page-analytics .analytics-player-bar-card').forEach(card=>{
+      const rows=[...card.querySelectorAll('.analytics-player-bar')];
+      const visible=rows.filter(matches).slice(0,Math.max(1,Number(card.dataset.playerLimit)||20));
+      const scale=Math.max(1,...visible.map(row=>Math.abs(Number(row.dataset.playerValue)||0)));
+      rows.forEach(row=>setVisible(row,visible.includes(row)));
+      visible.forEach(row=>{
+        const fill=row.querySelector('.analytics-bar-fill');
+        if(fill)fill.style.width=Math.max(2,Math.abs(Number(row.dataset.playerValue)||0)/scale*100).toFixed(1)+'%';
+      });
+      showEmpty(card,visible.length);
+    });
+    document.querySelectorAll('#page-analytics .analytics-player-scatter').forEach(card=>{
+      let count=0;
+      card.querySelectorAll('.analytics-player-dot').forEach(dot=>{const visible=matches(dot);setVisible(dot,visible);if(visible)count++;});
+      showEmpty(card,count);
     });
     document.querySelectorAll('.analytics-player-position-card [data-player-position].analytics-bar-row').forEach(row=>row.hidden=!allows(row.dataset.playerPosition));
     const count=document.getElementById('analytics-player-count');if(count){const ids=new Set([...document.querySelectorAll('#analytics-sub-player .analytics-player-dot:not([hidden]),#analytics-sub-player .analytics-player-bar:not([hidden])')].map(row=>row.dataset.playerId));count.textContent=`${ids.size} players in charts · ${isAll()?'all positions':[...selected].map(position=>labels[position]).join(', ')}`;}
@@ -47,7 +73,6 @@
     if(typeof window.applyPlayerAnalyticsFilter==='function'&&!window.applyPlayerAnalyticsFilter.__positionConnected){
       const original=window.applyPlayerAnalyticsFilter;
       const connected=function(...args){
-        document.querySelectorAll('#page-analytics [data-position-hidden="true"]').forEach(element=>{element.removeAttribute('hidden');element.removeAttribute('aria-hidden');element.style.removeProperty('display');element.removeAttribute('data-position-hidden');});
         const result=original.apply(this,args);applyLegacyCharts();return result;
       };
       connected.__positionConnected=true;window.applyPlayerAnalyticsFilter=connected;
