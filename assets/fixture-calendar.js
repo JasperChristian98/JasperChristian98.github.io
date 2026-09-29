@@ -28,7 +28,7 @@
   const today=day(new Date()),current=season(today);
   const seasons=[...new Set([current,...events.filter(e=>e.date).map(e=>season(e.date))])].sort((a,b)=>b-a);
   seasons.forEach(y=>$('season').add(new Option(y+'/'+String(y+1).slice(-2),String(y))));
-  let year=current,month=7,selectedDay=null;
+  let year=current,month=7,selectedDay=null,weekStart='monday';
   const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
   function reset(){const m=Number(today.slice(5,7))-1;year=current;month=m===5||m===6?16:m<7?m+12:m;$('season').value=String(year);selectedDay=null;render();}
   function teams(){const old=$('team').value,kind=$('kind').value;$('team').replaceChildren(new Option('All teams',''));
@@ -36,13 +36,13 @@
     if([...$('team').options].some(o=>o.value===old))$('team').value=old;
   }
   function matches(e){return ($('kind').value==='all'||e.kind===$('kind').value)&&(!$('team').value||[e.kind+':'+e.home,e.kind+':'+e.away].includes($('team').value))&&($('status').value==='all'||e.finished===($('status').value==='finished'));}
-  function eventRow(e){const row=node('article',undefined,'calendar-event '+e.kind);row.append(node('small',(e.kind==='pl'?'Premier League':'Fantasy')+' · GW'+e.gw+' · '+(e.finished?'Full time':e.kind==='fantasy'?'Gameweek matchup':valid(e.kickoff)?new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'}).format(new Date(e.kickoff)):'Time TBC')));row.append(node('strong',e.home+' '+(e.finished?(e.score||'Result unavailable'):'vs')+' '+e.away));return row;}
+  function eventRow(e){const row=node('article',undefined,'calendar-event '+e.kind);row.append(node('small',(e.kind==='pl'?'Premier League':'Fantasy')+' · GW'+e.gw+' · '+(e.finished?'Full time':e.kind==='fantasy'?'Gameweek matchup':valid(e.kickoff)?new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'}).format(new Date(e.kickoff)):'Time TBC')));const title=node('strong');title.append(document.createTextNode(e.home+' '),node('span',e.finished?(e.score||'Result unavailable'):'vs',e.finished?'calendar-score':''),document.createTextNode(' '+e.away));row.append(title);return row;}
   function render(){
     const first=new Date(Date.UTC(year,month,1)),prefix=first.toISOString().slice(0,7),count=new Date(Date.UTC(year,month+1,0)).getUTCDate();
     $('month').textContent=new Intl.DateTimeFormat('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}).format(first);$('prev').disabled=month===7;$('next').disabled=month===16;
     const rows=events.filter(e=>e.date?.startsWith(prefix)&&matches(e)).sort((a,b)=>(a.date+(a.kickoff||'')).localeCompare(b.date+(b.kickoff||'')));
-    $('grid').replaceChildren(...['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>node('span',d,'calendar-weekday')));
-    for(let i=0;i<(first.getUTCDay()+6)%7;i++)$('grid').append(node('span'));
+    $('grid').replaceChildren(...(weekStart==='sunday'?['Sun','Mon','Tue','Wed','Thu','Fri','Sat']:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']).map(d=>node('span',d,'calendar-weekday')));
+    for(let i=0;i<(first.getUTCDay()+(weekStart==='sunday'?0:6))%7;i++)$('grid').append(node('span'));
     for(let d=1;d<=count;d++){const date=prefix+'-'+String(d).padStart(2,'0'),list=rows.filter(e=>e.date===date),b=node('button',undefined,'calendar-day');b.type='button';b.append(node('b',String(d)));b.setAttribute('aria-label',date+', '+list.length+' matches');b.setAttribute('aria-pressed',String(selectedDay===date));if(date===today)b.setAttribute('aria-current','date');for(const kind of ['pl','fantasy']){const n=list.filter(e=>e.kind===kind).length;if(n)b.append(node('small',n+' '+(kind==='pl'?'PL':'Fantasy'),kind));}b.onclick=()=>{selectedDay=selectedDay===date?null:date;render();};$('grid').append(b);}
     $('agenda').replaceChildren();$('empty').hidden=rows.length>0;
     if(selectedDay){const clear=node('button','Show whole month');clear.onclick=()=>{selectedDay=null;render();};$('agenda').append(clear);}
@@ -54,5 +54,14 @@
   $('prev').onclick=()=>{if(month>7)month--;selectedDay=null;render();};$('next').onclick=()=>{if(month<16)month++;selectedDay=null;render();};$('today').onclick=reset;
   $('season').onchange=()=>{year=Number($('season').value);selectedDay=null;render();};
   for(const id of ['kind','team','status'])$(id).onchange=()=>{if(id==='kind')teams();selectedDay=null;render();};
+  function preferences(p){
+    weekStart=p.weekStart==='sunday'?'sunday':'monday';
+    const kind=p.calendarTeam?p.calendarTeam.split(':')[0]:p.calendarKind;
+    $('kind').value=['pl','fantasy'].includes(kind)?kind:'all';teams();
+    if([...$('team').options].some(o=>o.value===p.calendarTeam))$('team').value=p.calendarTeam;else $('team').value='';
+    selectedDay=null;render();
+  }
+  document.addEventListener('mcdraft:preferences',event=>preferences(event.detail));
   teams();reset();
+  if(window.McDraftPreferences)preferences(window.McDraftPreferences.get());
 })();

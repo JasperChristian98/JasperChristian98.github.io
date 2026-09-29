@@ -33,7 +33,8 @@
     const box=el('messages');
     return box.scrollHeight-box.scrollTop-box.clientHeight < 70;
   }
-  function unread() {
+  function unread(incoming=false) {
+    document.dispatchEvent(new CustomEvent('mcdraft:chat-unread',{detail:{count:state.unread,incoming}}));
     el('new').hidden = !state.unread;
     el('new').textContent = state.unread + ' new message' + (state.unread===1?'':'s') + ' ↓';
   }
@@ -64,15 +65,16 @@
     unread();
   }
   function merge(rows, notify=false) {
-    const stick=active() && atBottom(); let added=0,changed=false;
+    const stick=active() && atBottom(); let added=0,incomingAdded=0,changed=false;
     for(const row of rows) {
       const key=String(row.id);
-      if(!state.rows.has(key))added++;
+      if(!state.rows.has(key)){added++;if(row.user_id!==state.userId)incomingAdded++;}
       if(JSON.stringify(state.rows.get(key))!==JSON.stringify(row))changed=true;
       state.rows.set(key,row);
     }
     if(notify && !stick) state.unread+=added;
     if(changed)render(stick);
+    if(notify && !stick && added)unread(incomingAdded>0);
   }
   function clearRoom() {
     state.epoch++; state.syncVersion++; state.refreshPromise=null;

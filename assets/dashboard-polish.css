@@ -9,3 +9,6 @@ table,.calendar-event,.mcd-kickoff-countdown{font-variant-numeric:tabular-nums}
 .header-calendar:hover{border-color:var(--accent);color:var(--accent)}
 .header-calendar:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .header-calendar svg{flex-shrink:0}
+
+.header .theme-toggle-label{display:none!important}
+.header-calendar,.header .theme-toggle{width:40px;min-width:40px;height:40px;padding:8px;justify-content:center}

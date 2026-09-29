@@ -37,7 +37,7 @@ class SettingsTests(unittest.TestCase):
                     os.environ['MCD_SEARCH_BROWSER'], '--headless', '--disable-gpu', '--no-first-run',
                     '--no-default-browser-check', '--allow-file-access-from-files',
                     '--host-resolver-rules=MAP * ~NOTFOUND', '--virtual-time-budget=10000',
-                    '--window-size=1280,900', '--user-data-dir=' + str(folder / 'profile'),
+                    '--window-size='+os.environ.get('MCD_SETTINGS_SIZE','1280,900'), '--user-data-dir=' + str(folder / 'profile'),
                     '--dump-dom', page.as_uri() + '?phase=' + phase,
                 ], capture_output=True, timeout=60,
                     creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)

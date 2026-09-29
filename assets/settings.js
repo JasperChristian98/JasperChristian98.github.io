@@ -33,9 +33,11 @@
   function apply(){
     const theme=preferences.theme==='system'?(colourScheme.matches?'light':'dark'):preferences.theme;
     originalTheme(theme,false);
+    $('theme-toggle')?.setAttribute('aria-label',theme==='dark'?'Switch to light mode':'Switch to dark mode');
     document.documentElement.dataset.motion=preferences.motion;
     document.documentElement.style.setProperty('--mcd-font',fonts[preferences.font]);
     sync();
+    document.dispatchEvent(new Event('mcdraft:appearance'));
   }
   function save(){
     try{

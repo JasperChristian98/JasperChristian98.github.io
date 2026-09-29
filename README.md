@@ -169,3 +169,16 @@ separate dates-to-be-confirmed list. Results update with dashboard builds.
 
 The welcome screen displays today's UK date once above the team selector. Daily
 stat and player cards show their content without date or data-source footers.
+
+## Dashboard preferences
+
+The gear icon beside Calendar and appearance opens Settings. Browser-local
+preferences include font and text size, card/table density, default landing page,
+skipping welcome with a saved team, accent colour, click-to-reveal match scores,
+calendar competition/team/week start, chat unread badge/sound/mute-until, numeric
+precision and Home section visibility/order. Reset restores dashboard defaults
+without clearing the chosen team, watchlist or chat login.
+
+Score hiding covers fixture scorelines, not tables, charts or commentary. Number
+formatting changes displayed numeric cells only and never changes calculations.
+Chat sounds require interaction in the open tab and are not push notifications.

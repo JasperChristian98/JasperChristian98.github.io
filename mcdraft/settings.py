@@ -16,14 +16,17 @@ PAGE = '''<section class="page" id="page-settings" aria-labelledby="settings-hea
       <div><label for="settings-font">Dashboard font</label><p id="settings-font-help">Try a different style. Changes appear across the dashboard immediately; the exact font depends on your device.</p></div>
       <select id="settings-font" aria-describedby="settings-font-help"><option value="rounded">Rounded — default</option><option value="system">System — modern</option><option value="classic">Classic — clean</option><option value="editorial">Editorial — serif</option><option value="mono">Monospace — technical</option></select>
     </div>
+    <div id="settings-extras"></div>
     <p>Your team selection, watchlist and other saved items are kept separately.</p>
-    <button type="button" class="results-button" id="settings-reset">Reset appearance, font and animations</button>
+    <button type="button" class="results-button" id="settings-reset">Reset dashboard preferences</button>
     <p id="settings-status" role="status" aria-live="polite"></p>
   </div>
 </section>
 '''
 ASSETS = '''<link rel="stylesheet" href="assets/settings.css">
 <script defer src="assets/settings.js"></script>
+<link rel="stylesheet" href="assets/settings-extras.css">
+<script defer src="assets/settings-extras.js"></script>
 '''
 NAV = "['League overview','overview','overview','standings'],"
 
