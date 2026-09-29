@@ -8,7 +8,9 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
     check($('page-settings').classList.contains('active'),'Settings opens through navigation');
     const phase=new URLSearchParams(location.search).get('phase');
     if(phase==='save'){
-      change('settings-theme','light');change('settings-motion','reduced');
+      change('settings-theme','light');change('settings-motion','reduced');change('settings-font','editorial');
+      check(getComputedStyle(document.body).fontFamily.includes('Georgia'),'font applies immediately');
+      check(JSON.parse(localStorage.getItem('mcdraft-settings-v1')).font==='editorial','font is stored');
       check(document.body.dataset.theme==='light','theme applies immediately');
       check(document.documentElement.dataset.motion==='reduced','motion preference applies immediately');
       check(JSON.parse(localStorage.getItem('mcdraft-settings-v1')).theme==='light','preferences are stored');
@@ -18,20 +20,26 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
     }else{
       check($('settings-theme').value==='light'&&document.body.dataset.theme==='light','appearance survives a fresh browser launch');
       check($('settings-motion').value==='reduced'&&document.documentElement.dataset.motion==='reduced','motion survives a fresh browser launch');
+      check($('settings-font').value==='editorial'&&getComputedStyle(document.body).fontFamily.includes('Georgia'),'font survives browser restart');
       $('theme-toggle').click();
       check($('settings-theme').value==='dark','header theme toggle updates Settings');
       const manager=localStorage.getItem('mcdraft-preferred-manager-v1');
       $('settings-reset').click();
       check($('settings-theme').value==='system'&&$('settings-motion').value==='system','reset restores device preferences');
+      check($('settings-font').value==='rounded'&&getComputedStyle(document.body).fontFamily.includes('Trebuchet'),'reset restores default font');
       check(document.body.dataset.theme===(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'),'device theme is resolved');
       check(localStorage.getItem('mcdraft-player-watchlist-v1')==='[]'&&localStorage.getItem('mcdraft-preferred-manager-v1')===manager,'reset preserves watchlist and team');
       localStorage.setItem('mcdraft-settings-v1',JSON.stringify({theme:'light',motion:'reduced'}));
       window.dispatchEvent(new StorageEvent('storage',{key:'mcdraft-settings-v1'}));
       check($('settings-theme').value==='light'&&document.documentElement.dataset.motion==='reduced','preferences synchronize from another tab');
+      check($('settings-font').value==='rounded','old saved preferences default to rounded font');
+      localStorage.setItem('mcdraft-settings-v1',JSON.stringify({font:'invalid'}));window.dispatchEvent(new StorageEvent('storage',{key:'mcdraft-settings-v1'}));
+      check($('settings-font').value==='rounded','invalid font falls back safely');
       const original=Storage.prototype.setItem;
       Storage.prototype.setItem=function(){throw new DOMException('Blocked','SecurityError');};
       try{
-        change('settings-theme','dark');
+        change('settings-theme','dark');change('settings-font','mono');
+        check(getComputedStyle(document.body).fontFamily.includes('monospace'),'font works without storage');
         check(document.body.dataset.theme==='dark'&&$('settings-status').textContent.includes('visit only'),'blocked storage keeps controls usable and explains persistence');
       }finally{Storage.prototype.setItem=original;}
     }

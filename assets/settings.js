@@ -1,7 +1,14 @@
 (() => {
   'use strict';
   const key='mcdraft-settings-v1',themeKey='mcdraft-theme';
-  const defaults={theme:'system',motion:'system'};
+  const fonts={
+    rounded:'"Trebuchet MS","Avenir Next",Avenir,"Segoe UI",sans-serif',
+    system:'system-ui,-apple-system,"Segoe UI",sans-serif',
+    classic:'Arial,Helvetica,sans-serif',
+    editorial:'Georgia,"Times New Roman",serif',
+    mono:'"Cascadia Code",Consolas,"Courier New",monospace'
+  };
+  const defaults={theme:'system',motion:'system',font:'rounded'};
   const colourScheme=matchMedia('(prefers-color-scheme: light)');
   const $=id=>document.getElementById(id);
   let storageAvailable=true;
@@ -11,7 +18,8 @@
       const legacy=localStorage.getItem(themeKey);
       return {
         theme:['system','dark','light'].includes(saved?.theme)?saved.theme:['dark','light'].includes(legacy)?legacy:defaults.theme,
-        motion:saved?.motion==='reduced'?'reduced':defaults.motion
+        motion:saved?.motion==='reduced'?'reduced':defaults.motion,
+        font:Object.hasOwn(fonts,saved?.font)?saved.font:defaults.font
       };
     }catch{return {...defaults};}
   }
@@ -20,11 +28,13 @@
   function sync(){
     $('settings-theme').value=preferences.theme;
     $('settings-motion').value=preferences.motion;
+    $('settings-font').value=preferences.font;
   }
   function apply(){
     const theme=preferences.theme==='system'?(colourScheme.matches?'light':'dark'):preferences.theme;
     originalTheme(theme,false);
     document.documentElement.dataset.motion=preferences.motion;
+    document.documentElement.style.setProperty('--mcd-font',fonts[preferences.font]);
     sync();
   }
   function save(){
@@ -49,6 +59,7 @@
     Element.prototype.scrollIntoView=function(options){return scrollElement.call(this,reduceScroll(options));};
     $('settings-theme').addEventListener('change',event=>{preferences.theme=event.target.value;apply();save();});
     $('settings-motion').addEventListener('change',event=>{preferences.motion=event.target.value;apply();save();});
+    $('settings-font').addEventListener('change',event=>{preferences.font=Object.hasOwn(fonts,event.target.value)?event.target.value:defaults.font;apply();save();});
     $('settings-reset').addEventListener('click',()=>{preferences={...defaults};apply();save();});
     colourScheme.addEventListener('change',()=>{if(preferences.theme==='system')apply();});
     window.addEventListener('storage',event=>{if(event.key===key||event.key===null){preferences=load();apply();$('settings-status').textContent='Preferences updated.';}});

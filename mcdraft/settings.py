@@ -12,8 +12,12 @@ PAGE = '''<section class="page" id="page-settings" aria-labelledby="settings-hea
       <div><label for="settings-motion">Animations</label><p id="settings-motion-help">Reduce motion to disable dashboard animations and smooth scrolling. Your device's reduced-motion preference is always respected.</p></div>
       <select id="settings-motion" aria-describedby="settings-motion-help"><option value="system">Use device setting</option><option value="reduced">Reduce motion</option></select>
     </div>
+    <div class="mcd-setting-row">
+      <div><label for="settings-font">Dashboard font</label><p id="settings-font-help">Try a different style. Changes appear across the dashboard immediately; the exact font depends on your device.</p></div>
+      <select id="settings-font" aria-describedby="settings-font-help"><option value="rounded">Rounded — default</option><option value="system">System — modern</option><option value="classic">Classic — clean</option><option value="editorial">Editorial — serif</option><option value="mono">Monospace — technical</option></select>
+    </div>
     <p>Your team selection, watchlist and other saved items are kept separately.</p>
-    <button type="button" class="results-button" id="settings-reset">Reset appearance and animations</button>
+    <button type="button" class="results-button" id="settings-reset">Reset appearance, font and animations</button>
     <p id="settings-status" role="status" aria-live="polite"></p>
   </div>
 </section>
