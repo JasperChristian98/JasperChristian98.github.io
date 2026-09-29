@@ -61,6 +61,7 @@ from .league_chat import integrate_template as integrate_league_chat
 from .search import integrate_template as integrate_search
 from .stat_of_day import integrate_template as integrate_stat_of_day
 from .fixture_calendar import integrate_template as integrate_fixture_calendar
+from .dashboard_polish import integrate_template as integrate_dashboard_polish
 from .player_tools import integrate_template as integrate_player_tools
 from .club_badges import integrate_template as integrate_club_badges
 from .watchlist import integrate_template as integrate_watchlist
@@ -297,6 +298,7 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
         rendered_html = integrate_chart_atlas(rendered_html)
         rendered_html = integrate_settings(rendered_html)
         rendered_html = integrate_fixture_calendar(rendered_html, state.get('full_fixture_schedule', {}))
+        rendered_html = integrate_dashboard_polish(rendered_html)
         rendered_html = brand_column(rendered_html)
         output.write_text(rendered_html, encoding='utf-8')
         if state.get('_column_store'):

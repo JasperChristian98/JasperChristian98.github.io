@@ -1,0 +1,11 @@
+/* A warmer humanist typeface, using installed fonts without remote requests. */
+:root{--mcd-font:"Trebuchet MS","Avenir Next",Avenir,"Segoe UI",sans-serif}
+body{font-family:var(--mcd-font)}
+button,input,select,textarea,svg text{font-family:var(--mcd-font)}
+h1,h2,h3,.logo{font-family:var(--mcd-font);letter-spacing:-.025em}
+table,.calendar-event,.mcd-kickoff-countdown{font-variant-numeric:tabular-nums}
+.header .theme-control{display:flex;align-items:center;gap:8px}
+.header-calendar{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:8px 11px;border:1px solid var(--border);border-radius:9px;background:var(--bg-secondary);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.header-calendar:hover{border-color:var(--accent);color:var(--accent)}
+.header-calendar:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.header-calendar svg{flex-shrink:0}
