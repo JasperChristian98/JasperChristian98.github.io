@@ -15,6 +15,23 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(async()=>{
     const fullGameweekOutput=[...document.querySelectorAll('#gw-lab-score-heatmap .gw-heat-cell')].map(cell=>cell.textContent).join('|');
     check(document.querySelectorAll('.atlas-host svg,.atlas-host .atlas-bar-list,.atlas-host .atlas-stack-list').length===100,'all 100 chart hosts render visual output');
     check([...document.querySelectorAll('.atlas-card')].every(card=>card.classList.contains('card')&&card.classList.contains('analytics-chart-card')),'atlas cards use the standard Analytics card formatting');
+    // Measure rendered fills: the presence of chart markup does not prove bars are visible.
+    // Mount copies outside inactive tabs so every bar chart participates in layout.
+    const barProbe=document.createElement('article');barProbe.className='card analytics-chart-card atlas-card';barProbe.style.width='600px';
+    document.body.append(barProbe);
+    const barLists=[...document.querySelectorAll('.atlas-host .atlas-bar-list')];
+    let measuredBars=0;
+    const barsVisible=barLists.every(list=>{
+      barProbe.replaceChildren(list.cloneNode(true));
+      return [...barProbe.querySelectorAll('.atlas-bar-fill')].every(fill=>{
+        if(parseFloat(fill.style.width)<=0)return true;
+        measuredBars++;
+        const bounds=fill.getBoundingClientRect(),track=fill.parentElement.getBoundingClientRect();
+        return bounds.width>0&&bounds.height>0&&bounds.width<=track.width&&bounds.height<=track.height;
+      });
+    });
+    barProbe.remove();
+    check(measuredBars>0&&barsVisible,'nonzero values produce visible bar fills within their tracks across atlas charts');
     const seriesLines=[...document.querySelectorAll('.atlas-series-line')];
     check(seriesLines.length>5,'weekly charts draw visible line series');
     check(seriesLines.every(line=>{const style=getComputedStyle(line);return style.stroke!=='none'&&style.stroke!=='transparent'&&parseFloat(style.strokeWidth)>=3;}),'line series have visible themed strokes');
