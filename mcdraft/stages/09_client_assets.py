@@ -661,18 +661,12 @@ function applyPlayerAnalyticsFilter(){
     function selectedOwner(owner){
         return selected.has(owner) || (owner==='Free agents' && includeFreeAgents);
     }
-    function selectedPlayer(element){
-        const position=element.getAttribute('data-player-position') ||
-            playerSearchData.find(player=>Number(player.id)===Number(element.dataset.playerId))?.position;
-        return selectedOwner(element.getAttribute('data-player-owner')) &&
-            (!window.MCDraftPositionFilter || window.MCDraftPositionFilter.allows(position));
-    }
     page.querySelectorAll('.analytics-player-scatter').forEach(function(card){
         let shown=0;
         // Labels for every dot are useful for one team, but messy for Top 5.
         card.classList.toggle('owner-filtered',onlyOneOwner);
         card.querySelectorAll('.analytics-player-dot').forEach(function(dot){
-            const visible=selectedPlayer(dot);
+            const visible=selectedOwner(dot.getAttribute('data-player-owner'));
             dot.hidden=!visible;
             dot.setAttribute('aria-hidden',String(!visible));
             if(visible) shown++;
@@ -683,7 +677,7 @@ function applyPlayerAnalyticsFilter(){
     page.querySelectorAll('.analytics-player-bar-card').forEach(function(card){
         const cap=Math.max(1,Number(card.getAttribute('data-player-limit')||20));
         const matching=Array.from(card.querySelectorAll('.analytics-player-bar')).filter(function(row){
-            return selectedPlayer(row);
+            return selectedOwner(row.getAttribute('data-player-owner'));
         });
         const visible=matching.slice(0,cap);
         const scale=Math.max(1,...visible.map(function(row){return Math.abs(Number(row.getAttribute('data-player-value'))||0);}));
@@ -4810,3 +4804,4 @@ radar_health_css = r"""
 # ============================================================
 # HTML TEMPLATE
 # ============================================================
+
