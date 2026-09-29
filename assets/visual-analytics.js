@@ -51,6 +51,7 @@
   }
 
   function empty(host, message='No matching data for the current filter.') {
+    host.classList.remove('has-preference-table');
     host.innerHTML = '<div class="visual-empty">' + esc(message) + '</div>';
   }
 
@@ -100,6 +101,7 @@
       ? `<text class="visual-axis-label" x="${x(index)}" y="${height-10}" text-anchor="middle">GW${gw}</text>` : '').join('');
     host.innerHTML=`<svg class="visual-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Stacked area chart">${yGrid}${paths}${xLabels}</svg>`+
       `<div class="visual-legend">${series.map((row,index) => `<span><i style="background:${colours[index]}"></i>${esc(labels[index])}</span>`).join('')}</div>`;
+    window.McDraftAnalysisPreferences?.table(host,['Gameweek',...labels],weeks.map((week,i)=>[week,...series.map(row=>row.values[i])]));
   }
 
   function splitTreemap(items, x, y, width, height, output) {

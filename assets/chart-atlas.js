@@ -133,13 +133,14 @@
     return PALETTE[Math.abs(hash||index)%PALETTE.length];
   }
   function format(value){const absolute=Math.abs(value);return absolute>=1000?(value/1000).toFixed(1)+'k':absolute>=100?Math.round(value).toString():value.toFixed(absolute<10?1:0);}
-  function empty(host,message='No matching data for this filter.'){host.innerHTML=`<div class="atlas-empty">${esc(message)}</div>`;}
+  function empty(host,message='No matching data for this filter.'){host.classList.remove('has-preference-table');host.innerHTML=`<div class="atlas-empty">${esc(message)}</div>`;}
 
   function renderBars(host,rows){
     rows=rows.filter(row=>Number.isFinite(row.value)).sort((a,b)=>b.value-a.value).slice(0,15);
     if(!rows.length)return empty(host);
     const maximum=Math.max(1,...rows.map(row=>Math.abs(row.value)));
     host.innerHTML='<div class="analytics-bar-chart atlas-bar-list">'+rows.map((row,index)=>`<div class="analytics-bar-row atlas-bar-row" role="button" tabindex="0" data-chart-detail="${esc(row.label)} · ${format(row.value)}" ${row.playerId!=null?`data-atlas-player-id="${esc(row.playerId)}" aria-label="Open details for ${esc(row.label)}"`:""} data-atlas-position="${esc(row.position||'')}" data-atlas-owner="${esc(row.owner||'')}"><span class="analytics-bar-label atlas-bar-name" title="${esc(row.label)}">${esc(row.label)}</span><span class="analytics-bar-track atlas-bar-track"><i class="analytics-bar-fill atlas-bar-fill" style="width:${Math.abs(row.value)/maximum*100}%;background:${colour(row.label,index)}"></i></span><strong class="analytics-bar-value atlas-bar-value">${format(row.value)}</strong></div>`).join('')+'</div>';
+    window.McDraftAnalysisPreferences?.table(host,['Name','Value'],rows.map(row=>[row.label,row.value]));
   }
   function playerRows(players,spec){return players.map(player=>({playerId:player.id,label:player.name,value:metric(player,spec.metric),position:player.position,owner:ownerOf(player)}));}
   function groupRows(players,spec,key=spec.metric,reducer=spec.reducer){return [...grouped(players,spec.group)].map(([label,pool])=>({label,value:reduce(pool,key,reducer),pool}));}
@@ -153,6 +154,7 @@
     const dots=rows.map((row,index)=>`<circle class="atlas-dot" tabindex="0" data-chart-detail="${esc(row.label)} · ${format(row.x)} / ${format(row.y)}" data-atlas-position="${esc(row.position||'')}" data-atlas-owner="${esc(row.owner||'')}" cx="${x(row.x).toFixed(1)}" cy="${y(row.y).toFixed(1)}" r="${rows.length>40?4:6}" fill="${colour(row.position||row.label,index)}"><title>${esc(row.label)} · ${format(row.x)} / ${format(row.y)}</title></circle>`).join('');
     const labels=rows.length<=20?rows.map(row=>`<text class="atlas-axis" x="${x(row.x)+7}" y="${y(row.y)-5}">${esc(String(row.label).slice(0,15))}</text>`).join(''):'';
     host.innerHTML=`<div class="trend-chart-svg-wrap"><svg class="atlas-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(xLabel)} against ${esc(yLabel)}">${grid}${dots}${labels}<text class="analytics-svg-axis-title atlas-axis" x="${left+plotW/2}" y="${height-7}" text-anchor="middle">${esc(xLabel)} →</text><text class="analytics-svg-axis-title atlas-axis" transform="translate(12 ${top+plotH/2}) rotate(-90)" text-anchor="middle">${esc(yLabel)} →</text></svg></div>`;
+    window.McDraftAnalysisPreferences?.table(host,['Name',xLabel,yLabel],rows.map(row=>[row.label,row.x,row.y]));
   }
   function renderHistogram(host,players,spec){
     const values=players.map(player=>metric(player,spec.metric)).filter(Number.isFinite);if(!values.length)return empty(host);
@@ -185,6 +187,7 @@
     const paths=series.map((row,index)=>{const points=row.values.map((value,i)=>`${x(i)},${y(value)}`),line=`M${points.join(' L')}`,seriesColour=colour(row.label,index);return `${spec.area?`<path class="atlas-series-area" d="${line} L${x(weeks.length-1)},${top+plotH} L${x(0)},${top+plotH} Z" style="fill:${seriesColour}"/>`:''}<path class="atlas-series-line" d="${line}" style="stroke:${seriesColour}"><title>${esc(row.label)}</title></path>${row.values.map((value,i)=>`<circle class="atlas-series-point" cx="${x(i)}" cy="${y(value)}" r="3.5" style="fill:${seriesColour}"><title>${esc(row.label)} · GW${weeks[i]}: ${format(value)}</title></circle>`).join('')}`;}).join('');
     const step=Math.max(1,Math.ceil(weeks.length/8)),labels=weeks.map((week,index)=>index%step===0||index===weeks.length-1?`<text class="atlas-axis" x="${x(index)}" y="${height-10}" text-anchor="middle">GW${week}</text>`:'').join('');
     host.innerHTML=`<div class="trend-chart-svg-wrap"><svg class="atlas-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(spec.title)}">${grid}${paths}${labels}</svg></div><div class="atlas-legend">${series.map((row,index)=>`<span><i style="background:${colour(row.label,index)}"></i>${esc(row.label)}</span>`).join('')}</div>`;
+    window.McDraftAnalysisPreferences?.table(host,['Gameweek',...series.map(row=>row.label)],weeks.map((week,i)=>[week,...series.map(row=>row.values[i])]));
   }
   function renderWeeklyStat(host,players,spec){
     const {series}=weeklyDataset(players,'owner'),rows=series.map(row=>({label:row.label,value:spec.stat==='average'?average(row.values):spec.stat==='volatility'?deviation(row.values):spec.stat==='high'?Math.max(0,...row.values):Math.min(...row.values)}));renderBars(host,rows);

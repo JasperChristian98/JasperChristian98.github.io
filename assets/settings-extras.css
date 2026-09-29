@@ -12,3 +12,12 @@ html[data-density=spacious] .page :is(td,th){padding-top:16px!important;padding-
 html[data-scores=hide] .settings-score:not([data-score-revealed=true])>.settings-score-value{display:none!important}
 html[data-scores=hide] .settings-score:not([data-score-revealed=true])>.settings-score-reveal{display:inline-block;border:1px solid var(--border);border-radius:6px;padding:4px;background:var(--bg-secondary);color:var(--text);font:inherit;cursor:pointer}
 @media(max-width:600px){html[data-density=spacious] .page .card{padding:18px!important}}
+
+.preference-table-wrap{display:none;overflow:auto;max-height:420px}.preference-table-wrap table{width:100%;border-collapse:collapse}.preference-table-wrap :is(th,td){text-align:left;padding:8px;border-bottom:1px solid var(--border);white-space:nowrap}.preference-table-wrap caption{text-align:left;font-weight:700;padding:8px}
+html[data-chart-view=tables] .has-preference-table>:not(.preference-table-wrap){display:none!important}
+html[data-chart-view=tables] .has-preference-table>.preference-table-wrap{display:block}
+html[data-chart-labels=hide] :is(.atlas-bar-value,.analytics-bar-value,.visual-heatmap-value){visibility:hidden}
+html[data-clutter=minimal] .page :is(.analytics-chart-card>.card-description,.visual-analytics-intro .card-description,.chart-atlas-head .card-description,.chart-atlas-kicker,.visual-kicker,.chart-atlas-count){display:none!important}
+html[data-clutter=minimal] .page *,html[data-clutter=minimal] .page *::before,html[data-clutter=minimal] .page *::after{animation:none!important;transition:none!important}
+
+html[data-chart-labels=hide] .visual-heatmap-cell{color:transparent!important}

@@ -1,8 +1,8 @@
 (() => {
  'use strict';
  const key='mcdraft-display-settings-v1', $=id=>document.getElementById(id);
- const defaults={size:'standard',density:'standard',landing:'overview',skip:'no',accent:'default',scores:'show',calendarKind:'all',calendarTeam:'',weekStart:'monday',badges:'yes',sound:'no',muteUntil:'',numbers:'detailed',homeOrder:[],homeHidden:[]};
- const choices={size:['small','standard','large'],density:['compact','standard','spacious'],skip:['no','yes'],accent:['default','blue','purple','green','orange','pink'],scores:['show','hide'],calendarKind:['all','pl','fantasy'],weekStart:['monday','sunday'],badges:['yes','no'],sound:['no','yes'],numbers:['rounded','detailed']};
+ const defaults={chartView:'charts',chartLabels:'show',clutter:'full',playerNames:'short',horizon:'existing',size:'standard',density:'standard',landing:'overview',skip:'no',accent:'default',scores:'show',calendarKind:'all',calendarTeam:'',weekStart:'monday',badges:'yes',sound:'no',muteUntil:'',numbers:'detailed',homeOrder:[],homeHidden:[]};
+ const choices={chartView:['charts','tables'],chartLabels:['show','hide'],clutter:['full','minimal'],playerNames:['short','full'],horizon:['existing','1','3','5'],size:['small','standard','large'],density:['compact','standard','spacious'],skip:['no','yes'],accent:['default','blue','purple','green','orange','pink'],scores:['show','hide'],calendarKind:['all','pl','fantasy'],weekStart:['monday','sunday'],badges:['yes','no'],sound:['no','yes'],numbers:['rounded','detailed']};
  function load(){try{const s=JSON.parse(localStorage.getItem(key)||'{}'),p={...defaults};for(const [k,options]of Object.entries(choices))if(options.includes(s[k]))p[k]=s[k];for(const k of ['landing','calendarTeam','muteUntil'])if(typeof s[k]==='string')p[k]=s[k];for(const k of ['homeOrder','homeHidden'])if(Array.isArray(s[k]))p[k]=s[k].filter(v=>typeof v==='string');return p;}catch{return {...defaults};}}
  let prefs=load(),unread=0,audio=null,started=false;
  const make=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
@@ -18,6 +18,7 @@
  const scoreSelector='.fixture-score,.h2h-record-score,#pl-fixture-browser .future-fixture-vs,.calendar-score';
  function decorate(root){
   if(!root)return;
+  window.McDraftAnalysisPreferences?.decorate(root);
   for(const n of root.querySelectorAll(scoreSelector)){if(!/\d/.test(n.textContent)||n.querySelector('.settings-score-reveal'))continue;const content=make('span');while(n.firstChild)content.append(n.firstChild);content.className='settings-score-value';const b=make('button','Reveal score');b.type='button';b.className='settings-score-reveal';b.onclick=()=>{n.dataset.scoreRevealed='true';};n.classList.add('settings-score');n.append(content,b);}
   const factor={small:.92,standard:1,large:1.15}[prefs.size];
   const elements=[...root.querySelectorAll('*')];
@@ -40,6 +41,11 @@
  function land(){if(document.getElementById('page-'+prefs.landing)){showPage(prefs.landing);window.mcdNavSync?.();}}
  function init(){
   if(!$('settings-extras')||started)return;started=true;
+  select('chartView','Chart presentation','Show charts or data tables for supported bar, scatter and time-series charts. Charts without a table alternative remain visible.',[['charts','Charts'],['tables','Tables']]);
+  select('chartLabels','Chart value labels','Show or hide values on supported bars and heatmap cells. Axis labels and tables stay readable.',[['show','Show values'],['hide','Hide values']]);
+  select('clutter','Visual clutter','Minimal hides introductory chart descriptions and decorative badges, and stops animations. Filters, warnings and controls remain visible.',[['full','Full detail'],['minimal','Minimal']]);
+  select('playerNames','Player names','Use full names where captured; otherwise retain familiar short names. Applies to player cards and supported charts.',[['short','Short names'],['full','Full names']]);
+  select('horizon','Default analysis horizon','Set the starting horizon for Waiver Intelligence and Season Simulator. You can still change each tool independently.',[['existing',"Each tool's default"],['1','Next gameweek'],['3','Next 3 gameweeks'],['5','Next 5 gameweeks']]);
   select('size','Text size','Adjust dashboard text without changing your browser zoom.',[['small','Small'],['standard','Standard'],['large','Large']]);
   select('density','Layout density','Change spacing in cards and tables.',[['compact','Compact'],['standard','Standard'],['spacious','Spacious']]);
   const pages=[...document.querySelectorAll('section.page[id]')].map(p=>[p.id.replace('page-',''),p.querySelector('h1,h2')?.textContent||p.id.replace('page-','')]);

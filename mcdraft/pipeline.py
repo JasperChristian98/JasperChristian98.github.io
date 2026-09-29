@@ -183,6 +183,12 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
                         state['five_gw_planner_data'], json.loads(state['manager_war_room_json']),
                         state.get('dashboard_game_state', 'upcoming'))
                 elif file.name == '09_client_assets.py':
+                    # Preserve official full names for optional display, without
+                    # replacing the short names used by existing calculations.
+                    for player in state.get('player_search_data', []):
+                        source = state.get('classic_elements_by_fpl_id', {}).get(player.get('fpl_id'), {})
+                        player['full_name'] = ' '.join(filter(None, (source.get('first_name'), source.get('second_name')))) or player['name']
+                    state['player_search_json'] = json.dumps(state.get('player_search_data', []), ensure_ascii=False)
                     state['css'] += (
                         DECISION_CENTRE_CSS + MANAGER_PICKER_CSS + PREDICTION_ACCURACY_CSS
                         + HONOURS_CSS + LAYOUT_CSS + RADAR_CSS + MANAGER_STYLES_CSS

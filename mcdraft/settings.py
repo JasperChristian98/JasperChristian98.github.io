@@ -26,6 +26,7 @@ PAGE = '''<section class="page" id="page-settings" aria-labelledby="settings-hea
 ASSETS = '''<link rel="stylesheet" href="assets/settings.css">
 <script defer src="assets/settings.js"></script>
 <link rel="stylesheet" href="assets/settings-extras.css">
+<script defer src="assets/analysis-preferences.js"></script>
 <script defer src="assets/settings-extras.js"></script>
 '''
 NAV = "['League overview','overview','overview','standings'],"

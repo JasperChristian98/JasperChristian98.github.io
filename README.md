@@ -182,3 +182,11 @@ without clearing the chosen team, watchlist or chat login.
 Score hiding covers fixture scorelines, not tables, charts or commentary. Number
 formatting changes displayed numeric cells only and never changes calculations.
 Chat sounds require interaction in the open tab and are not push notifications.
+
+Analysis preferences also offer charts/tables for supported bars, scatterplots
+and time series, value-label visibility, minimal chart decoration, short/full
+player names where captured, and starting horizons for Waiver Intelligence and
+Season Simulator. A full dashboard build captures official full names; older
+pages fall back to short names. Manual horizon changes remain in effect until
+the default is changed or a new visit starts. Presentation settings never alter
+model inputs or calculations.

@@ -21,6 +21,18 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
       change('settings-numbers','rounded');check(stat.textContent==='6.4','rounded numeric display');change('settings-numbers','detailed');check(stat.textContent==='6.37','detailed display restores source precision');
       const fontBefore=parseFloat(getComputedStyle(stat).fontSize);
       change('settings-size','large');check(parseFloat(getComputedStyle(stat).fontSize)>fontBefore,'text size increases');stat.remove();check(document.documentElement.dataset.density!==undefined,'extra settings initialized');
+      change('settings-chartView','tables');
+      check(document.querySelectorAll('.preference-table-wrap table').length>0,'chart tables contain rendered data');
+      const chart=document.querySelector('.has-preference-table');check(getComputedStyle(chart.querySelector('.preference-table-wrap')).display==='block','table preference shows alternative');
+      change('settings-chartLabels','hide');check(document.documentElement.dataset.chartLabels==='hide','value labels preference applies');
+      change('settings-clutter','minimal');check(document.documentElement.dataset.clutter==='minimal','minimal clutter applies');
+      change('settings-horizon','1');check($('wi-horizon').value==='1'&&$('sim-horizon').value==='1','next-gameweek horizon supported in both tools');
+      $('wi-horizon').value='5';change('settings-accent','blue');check($('wi-horizon').value==='5','unrelated preferences preserve manual horizon');
+      change('settings-horizon','3');check($('wi-horizon').value==='3','changing default reapplies horizon');
+      const sample=document.createElement('span');sample.className='player-directory-name';sample.textContent=playerSearchData[0].name;$('page-settings').append(sample);
+      const oldName=playerSearchData[0].full_name;playerSearchData[0].full_name='Test Full Player Name';
+      change('settings-playerNames','full');check(sample.textContent==='Test Full Player Name','full name presentation uses captured name');
+      change('settings-playerNames','short');check(sample.textContent===playerSearchData[0].name,'short name restored without changing source');sample.remove();playerSearchData[0].full_name=oldName;
       change('settings-density','compact');check(document.documentElement.dataset.density==='compact','density applies');
       change('settings-accent','purple');check(document.body.style.getPropertyValue('--accent')!=='','accent applies');
       change('settings-calendarKind','fantasy');change('settings-weekStart','sunday');
@@ -37,6 +49,7 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
       check(getComputedStyle(document.querySelector('.theme-toggle-label')).display==='none','theme label hidden');
       localStorage.setItem('mcdraft-player-watchlist-v1','[]');
     }else{
+      check($('settings-chartView').value==='tables'&&$('settings-clutter').value==='minimal'&&$('wi-horizon').value==='3','analysis preferences survive restart');
       check(document.getElementById('settings-density').value==='compact'&&document.getElementById('settings-landing').value==='calendar','extra preferences survive restart');
       check($('settings-theme').value==='light'&&document.body.dataset.theme==='light','appearance survives a fresh browser launch');
       check($('settings-motion').value==='reduced'&&document.documentElement.dataset.motion==='reduced','motion survives a fresh browser launch');
@@ -45,6 +58,7 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
       check($('settings-theme').value==='dark','header theme toggle updates Settings');
       const manager=localStorage.getItem('mcdraft-preferred-manager-v1');
       $('settings-reset').click();
+      check(document.documentElement.dataset.chartView==='charts'&&document.documentElement.dataset.clutter==='full','analysis preferences reset');
       check(document.documentElement.dataset.density==='standard'&&!document.querySelector('#overview-sub-standings .settings-home-hidden'),'reset restores layout and home');
       check($('settings-theme').value==='system'&&$('settings-motion').value==='system','reset restores device preferences');
       check($('settings-font').value==='rounded'&&getComputedStyle(document.body).fontFamily.includes('Trebuchet'),'reset restores default font');
