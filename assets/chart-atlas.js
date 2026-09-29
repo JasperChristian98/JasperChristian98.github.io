@@ -209,14 +209,14 @@
     ['player-position-filter','player-club-filter','player-fantasy-filter'].forEach(id=>{const control=document.getElementById(id);if(control)control.value='';});
     document.getElementById('player-search').value=player.name;
     // Wait for the directory's scheduled render, then select by ID even for duplicate names.
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
     const results=document.getElementById('player-search-results');
     results.innerHTML=window.renderPlayerDirectoryCard(player);
     document.getElementById('player-directory-count').textContent='1 player';
     window.togglePlayerDetails(player.id);
     const card=results.firstElementChild;
     card.tabIndex=-1;card.focus({preventScroll:true});card.scrollIntoView({block:'start'});
-    }));
+    });
   }
   // Capture player activation before the generic chart inspector handles the row.
   document.addEventListener('click',event=>{

@@ -69,7 +69,7 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(async()=>{
     }
     for(const position of ['GKP','DEF','MID','FWD']){
       api.setPosition('ALL');api.setPosition(position);
-      const cards=[...document.querySelectorAll('.analytics-player-bar-card')];
+      const cards=[...document.querySelectorAll('#page-analytics .analytics-player-bar-card')];
       check(cards.length>0&&cards.every(card=>{
         const rows=[...card.querySelectorAll('.analytics-player-bar')];
         const eligible=rows.filter(row=>playerSearchData.find(player=>Number(player.id)===Number(row.dataset.playerId))?.position===position);
@@ -90,7 +90,7 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(async()=>{
       document.getElementById('player-position-filter').value='GKP';
       if(activation==='click')row.querySelector('.atlas-bar-fill').click();
       else row.dispatchEvent(new KeyboardEvent('keydown',{key:activation,bubbles:true,cancelable:true}));
-      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));await wait();
+      await wait();
       const details=document.getElementById('player-details-'+id);
       check(document.getElementById('page-players').classList.contains('active')&&details?.style.display==='block'&&details.getBoundingClientRect().height>0,`${JSON.stringify(activation)} opens the exact player's visible details`);
       check(document.getElementById('player-search-results').firstElementChild===document.activeElement,'player details receive keyboard focus');
