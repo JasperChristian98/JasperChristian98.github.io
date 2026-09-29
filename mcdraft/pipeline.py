@@ -51,6 +51,7 @@ from .subtab_order import integrate_template as integrate_subtab_order
 from .visual_analytics import integrate_template as integrate_visual_analytics
 from .gameweek_analytics import integrate_template as integrate_gameweek_analytics
 from .chart_atlas import integrate_template as integrate_chart_atlas
+from .settings import integrate_template as integrate_settings
 from .mobile_header_and_war_countdown import (CSS as MOBILE_HEADER_CSS,
     next_gameweek_kickoff, countdown_javascript, insert_header_countdown)
 from .mobile_navigation import JS as MOBILE_NAV_JS, append_final_mobile_css
@@ -293,6 +294,7 @@ def run(*, root: Path = REPO_DIR, skip_display: bool = True) -> Path:
         rendered_html = integrate_visual_analytics(rendered_html)
         rendered_html = integrate_gameweek_analytics(rendered_html)
         rendered_html = integrate_chart_atlas(rendered_html)
+        rendered_html = integrate_settings(rendered_html)
         rendered_html = brand_column(rendered_html)
         output.write_text(rendered_html, encoding='utf-8')
         if state.get('_column_store'):

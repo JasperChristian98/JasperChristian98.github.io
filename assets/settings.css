@@ -1,0 +1,13 @@
+.mcd-settings{max-width:840px;margin-inline:auto}
+.mcd-settings h1{margin-top:0}
+.mcd-setting-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,230px);gap:24px;align-items:center;padding:24px 0;border-bottom:1px solid var(--border)}
+.mcd-setting-row label{font-weight:800;font-size:15px}
+.mcd-setting-row p,.mcd-settings>p{color:var(--muted);line-height:1.6}
+.mcd-setting-row p{margin:6px 0 0}
+.mcd-setting-row select{width:100%;padding:12px;color:var(--text);background:var(--bg-secondary);border:1px solid var(--border);border-radius:9px;font:inherit}
+.mcd-settings :is(select,button):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+#settings-status{min-height:1.6em}
+html[data-motion="reduced"],html[data-motion="reduced"] *{scroll-behavior:auto!important}
+html[data-motion="reduced"] *,html[data-motion="reduced"] *::before,html[data-motion="reduced"] *::after{animation:none!important;transition:none!important}
+@media(prefers-reduced-motion:reduce){html,html *{scroll-behavior:auto!important}*,*::before,*::after{animation:none!important;transition:none!important}}
+@media(max-width:600px){.mcd-setting-row{grid-template-columns:1fr;gap:12px}}
