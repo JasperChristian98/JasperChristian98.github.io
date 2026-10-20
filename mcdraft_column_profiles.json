@@ -740,6 +740,290 @@
         "volatility": 8.571593913749194,
         "recent_avg": 33.666666666666664
       }
+    },
+    "7": {
+      "No Weimann No Cry": {
+        "tags": [
+          {
+            "name": "XI Surgeon",
+            "description": "Consistently converts a high share of the squad's available points into the starting XI."
+          },
+          {
+            "name": "Waiver Hawk",
+            "description": "Makes roster changes aggressively and keeps working the market."
+          },
+          {
+            "name": "Tinkerman",
+            "description": "Treats the squad sheet as a living document and rarely leaves the roster alone for long."
+          },
+          {
+            "name": "Transfer Diplomat",
+            "description": "Regularly gets deals over the line with other managers rather than relying only on waivers."
+          }
+        ],
+        "activity_per_gw": 2.4285714285714284,
+        "pickups": 13,
+        "trades": 4,
+        "efficiency": 97.87510361978447,
+        "bench_per_gw": 3.857142857142857,
+        "volatility": 5.154748157905347,
+        "recent_avg": 34.333333333333336
+      },
+      "Kamararama FC": {
+        "tags": [
+          {
+            "name": "Waiver Hawk",
+            "description": "Makes roster changes aggressively and keeps working the market."
+          },
+          {
+            "name": "Tinkerman",
+            "description": "Treats the squad sheet as a living document and rarely leaves the roster alone for long."
+          },
+          {
+            "name": "Transfer Diplomat",
+            "description": "Regularly gets deals over the line with other managers rather than relying only on waivers."
+          },
+          {
+            "name": "Ceiling Chaser",
+            "description": "Regularly gets high-upside players into the XI when they hit."
+          },
+          {
+            "name": "Steamroller",
+            "description": "Has won 7 consecutive matches."
+          },
+          {
+            "name": "Half-Century Club",
+            "description": "Has scored 50+ in 3 gameweeks."
+          },
+          {
+            "name": "Box Office",
+            "description": "Has topped the weekly scoring in 2 gameweeks."
+          },
+          {
+            "name": "Unbeaten Menace",
+            "description": "Unbeaten across 7 completed games."
+          }
+        ],
+        "activity_per_gw": 3.142857142857143,
+        "pickups": 13,
+        "trades": 8,
+        "efficiency": 93.806609442063,
+        "bench_per_gw": 5.142857142857143,
+        "volatility": 9.617161531261049,
+        "recent_avg": 47.0
+      },
+      "PAUer Rangers": {
+        "tags": [
+          {
+            "name": "Waiver Hawk",
+            "description": "Makes roster changes aggressively and keeps working the market."
+          },
+          {
+            "name": "Tinkerman",
+            "description": "Treats the squad sheet as a living document and rarely leaves the roster alone for long."
+          },
+          {
+            "name": "Bench Gambler",
+            "description": "Carries productive depth but frequently leaves useful points on the bench."
+          },
+          {
+            "name": "Bench Museum Curator",
+            "description": "Keeps an impressive collection of points safely preserved where they cannot affect the result."
+          },
+          {
+            "name": "Steamroller",
+            "description": "Has won 3 consecutive matches."
+          },
+          {
+            "name": "Half-Century Club",
+            "description": "Has scored 50+ in 3 gameweeks."
+          },
+          {
+            "name": "Bench Hoarder",
+            "description": "Averages 10.9 bench points per completed GW."
+          }
+        ],
+        "activity_per_gw": 2.7142857142857144,
+        "pickups": 17,
+        "trades": 2,
+        "efficiency": 85.67464254634471,
+        "bench_per_gw": 10.857142857142858,
+        "volatility": 14.331355661696517,
+        "recent_avg": 44.333333333333336
+      },
+      "Backstreet Moyes": {
+        "tags": [
+          {
+            "name": "XI Surgeon",
+            "description": "Consistently converts a high share of the squad's available points into the starting XI."
+          },
+          {
+            "name": "Chaos Merchant",
+            "description": "High weekly variance: dangerous ceiling, but the floor can disappear without warning."
+          },
+          {
+            "name": "Ceiling Chaser",
+            "description": "Regularly gets high-upside players into the XI when they hit."
+          },
+          {
+            "name": "Searching for Form",
+            "description": "Recent scoring has slipped below the team's season baseline."
+          },
+          {
+            "name": "Steamroller",
+            "description": "Has won 3 consecutive matches."
+          },
+          {
+            "name": "Half-Century Club",
+            "description": "Has scored 50+ in 4 gameweeks."
+          },
+          {
+            "name": "Box Office",
+            "description": "Has topped the weekly scoring in 2 gameweeks."
+          }
+        ],
+        "activity_per_gw": 0.7142857142857143,
+        "pickups": 3,
+        "trades": 2,
+        "efficiency": 95.34065800233137,
+        "bench_per_gw": 4.428571428571429,
+        "volatility": 11.586410054852351,
+        "recent_avg": 46.0
+      },
+      "Jaap? Best Stam": {
+        "tags": [
+          {
+            "name": "Waiver Hawk",
+            "description": "Makes roster changes aggressively and keeps working the market."
+          },
+          {
+            "name": "Tinkerman",
+            "description": "Treats the squad sheet as a living document and rarely leaves the roster alone for long."
+          },
+          {
+            "name": "Transfer Diplomat",
+            "description": "Regularly gets deals over the line with other managers rather than relying only on waivers."
+          },
+          {
+            "name": "Chaos Merchant",
+            "description": "High weekly variance: dangerous ceiling, but the floor can disappear without warning."
+          }
+        ],
+        "activity_per_gw": 2.5714285714285716,
+        "pickups": 14,
+        "trades": 4,
+        "efficiency": 89.95349363629616,
+        "bench_per_gw": 7.142857142857143,
+        "volatility": 11.972758194146836,
+        "recent_avg": 33.333333333333336
+      },
+      "Ollie Gonna Squashya": {
+        "tags": [
+          {
+            "name": "Luxury Problems",
+            "description": "Owns enough depth to strand points on the bench while still selecting efficiently."
+          },
+          {
+            "name": "Waiver Goblin",
+            "description": "Lives in the free-agent pool and would rather rummage through waivers than negotiate a trade."
+          }
+        ],
+        "activity_per_gw": 1.1428571428571428,
+        "pickups": 8,
+        "trades": 0,
+        "efficiency": 94.34126688477176,
+        "bench_per_gw": 6.0,
+        "volatility": 8.928285709714139,
+        "recent_avg": 41.333333333333336
+      },
+      "NoRSNoRB No Chance": {
+        "tags": [
+          {
+            "name": "Steady Hand",
+            "description": "Weekly scoring has been relatively consistent with fewer wild swings."
+          },
+          {
+            "name": "Luxury Problems",
+            "description": "Owns enough depth to strand points on the bench while still selecting efficiently."
+          }
+        ],
+        "activity_per_gw": 1.1428571428571428,
+        "pickups": 7,
+        "trades": 1,
+        "efficiency": 91.01819589624468,
+        "bench_per_gw": 6.714285714285714,
+        "volatility": 6.379175303361745,
+        "recent_avg": 39.666666666666664
+      },
+      "danny\u2019s doggy dudes": {
+        "tags": [
+          {
+            "name": "Tinkerman",
+            "description": "Treats the squad sheet as a living document and rarely leaves the roster alone for long."
+          },
+          {
+            "name": "On the Charge",
+            "description": "Recent scoring is running clearly above the season baseline."
+          }
+        ],
+        "activity_per_gw": 2.0,
+        "pickups": 12,
+        "trades": 2,
+        "efficiency": 92.1784647789687,
+        "bench_per_gw": 4.714285714285714,
+        "volatility": 8.502100580780862,
+        "recent_avg": 41.0
+      },
+      "Buendophilia": {
+        "tags": [
+          {
+            "name": "Luxury Problems",
+            "description": "Owns enough depth to strand points on the bench while still selecting efficiently."
+          },
+          {
+            "name": "Waiver Goblin",
+            "description": "Lives in the free-agent pool and would rather rummage through waivers than negotiate a trade."
+          },
+          {
+            "name": "On the Charge",
+            "description": "Recent scoring is running clearly above the season baseline."
+          },
+          {
+            "name": "Steamroller",
+            "description": "Has won 4 consecutive matches."
+          }
+        ],
+        "activity_per_gw": 0.8571428571428571,
+        "pickups": 6,
+        "trades": 0,
+        "efficiency": 91.61640720978419,
+        "bench_per_gw": 6.714285714285714,
+        "volatility": 9.868523450954596,
+        "recent_avg": 45.0
+      },
+      "Jacquet Potato": {
+        "tags": [
+          {
+            "name": "XI Surgeon",
+            "description": "Consistently converts a high share of the squad's available points into the starting XI."
+          },
+          {
+            "name": "Waiver Goblin",
+            "description": "Lives in the free-agent pool and would rather rummage through waivers than negotiate a trade."
+          },
+          {
+            "name": "Lean Bench",
+            "description": "Gets relatively little scoring stranded among the substitutes."
+          }
+        ],
+        "activity_per_gw": 0.5714285714285714,
+        "pickups": 4,
+        "trades": 0,
+        "efficiency": 95.82255979314803,
+        "bench_per_gw": 2.4285714285714284,
+        "volatility": 8.649643144697487,
+        "recent_avg": 35.666666666666664
+      }
     }
   }
 }
