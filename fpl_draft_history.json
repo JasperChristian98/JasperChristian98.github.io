@@ -13540,11 +13540,11 @@
               "web_name": "Brobbey",
               "team": "Sunderland",
               "position": "FWD",
-              "points": 1,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 11
+              "minutes": 64
             }
           ],
           "bench": [
@@ -13597,7 +13597,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 45,
+          "gw_points": 46,
           "live_points": 32,
           "bench_points": 1,
           "dreamteam_starters": 1
@@ -13647,11 +13647,11 @@
               "web_name": "Bogle",
               "team": "Leeds",
               "position": "DEF",
-              "points": 1,
+              "points": 5,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 11
+              "minutes": 90
             },
             {
               "element_id": 40,
@@ -13745,11 +13745,11 @@
               "web_name": "Roefs",
               "team": "Sunderland",
               "position": "GKP",
-              "points": 1,
+              "points": 9,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 11
+              "minutes": 90
             },
             {
               "element_id": 295,
@@ -13788,9 +13788,9 @@
               "minutes": 0
             }
           ],
-          "gw_points": 39.0,
+          "gw_points": 43.0,
           "live_points": 21,
-          "bench_points": 9.0,
+          "bench_points": 17.0,
           "dreamteam_starters": 0
         },
         "87907": {
@@ -13814,11 +13814,11 @@
               "web_name": "Muharemović",
               "team": "Leeds",
               "position": "DEF",
-              "points": 1,
+              "points": 9,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 11
+              "minutes": 90
             },
             {
               "element_id": 362,
@@ -13937,7 +13937,7 @@
               "team": "Spurs",
               "position": "GKP",
               "points": 9,
-              "in_dreamteam": true,
+              "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
               "minutes": 90
@@ -13979,7 +13979,7 @@
               "minutes": 65
             }
           ],
-          "gw_points": 33.0,
+          "gw_points": 41.0,
           "live_points": 3,
           "bench_points": 16.0,
           "dreamteam_starters": 0
@@ -14053,11 +14053,11 @@
               "web_name": "Xhaka",
               "team": "Sunderland",
               "position": "MID",
-              "points": 1,
+              "points": 3,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 11
+              "minutes": 90
             },
             {
               "element_id": 399,
@@ -14170,7 +14170,7 @@
               "minutes": 1
             }
           ],
-          "gw_points": 26,
+          "gw_points": 28,
           "live_points": 16,
           "bench_points": 1,
           "dreamteam_starters": 0
@@ -14375,11 +14375,11 @@
               "web_name": "Trafford",
               "team": "Leeds",
               "position": "GKP",
-              "points": 1,
-              "in_dreamteam": false,
+              "points": 10,
+              "in_dreamteam": true,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 11
+              "minutes": 90
             },
             {
               "element_id": 4,
@@ -14403,7 +14403,7 @@
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 11
+              "minutes": 51
             },
             {
               "element_id": 173,
@@ -14552,10 +14552,10 @@
               "minutes": 0
             }
           ],
-          "gw_points": 30.0,
+          "gw_points": 39.0,
           "live_points": 25,
           "bench_points": 5.0,
-          "dreamteam_starters": 1
+          "dreamteam_starters": 2
         },
         "204850": {
           "manager": "NoRSNoRB No Chance",
@@ -14996,11 +14996,11 @@
               "web_name": "Justin",
               "team": "Leeds",
               "position": "DEF",
-              "points": 1,
+              "points": 6,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 11
+              "minutes": 90
             },
             {
               "element_id": 53,
@@ -15125,7 +15125,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 19.0,
+          "gw_points": 24.0,
           "live_points": 10,
           "bench_points": 10.0,
           "dreamteam_starters": 0
@@ -15211,11 +15211,11 @@
               "web_name": "E.Le Fée",
               "team": "Sunderland",
               "position": "MID",
-              "points": 1,
+              "points": 3,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 11
+              "minutes": 78
             },
             {
               "element_id": 68,
@@ -15259,11 +15259,11 @@
               "web_name": "Calvert-Lewin",
               "team": "Leeds",
               "position": "FWD",
-              "points": 1,
+              "points": 2,
               "in_dreamteam": false,
               "is_captain": false,
               "is_vice_captain": false,
-              "minutes": 11
+              "minutes": 84
             }
           ],
           "bench": [
@@ -15316,7 +15316,7 @@
               "minutes": 0
             }
           ],
-          "gw_points": 48,
+          "gw_points": 51,
           "live_points": 18,
           "bench_points": 2,
           "dreamteam_starters": 2
@@ -15324,7 +15324,7 @@
       }
     }
   },
-  "last_updated": "2026-10-25T16:44:32.632843+00:00",
+  "last_updated": "2026-10-25T19:21:19.421496+00:00",
   "entry_names": {
     "87664": "No Weimann No Cry",
     "87744": "Kamararama FC",
@@ -16650,8 +16650,8 @@
         "fpl_player_id": 542
       },
       "8": {
-        "points": 1,
-        "minutes": 11,
+        "points": 3,
+        "minutes": 78,
         "opponent": "Leeds",
         "was_home": true,
         "fpl_player_id": 542
@@ -18622,8 +18622,8 @@
         "fpl_player_id": 552
       },
       "8": {
-        "points": 1,
-        "minutes": 10,
+        "points": 2,
+        "minutes": 64,
         "opponent": "Leeds",
         "was_home": true,
         "fpl_player_id": 552
@@ -19550,8 +19550,8 @@
         "fpl_player_id": 529
       },
       "8": {
-        "points": 1,
-        "minutes": 11,
+        "points": 9,
+        "minutes": 90,
         "opponent": "Leeds",
         "was_home": true,
         "fpl_player_id": 529
@@ -20652,8 +20652,8 @@
         "fpl_player_id": 385
       },
       "8": {
-        "points": 1,
-        "minutes": 11,
+        "points": 10,
+        "minutes": 90,
         "opponent": "Sunderland",
         "was_home": false,
         "fpl_player_id": 385
@@ -21465,7 +21465,7 @@
       },
       "8": {
         "points": 1,
-        "minutes": 7,
+        "minutes": 51,
         "opponent": "Leeds",
         "was_home": true,
         "fpl_player_id": 533
@@ -24306,8 +24306,8 @@
         "fpl_player_id": 260
       },
       "8": {
-        "points": 1,
-        "minutes": 11,
+        "points": 3,
+        "minutes": 65,
         "opponent": "Sunderland",
         "was_home": false,
         "fpl_player_id": 260
@@ -24596,8 +24596,8 @@
         "fpl_player_id": 346
       },
       "8": {
-        "points": 1,
-        "minutes": 11,
+        "points": 2,
+        "minutes": 84,
         "opponent": "Sunderland",
         "was_home": false,
         "fpl_player_id": 346
@@ -25176,8 +25176,8 @@
         "fpl_player_id": 335
       },
       "8": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 24,
         "opponent": "Sunderland",
         "was_home": false,
         "fpl_player_id": 335
@@ -26206,8 +26206,8 @@
         "fpl_player_id": 330
       },
       "8": {
-        "points": 1,
-        "minutes": 11,
+        "points": 5,
+        "minutes": 90,
         "opponent": "Sunderland",
         "was_home": false,
         "fpl_player_id": 330
@@ -26264,8 +26264,8 @@
         "fpl_player_id": 334
       },
       "8": {
-        "points": 1,
-        "minutes": 11,
+        "points": 9,
+        "minutes": 90,
         "opponent": "Sunderland",
         "was_home": false,
         "fpl_player_id": 334
@@ -27018,8 +27018,8 @@
         "fpl_player_id": 332
       },
       "8": {
-        "points": 1,
-        "minutes": 7,
+        "points": 6,
+        "minutes": 90,
         "opponent": "Sunderland",
         "was_home": false,
         "fpl_player_id": 332
@@ -28122,8 +28122,8 @@
         "fpl_player_id": 544
       },
       "8": {
-        "points": 1,
-        "minutes": 11,
+        "points": 3,
+        "minutes": 90,
         "opponent": "Leeds",
         "was_home": true,
         "fpl_player_id": 544
@@ -28586,8 +28586,8 @@
         "fpl_player_id": 336
       },
       "8": {
-        "points": 0,
-        "minutes": 0,
+        "points": 1,
+        "minutes": 25,
         "opponent": "Sunderland",
         "was_home": false,
         "fpl_player_id": 336
@@ -29771,1471 +29771,6 @@
     }
   },
   "fpl_availability_snapshots": {
-    "2026-09-29T07:17:37+00:00": {
-      "6": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Back injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.289376Z"
-      },
-      "10": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": 100,
-        "news": "Groin injury - 75% chance of playing",
-        "news_updated": "2026-09-20T19:30:08.247780Z"
-      },
-      "13": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Unspecified injury - 75% chance of playing",
-        "news_updated": "2026-09-21T13:00:08.896379Z"
-      },
-      "18": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Al Hilal permanently",
-        "news_updated": "2026-09-04T12:34:46.738449Z"
-      },
-      "21": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Groin injury - Unknown return date",
-        "news_updated": "2026-08-15T20:00:06.779594Z"
-      },
-      "22": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Borussia Dortmund on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:01:07.058827Z"
-      },
-      "23": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Hamburger SV permanently",
-        "news_updated": "2026-09-02T16:00:28.446370Z"
-      },
-      "24": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "has departed the club as a free agent.",
-        "news_updated": "2026-08-29T00:33:08.556767Z"
-      },
-      "26": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Hamstring injury - 75% chance of playing",
-        "news_updated": "2026-09-24T22:00:09.120308Z"
-      },
-      "27": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined FC Barcelona permanently",
-        "news_updated": "2026-09-02T16:00:28.475184Z"
-      },
-      "29": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Back injury - Expected back 10 Oct",
-        "news_updated": "2026-09-17T07:30:09.058151Z"
-      },
-      "30": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Paris Saint-Germain permanently",
-        "news_updated": "2026-08-10T14:03:30.089007Z"
-      },
-      "34": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Hamstring injury - Expected back 10 Oct",
-        "news_updated": "2026-09-12T18:00:08.712707Z"
-      },
-      "36": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Ankle injury - Unknown return date",
-        "news_updated": "2026-09-12T18:00:08.729468Z"
-      },
-      "39": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Rangers on loan for the rest of the season",
-        "news_updated": "2026-08-19T13:56:46.385411Z"
-      },
-      "44": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Olympiakos permanently",
-        "news_updated": "2026-09-04T12:35:14.472260Z"
-      },
-      "48": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.352497Z"
-      },
-      "49": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Bolton Wanderers on loan for the rest of the season",
-        "news_updated": "2026-08-17T13:52:28.532616Z"
-      },
-      "52": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Unspecified injury - 75% chance of playing",
-        "news_updated": "2026-09-19T11:30:09.355376Z"
-      },
-      "55": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Al Hilal permanently",
-        "news_updated": "2026-09-01T13:15:16.698799Z"
-      },
-      "59": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined MK Dons permanently",
-        "news_updated": "2026-08-27T14:53:48.692835Z"
-      },
-      "63": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Thigh injury - Unknown return date",
-        "news_updated": "2026-08-06T10:00:10.456051Z"
-      },
-      "65": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Thigh injury - Unknown return date",
-        "news_updated": "2026-08-09T08:00:05.645826Z"
-      },
-      "70": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": null,
-        "news": "Unspecified injury - Unknown return date",
-        "news_updated": "2026-09-20T15:30:09.074071Z"
-      },
-      "77": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Calf injury - Unknown return date",
-        "news_updated": "2026-08-15T16:00:07.590566Z"
-      },
-      "78": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Foot injury - Expected back 7 Nov",
-        "news_updated": "2026-07-29T17:30:09.796802Z"
-      },
-      "80": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Getafe permanently",
-        "news_updated": "2026-08-14T14:14:21.881112Z"
-      },
-      "84": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Calf injury - Unknown return date",
-        "news_updated": "2026-09-05T18:00:06.182495Z"
-      },
-      "85": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Groin injury - Unknown return date",
-        "news_updated": "2026-08-15T15:30:06.416627Z"
-      },
-      "97": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Unspecified injury - Expected back 10 Oct",
-        "news_updated": "2026-08-30T12:30:08.176795Z"
-      },
-      "99": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.384798Z"
-      },
-      "103": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Hamstring injury - Expected back 10 Oct",
-        "news_updated": "2026-09-04T13:30:08.371955Z"
-      },
-      "107": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Unspecified injury - Unknown return date",
-        "news_updated": "2026-09-14T14:00:09.985723Z"
-      },
-      "116": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Neck injury - 75% chance of playing",
-        "news_updated": "2026-09-22T09:30:09.629652Z"
-      },
-      "118": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Burnley permanently",
-        "news_updated": "2026-09-02T15:38:15.529699Z"
-      },
-      "121": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Hamstring injury - Expected back 10 Oct",
-        "news_updated": "2026-07-24T18:30:10.661894Z"
-      },
-      "122": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Leg injury - Expected back 28 Nov",
-        "news_updated": "2026-08-14T18:00:06.418033Z"
-      },
-      "123": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Ankle injury - Expected back 10 Oct",
-        "news_updated": "2026-08-27T19:30:07.780933Z"
-      },
-      "128": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Elche on loan for the rest of the season",
-        "news_updated": "2026-08-10T14:03:07.561436Z"
-      },
-      "130": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-09-04T09:30:08.612904Z"
-      },
-      "132": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Leicester City on loan for the rest of the season",
-        "news_updated": "2026-08-17T13:53:19.019938Z"
-      },
-      "133": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Leicester City on loan for the rest of the season",
-        "news_updated": "2026-08-03T14:05:44.459483Z"
-      },
-      "135": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Unspecified injury - Expected back 10 Oct",
-        "news_updated": "2026-09-10T13:00:08.617941Z"
-      },
-      "137": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.432796Z"
-      },
-      "139": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Ankle injury - Expected back 10 Oct",
-        "news_updated": "2026-07-23T12:01:23.448357Z"
-      },
-      "140": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Como on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:20:41.841936Z"
-      },
-      "141": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined RC Strasbourg on loan for the rest of the season",
-        "news_updated": "2026-08-12T14:07:02.607115Z"
-      },
-      "142": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": 75,
-        "news": "Hamstring injury - 75% chance of playing",
-        "news_updated": "2026-09-18T10:30:09.719371Z"
-      },
-      "143": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Como permanently",
-        "news_updated": "2026-08-10T14:03:50.769483Z"
-      },
-      "146": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Napoli on loan for the rest of the season",
-        "news_updated": "2026-08-25T14:03:47.079414Z"
-      },
-      "150": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Real Sociedad on loan for the rest of the season",
-        "news_updated": "2026-08-29T00:34:23.077418Z"
-      },
-      "152": {
-        "status": "d",
-        "chance_next": 50,
-        "chance_this": 50,
-        "news": "Thigh injury - 50% chance of playing",
-        "news_updated": "2026-08-24T18:30:07.421239Z"
-      },
-      "153": {
-        "status": "s",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Suspended until 25 Oct",
-        "news_updated": "2026-09-12T15:30:09.445078Z"
-      },
-      "154": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": 100,
-        "news": "Muscular injury - 75% chance of playing",
-        "news_updated": "2026-09-21T13:00:09.022726Z"
-      },
-      "158": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Ankle injury - 75% chance of playing",
-        "news_updated": "2026-09-26T05:30:09.245832Z"
-      },
-      "159": {
-        "status": "d",
-        "chance_next": 50,
-        "chance_this": 50,
-        "news": "Calf injury - 50% chance of playing",
-        "news_updated": "2026-08-30T16:00:08.393562Z"
-      },
-      "163": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined RC Strasbourg on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:20:41.865225Z"
-      },
-      "165": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": 75,
-        "news": "Knee injury - 75% chance of playing",
-        "news_updated": "2026-09-16T19:00:09.919929Z"
-      },
-      "168": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined RB Leipzig permanently",
-        "news_updated": "2026-09-01T13:24:48.857362Z"
-      },
-      "170": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Hamstring injury - Expected back 10 Oct",
-        "news_updated": "2026-09-09T15:00:09.063849Z"
-      },
-      "171": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Leyton Orient on loan for the rest of the season",
-        "news_updated": "2026-09-02T15:44:14.839336Z"
-      },
-      "174": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Sheffield United on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:21:03.612394Z"
-      },
-      "175": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Hamstring injury - 75% chance of playing",
-        "news_updated": "2026-09-19T16:00:09.486751Z"
-      },
-      "177": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Hamstring injury - Unknown return date",
-        "news_updated": "2026-08-27T14:56:28.704361Z"
-      },
-      "180": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-08-27T14:56:28.718566Z"
-      },
-      "181": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Academico de Viseu on loan for the rest of the season",
-        "news_updated": "2026-08-29T00:35:59.980316Z"
-      },
-      "182": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 25,
-        "news": "Calf injury - Unknown return date",
-        "news_updated": "2026-09-17T07:30:09.329041Z"
-      },
-      "187": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Unspecified injury - Expected back 12 Oct",
-        "news_updated": "2026-09-10T18:30:08.877110Z"
-      },
-      "191": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Burton Albion on loan for the rest of the season",
-        "news_updated": "2026-09-02T15:44:14.868001Z"
-      },
-      "192": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Oxford United on loan for the rest of the season",
-        "news_updated": "2026-08-29T00:35:59.998520Z"
-      },
-      "193": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Thigh injury - Unknown return date",
-        "news_updated": "2026-08-14T22:00:07.214508Z"
-      },
-      "196": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Shabab Al-Ahli Dubai permanently",
-        "news_updated": "2026-08-17T13:53:55.791223Z"
-      },
-      "197": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined KVC Westerlo on loan for the rest of the season",
-        "news_updated": "2026-07-28T12:58:50.001768Z"
-      },
-      "198": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Foot injury - Expected back 11 Oct",
-        "news_updated": "2026-09-12T14:00:09.378740Z"
-      },
-      "205": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined FC Cologne on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:03:25.710518Z"
-      },
-      "206": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-08-22T18:00:07.352049Z"
-      },
-      "215": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Stoke City permanently",
-        "news_updated": "2026-09-02T15:41:07.346849Z"
-      },
-      "216": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Millwall on loan for the rest of the season",
-        "news_updated": "2026-09-02T15:41:07.376544Z"
-      },
-      "217": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Alverca on loan for the rest of the season",
-        "news_updated": "2026-09-11T14:42:19.322912Z"
-      },
-      "219": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "has joined  Kasimpasa on loan for the rest of the seaon.",
-        "news_updated": "2026-09-10T09:12:47.224598Z"
-      },
-      "220": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Bristol City on loan for the rest of the season",
-        "news_updated": "2026-08-12T14:08:46.501813Z"
-      },
-      "223": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Hamstring injury - Expected back 11 Oct",
-        "news_updated": "2026-08-28T21:00:08.020382Z"
-      },
-      "225": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "has returned to Getafe CF",
-        "news_updated": "2026-07-23T12:18:56.275922Z"
-      },
-      "234": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Torino permanently",
-        "news_updated": "2026-09-02T16:05:23.326971Z"
-      },
-      "235": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Malaga on loan for the rest of the season",
-        "news_updated": "2026-09-01T13:23:16.934847Z"
-      },
-      "246": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Unspecified injury - Expected back 11 Oct",
-        "news_updated": "2026-09-16T18:00:09.541933Z"
-      },
-      "248": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Fiorentina permanently",
-        "news_updated": "2026-09-02T16:05:23.357221Z"
-      },
-      "252": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined York City on loan for the rest of the season",
-        "news_updated": "2026-09-01T13:25:11.231240Z"
-      },
-      "260": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Thigh injury - Unknown return date",
-        "news_updated": "2026-09-18T13:30:09.626858Z"
-      },
-      "266": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Expected back 10 Oct",
-        "news_updated": "2026-08-14T18:00:06.460944Z"
-      },
-      "274": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Arm injury - Unknown return date",
-        "news_updated": "2026-08-08T19:00:05.601633Z"
-      },
-      "275": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Grimsby Town on loan for the rest of the season",
-        "news_updated": "2026-07-29T13:00:27.959925Z"
-      },
-      "276": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Colchester United on loan for the rest of the season",
-        "news_updated": "2026-08-17T13:50:27.125537Z"
-      },
-      "278": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Groin injury - Unknown return date",
-        "news_updated": "2026-08-02T09:00:11.030017Z"
-      },
-      "281": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Genoa permanently",
-        "news_updated": "2026-09-02T16:09:06.479140Z"
-      },
-      "283": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Newport County on loan until January",
-        "news_updated": "2026-08-02T09:00:11.038361Z"
-      },
-      "287": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Birmingham on loan for the rest of the season",
-        "news_updated": "2026-09-02T15:36:41.038103Z"
-      },
-      "291": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.532635Z"
-      },
-      "293": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Portsmouth permanently",
-        "news_updated": "2026-08-12T14:08:23.542043Z"
-      },
-      "296": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Omonoia FC permanently",
-        "news_updated": "2026-09-11T14:42:38.120231Z"
-      },
-      "297": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Thigh injury - Unknown return date",
-        "news_updated": "2026-08-04T18:30:11.027155Z"
-      },
-      "298": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Konyaspor permanently",
-        "news_updated": "2026-08-17T13:50:27.145733Z"
-      },
-      "299": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Sheffield Wednesday on loan for the rest of the season",
-        "news_updated": "2026-08-03T14:05:20.234842Z"
-      },
-      "307": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Stoke City on loan for the rest of the season",
-        "news_updated": "2026-09-04T12:36:56.236331Z"
-      },
-      "311": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Leicester City permanently",
-        "news_updated": "2026-08-10T14:02:47.597478Z"
-      },
-      "312": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-29T18:00:10.319370Z"
-      },
-      "314": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Lincoln City on loan until January",
-        "news_updated": "2026-09-02T16:04:17.497385Z"
-      },
-      "315": {
-        "status": "s",
-        "chance_next": 0,
-        "chance_this": null,
-        "news": "Suspended until 17 Oct",
-        "news_updated": "2026-09-19T15:30:10.126897Z"
-      },
-      "317": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Stoke City permanently",
-        "news_updated": "2026-08-21T13:06:08.606019Z"
-      },
-      "319": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Derby County on loan for the rest of the season",
-        "news_updated": "2026-08-17T13:51:41.713979Z"
-      },
-      "322": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Sheffield Wednesday on loan for the rest of the season",
-        "news_updated": "2026-08-27T14:54:10.215357Z"
-      },
-      "325": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": 100,
-        "news": "Unspecified injury - 75% chance of playing",
-        "news_updated": "2026-09-21T13:30:08.885505Z"
-      },
-      "326": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Torino on loan for the rest of the season",
-        "news_updated": "2026-09-01T13:12:39.210133Z"
-      },
-      "328": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": 100,
-        "news": "Hamstring injury - 75% chance of playing",
-        "news_updated": "2026-09-22T10:00:09.404233Z"
-      },
-      "329": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Hamstring injury - Expected back 21 Nov",
-        "news_updated": "2026-08-30T16:00:08.564382Z"
-      },
-      "333": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Hamburg SV on loan for the rest of the season",
-        "news_updated": "2026-08-19T13:56:14.645970Z"
-      },
-      "341": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined ACF Fiorentina on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:04:47.189648Z"
-      },
-      "342": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined New England Revolution permanently",
-        "news_updated": "2026-07-28T12:59:09.492431Z"
-      },
-      "348": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined West Ham United on loan for the rest of the season",
-        "news_updated": "2026-08-19T13:56:14.666726Z"
-      },
-      "349": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-29T18:00:10.338170Z"
-      },
-      "353": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined TSV Hartberg on loan for the rest of the season",
-        "news_updated": "2026-08-18T14:11:18.638344Z"
-      },
-      "354": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-29T18:00:10.351066Z"
-      },
-      "360": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.565711Z"
-      },
-      "363": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.596909Z"
-      },
-      "365": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined St Mirren on loan for the rest of the season",
-        "news_updated": "2026-08-26T14:05:26.748768Z"
-      },
-      "367": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": 100,
-        "news": "Ankle injury - 75% chance of playing",
-        "news_updated": "2026-09-27T21:30:07.786183Z"
-      },
-      "370": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Back injury - Unknown return date",
-        "news_updated": "2026-08-27T13:30:07.598926Z"
-      },
-      "373": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Internazionale permanently",
-        "news_updated": "2026-08-16T18:30:07.426408Z"
-      },
-      "376": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Celta Vigo permanently",
-        "news_updated": "2026-07-23T12:01:23.628373Z"
-      },
-      "379": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Thigh injury - 75% chance of playing",
-        "news_updated": "2026-09-27T10:30:09.051435Z"
-      },
-      "380": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Achilles injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.643771Z"
-      },
-      "383": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Valencia on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:05:49.104326Z"
-      },
-      "394": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Burnley on loan for the rest of the season",
-        "news_updated": "2026-08-18T14:11:56.324656Z"
-      },
-      "397": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Ankle injury - 75% chance of playing",
-        "news_updated": "2026-09-24T12:00:09.848000Z"
-      },
-      "398": {
-        "status": "s",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Suspended until 17 Oct",
-        "news_updated": "2026-09-13T17:00:09.433455Z"
-      },
-      "402": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Barcelona permanently",
-        "news_updated": "2026-07-23T12:01:23.675537Z"
-      },
-      "404": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Al Qadsiah permanently",
-        "news_updated": "2026-08-20T14:02:58.154273Z"
-      },
-      "407": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Benfica on loan for the rest of the season",
-        "news_updated": "2026-09-03T15:41:24.710479Z"
-      },
-      "408": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Sheffield United on loan for the rest of the season",
-        "news_updated": "2026-08-18T14:11:56.348781Z"
-      },
-      "409": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "has joined West Ham on loan for the rest of the seaon.",
-        "news_updated": "2026-09-03T10:34:10.733520Z"
-      },
-      "410": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Swansea City on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:02:01.136760Z"
-      },
-      "413": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Celta Vigo on loan for the rest of the season",
-        "news_updated": "2026-08-10T14:02:28.608415Z"
-      },
-      "414": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Hamstring injury - Unknown return date",
-        "news_updated": "2026-08-15T16:00:07.854151Z"
-      },
-      "415": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Hamstring injury - 75% chance of playing",
-        "news_updated": "2026-09-27T21:30:07.831640Z"
-      },
-      "416": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Back injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.690880Z"
-      },
-      "425": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Lausanne-Sport permanently",
-        "news_updated": "2026-08-18T14:12:31.904433Z"
-      },
-      "429": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Unspecified injury - 75% chance of playing",
-        "news_updated": "2026-09-21T10:30:09.221479Z"
-      },
-      "431": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Unspecified injury - Unknown return date",
-        "news_updated": "2026-08-22T11:00:08.617283Z"
-      },
-      "432": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Unspecified injury - 75% chance of playing",
-        "news_updated": "2026-09-21T13:00:09.169862Z"
-      },
-      "433": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.706702Z"
-      },
-      "436": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined West Brom permanently",
-        "news_updated": "2026-09-01T13:16:48.584385Z"
-      },
-      "439": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": 100,
-        "news": "Shin injury - 75% chance of playing",
-        "news_updated": "2026-09-20T19:30:08.505755Z"
-      },
-      "441": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Willem II on loan for the rest of the season",
-        "news_updated": "2026-09-14T16:12:42.090874Z"
-      },
-      "444": {
-        "status": "d",
-        "chance_next": 50,
-        "chance_this": 50,
-        "news": "Ankle injury - 50% chance of playing",
-        "news_updated": "2026-09-10T16:00:09.127466Z"
-      },
-      "448": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Ankle injury - Expected back 12 Oct",
-        "news_updated": "2026-08-23T18:00:08.367241Z"
-      },
-      "450": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": 100,
-        "news": "Unspecified injury - 75% chance of playing",
-        "news_updated": "2026-09-19T14:00:09.046677Z"
-      },
-      "451": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined FC Kaiserslautern on loan for the rest of the season",
-        "news_updated": "2026-08-12T14:05:29.224600Z"
-      },
-      "454": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Unspecified injury - Unknown return date",
-        "news_updated": "2026-09-14T20:00:09.505598Z"
-      },
-      "456": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Thigh injury - Unknown return date",
-        "news_updated": "2026-09-15T09:00:08.191022Z"
-      },
-      "458": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Unspecified injury - Unknown return date",
-        "news_updated": "2026-08-16T08:00:08.074045Z"
-      },
-      "463": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Juventus on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:07:16.549304Z"
-      },
-      "465": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Foot injury - Unknown return date",
-        "news_updated": "2026-08-25T19:00:08.004915Z"
-      },
-      "466": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Wolves on loan for the rest of the season",
-        "news_updated": "2026-09-04T12:37:43.515176Z"
-      },
-      "470": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined West Ham on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:19:54.503286Z"
-      },
-      "471": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Hamstring injury - Expected back 11 Oct",
-        "news_updated": "2026-09-12T14:00:09.705107Z"
-      },
-      "475": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.816304Z"
-      },
-      "477": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Southampton on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:19:54.536676Z"
-      },
-      "479": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Charlton Athletic on loan for the rest of the season",
-        "news_updated": "2026-09-01T13:16:05.383880Z"
-      },
-      "484": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined AC Milan on loan for the rest of the season",
-        "news_updated": "2026-09-01T13:23:52.340206Z"
-      },
-      "485": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Lille on loan for the rest of the season",
-        "news_updated": "2026-08-27T14:53:03.381941Z"
-      },
-      "492": {
-        "status": "s",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Suspended until 19 Oct",
-        "news_updated": "2026-09-13T15:00:09.305127Z"
-      },
-      "494": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Juventus on loan for the rest of the season",
-        "news_updated": "2026-08-19T13:55:33.193962Z"
-      },
-      "499": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": 100,
-        "news": "Hamstring injury - 75% chance of playing",
-        "news_updated": "2026-09-19T12:00:08.823872Z"
-      },
-      "500": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Atletico Madrid permanently",
-        "news_updated": "2026-08-17T13:49:05.465401Z"
-      },
-      "505": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Internazionale permanently",
-        "news_updated": "2026-08-18T14:13:08.454214Z"
-      },
-      "507": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Middlesbrough permanently",
-        "news_updated": "2026-08-18T14:13:08.474144Z"
-      },
-      "511": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined FC Porto on loan for the rest of the season",
-        "news_updated": "2026-09-01T13:24:26.858636Z"
-      },
-      "513": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.864304Z"
-      },
-      "517": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.879434Z"
-      },
-      "518": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Juventus on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:02:43.386849Z"
-      },
-      "521": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-07-23T12:01:23.895175Z"
-      },
-      "523": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined FC Köln on loan for the rest of the season",
-        "news_updated": "2026-09-04T12:39:48.098158Z"
-      },
-      "527": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "not included in squad.",
-        "news_updated": "2026-09-04T12:32:39.183614Z"
-      },
-      "528": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Leyton Orient permanently",
-        "news_updated": "2026-09-02T16:02:43.413625Z"
-      },
-      "530": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Wrexham permanently",
-        "news_updated": "2026-08-12T14:08:03.064533Z"
-      },
-      "532": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Hamstring injury - 75% chance of playing",
-        "news_updated": "2026-09-25T21:30:10.370384Z"
-      },
-      "537": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Swansea City on loan for the rest of the season",
-        "news_updated": "2026-08-29T00:34:52.425076Z"
-      },
-      "538": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined KV Mechelen on loan for the rest of the season",
-        "news_updated": "2026-08-12T14:08:03.081789Z"
-      },
-      "540": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Konyaspor permanently",
-        "news_updated": "2026-08-12T14:08:03.097784Z"
-      },
-      "543": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Hamstring injury - Unknown return date",
-        "news_updated": "2026-08-30T16:30:08.428960Z"
-      },
-      "546": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Ajax on loan for the rest of the season",
-        "news_updated": "2026-08-20T14:00:08.416985Z"
-      },
-      "547": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Unknown return date",
-        "news_updated": "2026-09-09T14:00:08.462705Z"
-      },
-      "552": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Hamstring injury - 75% chance of playing",
-        "news_updated": "2026-09-24T21:30:10.382142Z"
-      },
-      "560": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": 75,
-        "news": "Ankle injury - 75% chance of playing",
-        "news_updated": "2026-09-17T14:00:26.419938Z"
-      },
-      "561": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Calf injury - Expected back 11 Oct",
-        "news_updated": "2026-09-09T14:00:08.474217Z"
-      },
-      "562": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Valencia on loan for the rest of the season",
-        "news_updated": "2026-08-25T14:04:09.529320Z"
-      },
-      "575": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Calf injury - 75% chance of playing",
-        "news_updated": "2026-09-21T13:30:09.030724Z"
-      },
-      "578": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Ankle injury - Unknown return date",
-        "news_updated": "2026-09-11T18:00:09.154412Z"
-      },
-      "582": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Unspecified injury - Unknown return date",
-        "news_updated": "2026-08-15T16:00:07.974271Z"
-      },
-      "595": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Unspecified injury - Unknown return date",
-        "news_updated": "2026-09-17T14:30:09.823731Z"
-      },
-      "601": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Huddersfield Town on loan for the rest of the season",
-        "news_updated": "2026-09-02T16:04:17.524642Z"
-      },
-      "606": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Oxford United on loan until January",
-        "news_updated": "2026-09-04T12:35:39.820426Z"
-      },
-      "609": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "has joined Arouca on loan for the rest of the seaon.",
-        "news_updated": "2026-09-11T14:41:57.406766Z"
-      },
-      "610": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "has joined  Real Salt Lake on loan for the rest of the seaon.",
-        "news_updated": "2026-08-28T11:30:08.336405Z"
-      },
-      "617": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Knee injury - Expected back 10 Oct",
-        "news_updated": "2026-09-09T09:30:08.229436Z"
-      },
-      "624": {
-        "status": "u",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Has joined Middlesbrough on loan for the rest of the season",
-        "news_updated": "2026-09-02T15:38:15.552951Z"
-      },
-      "641": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Back injury - Unknown return date",
-        "news_updated": "2026-09-09T10:00:08.919489Z"
-      },
-      "643": {
-        "status": "d",
-        "chance_next": 75,
-        "chance_this": null,
-        "news": "Hamstring injury - 75% chance of playing",
-        "news_updated": "2026-09-21T08:30:09.561308Z"
-      },
-      "652": {
-        "status": "i",
-        "chance_next": 0,
-        "chance_this": 0,
-        "news": "Hamstring injury - Expected back 10 Oct",
-        "news_updated": "2026-09-04T11:30:08.661589Z"
-      }
-    },
     "2026-09-29T16:39:00+00:00": {
       "6": {
         "status": "i",
@@ -288437,6 +286972,1394 @@
         "news": "Hamstring injury - Expected back 31 Oct",
         "news_updated": "2026-09-04T11:30:08.661589Z"
       }
+    },
+    "2026-10-25T19:21:23+00:00": {
+      "6": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Back injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.289376Z"
+      },
+      "8": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": null,
+        "news": "Hip injury - 75% chance of playing",
+        "news_updated": "2026-10-24T18:30:08.735545Z"
+      },
+      "12": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Thigh injury - Unknown return date",
+        "news_updated": "2026-10-21T20:30:09.540957Z"
+      },
+      "18": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Al Hilal permanently",
+        "news_updated": "2026-09-04T12:34:46.738449Z"
+      },
+      "22": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Borussia Dortmund on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:01:07.058827Z"
+      },
+      "23": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Hamburger SV permanently",
+        "news_updated": "2026-09-02T16:00:28.446370Z"
+      },
+      "24": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "has departed the club as a free agent.",
+        "news_updated": "2026-08-29T00:33:08.556767Z"
+      },
+      "27": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined FC Barcelona permanently",
+        "news_updated": "2026-09-02T16:00:28.475184Z"
+      },
+      "28": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Head injury - Unknown return date",
+        "news_updated": "2026-10-17T13:30:08.724000Z"
+      },
+      "30": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Paris Saint-Germain permanently",
+        "news_updated": "2026-08-10T14:03:30.089007Z"
+      },
+      "38": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Getafe on loan for the rest of the season",
+        "news_updated": "2026-10-21T13:24:48.628998Z"
+      },
+      "39": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Rangers on loan for the rest of the season",
+        "news_updated": "2026-08-19T13:56:46.385411Z"
+      },
+      "44": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Olympiakos permanently",
+        "news_updated": "2026-09-04T12:35:14.472260Z"
+      },
+      "48": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.352497Z"
+      },
+      "49": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Bolton Wanderers on loan for the rest of the season",
+        "news_updated": "2026-08-17T13:52:28.532616Z"
+      },
+      "55": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Al Hilal permanently",
+        "news_updated": "2026-09-01T13:15:16.698799Z"
+      },
+      "59": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined MK Dons permanently",
+        "news_updated": "2026-08-27T14:53:48.692835Z"
+      },
+      "63": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Thigh injury - Expected back 31 Oct",
+        "news_updated": "2026-08-06T10:00:10.456051Z"
+      },
+      "65": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Thigh injury - Unknown return date",
+        "news_updated": "2026-08-09T08:00:05.645826Z"
+      },
+      "69": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Thigh injury - Expected back 8 Nov",
+        "news_updated": "2026-10-05T09:30:09.910752Z"
+      },
+      "76": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Unknown return date",
+        "news_updated": "2026-10-23T11:30:09.133819Z"
+      },
+      "80": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Getafe permanently",
+        "news_updated": "2026-08-14T14:14:21.881112Z"
+      },
+      "99": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.384798Z"
+      },
+      "102": {
+        "status": "s",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Suspended until 8 Nov",
+        "news_updated": "2026-10-17T15:00:07.992801Z"
+      },
+      "103": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Unknown return date",
+        "news_updated": "2026-09-04T13:30:08.371955Z"
+      },
+      "107": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Unspecified injury - Unknown return date",
+        "news_updated": "2026-09-14T14:00:09.985723Z"
+      },
+      "113": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 100,
+        "news": "Hip injury - 75% chance of playing",
+        "news_updated": "2026-10-25T17:30:09.883815Z"
+      },
+      "118": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Burnley permanently",
+        "news_updated": "2026-09-02T15:38:15.529699Z"
+      },
+      "121": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Expected back 31 Oct",
+        "news_updated": "2026-07-24T18:30:10.661894Z"
+      },
+      "122": {
+        "status": "d",
+        "chance_next": 50,
+        "chance_this": 50,
+        "news": "Leg injury - 50% chance of playing",
+        "news_updated": "2026-08-14T18:00:06.418033Z"
+      },
+      "128": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Elche on loan for the rest of the season",
+        "news_updated": "2026-08-10T14:03:07.561436Z"
+      },
+      "130": {
+        "status": "d",
+        "chance_next": 25,
+        "chance_this": 25,
+        "news": "Knee injury - 25% chance of playing",
+        "news_updated": "2026-09-04T09:30:08.612904Z"
+      },
+      "132": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Leicester City on loan for the rest of the season",
+        "news_updated": "2026-08-17T13:53:19.019938Z"
+      },
+      "133": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Leicester City on loan for the rest of the season",
+        "news_updated": "2026-08-03T14:05:44.459483Z"
+      },
+      "135": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Unspecified injury - Expected back 31 Oct",
+        "news_updated": "2026-09-10T13:00:08.617941Z"
+      },
+      "137": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.432796Z"
+      },
+      "139": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Ankle injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.448357Z"
+      },
+      "140": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Como on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:20:41.841936Z"
+      },
+      "141": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined RC Strasbourg on loan for the rest of the season",
+        "news_updated": "2026-08-12T14:07:02.607115Z"
+      },
+      "142": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-10-10T13:30:08.699019Z"
+      },
+      "143": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Como permanently",
+        "news_updated": "2026-08-10T14:03:50.769483Z"
+      },
+      "146": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Napoli on loan for the rest of the season",
+        "news_updated": "2026-08-25T14:03:47.079414Z"
+      },
+      "150": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Real Sociedad on loan for the rest of the season",
+        "news_updated": "2026-08-29T00:34:23.077418Z"
+      },
+      "158": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Ankle injury - Unknown return date",
+        "news_updated": "2026-09-26T05:30:09.245832Z"
+      },
+      "163": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined RC Strasbourg on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:20:41.865225Z"
+      },
+      "165": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 100,
+        "news": "Unspecified injury - 75% chance of playing",
+        "news_updated": "2026-10-24T16:30:09.687729Z"
+      },
+      "168": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined RB Leipzig permanently",
+        "news_updated": "2026-09-01T13:24:48.857362Z"
+      },
+      "170": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Unknown return date",
+        "news_updated": "2026-09-09T15:00:09.063849Z"
+      },
+      "171": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "not included in squad.",
+        "news_updated": "2026-09-02T15:44:14.839336Z"
+      },
+      "173": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": null,
+        "news": "Unspecified injury - 75% chance of playing",
+        "news_updated": "2026-10-24T17:00:09.115906Z"
+      },
+      "174": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Sheffield United on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:21:03.612394Z"
+      },
+      "180": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-08-27T14:56:28.718566Z"
+      },
+      "181": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Academico de Viseu on loan for the rest of the season",
+        "news_updated": "2026-08-29T00:35:59.980316Z"
+      },
+      "182": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Calf injury - Unknown return date",
+        "news_updated": "2026-09-17T07:30:09.329041Z"
+      },
+      "187": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Ankle injury - Unknown return date",
+        "news_updated": "2026-09-10T18:30:08.877110Z"
+      },
+      "191": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Burton Albion on loan for the rest of the season",
+        "news_updated": "2026-09-02T15:44:14.868001Z"
+      },
+      "192": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Oxford United on loan for the rest of the season",
+        "news_updated": "2026-08-29T00:35:59.998520Z"
+      },
+      "193": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Thigh injury - Unknown return date",
+        "news_updated": "2026-08-14T22:00:07.214508Z"
+      },
+      "196": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Shabab Al-Ahli Dubai permanently",
+        "news_updated": "2026-08-17T13:53:55.791223Z"
+      },
+      "197": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined KVC Westerlo on loan for the rest of the season",
+        "news_updated": "2026-07-28T12:58:50.001768Z"
+      },
+      "198": {
+        "status": "d",
+        "chance_next": 50,
+        "chance_this": 50,
+        "news": "Foot injury - 50% chance of playing",
+        "news_updated": "2026-09-12T14:00:09.378740Z"
+      },
+      "205": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined FC Cologne on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:03:25.710518Z"
+      },
+      "206": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-08-22T18:00:07.352049Z"
+      },
+      "215": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Stoke City permanently",
+        "news_updated": "2026-09-02T15:41:07.346849Z"
+      },
+      "216": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Millwall on loan for the rest of the season",
+        "news_updated": "2026-09-02T15:41:07.376544Z"
+      },
+      "217": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Alverca on loan for the rest of the season",
+        "news_updated": "2026-09-11T14:42:19.322912Z"
+      },
+      "219": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "has joined  Kasimpasa on loan for the rest of the seaon.",
+        "news_updated": "2026-09-10T09:12:47.224598Z"
+      },
+      "220": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Bristol City on loan for the rest of the season",
+        "news_updated": "2026-08-12T14:08:46.501813Z"
+      },
+      "222": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 75,
+        "news": "Unspecified injury - 75% chance of playing",
+        "news_updated": "2026-10-23T17:00:09.672494Z"
+      },
+      "225": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "has returned to Getafe CF",
+        "news_updated": "2026-07-23T12:18:56.275922Z"
+      },
+      "233": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 100,
+        "news": "Unspecified injury - 75% chance of playing",
+        "news_updated": "2026-10-24T19:00:09.907289Z"
+      },
+      "234": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Torino permanently",
+        "news_updated": "2026-09-02T16:05:23.326971Z"
+      },
+      "235": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Malaga on loan for the rest of the season",
+        "news_updated": "2026-09-01T13:23:16.934847Z"
+      },
+      "238": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 100,
+        "news": "Illness - 75% chance of playing",
+        "news_updated": "2026-10-24T14:30:09.610430Z"
+      },
+      "248": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Fiorentina permanently",
+        "news_updated": "2026-09-02T16:05:23.357221Z"
+      },
+      "252": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined York City on loan for the rest of the season",
+        "news_updated": "2026-09-01T13:25:11.231240Z"
+      },
+      "262": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 75,
+        "news": "Knock - 75% chance of playing",
+        "news_updated": "2026-10-23T11:30:09.310090Z"
+      },
+      "267": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Groin injury - Unknown return date",
+        "news_updated": "2026-10-19T15:30:08.949503Z"
+      },
+      "269": {
+        "status": "s",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Suspended until 7 Nov",
+        "news_updated": "2026-10-17T16:30:09.374216Z"
+      },
+      "274": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Arm injury - Unknown return date",
+        "news_updated": "2026-08-08T19:00:05.601633Z"
+      },
+      "275": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Grimsby Town on loan for the rest of the season",
+        "news_updated": "2026-07-29T13:00:27.959925Z"
+      },
+      "276": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Colchester United on loan for the rest of the season",
+        "news_updated": "2026-08-17T13:50:27.125537Z"
+      },
+      "278": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Groin injury - Unknown return date",
+        "news_updated": "2026-08-02T09:00:11.030017Z"
+      },
+      "281": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Genoa permanently",
+        "news_updated": "2026-09-02T16:09:06.479140Z"
+      },
+      "283": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Newport County on loan until January",
+        "news_updated": "2026-08-02T09:00:11.038361Z"
+      },
+      "287": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Birmingham on loan for the rest of the season",
+        "news_updated": "2026-09-02T15:36:41.038103Z"
+      },
+      "291": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.532635Z"
+      },
+      "293": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Portsmouth permanently",
+        "news_updated": "2026-08-12T14:08:23.542043Z"
+      },
+      "296": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Omonoia FC permanently",
+        "news_updated": "2026-09-11T14:42:38.120231Z"
+      },
+      "297": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Thigh injury - Unknown return date",
+        "news_updated": "2026-08-04T18:30:11.027155Z"
+      },
+      "298": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Konyaspor permanently",
+        "news_updated": "2026-08-17T13:50:27.145733Z"
+      },
+      "299": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Sheffield Wednesday on loan for the rest of the season",
+        "news_updated": "2026-08-03T14:05:20.234842Z"
+      },
+      "307": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Stoke City on loan for the rest of the season",
+        "news_updated": "2026-09-04T12:36:56.236331Z"
+      },
+      "311": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Leicester City permanently",
+        "news_updated": "2026-08-10T14:02:47.597478Z"
+      },
+      "314": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Lincoln City on loan until January",
+        "news_updated": "2026-09-02T16:04:17.497385Z"
+      },
+      "317": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Stoke City permanently",
+        "news_updated": "2026-08-21T13:06:08.606019Z"
+      },
+      "319": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Derby County on loan for the rest of the season",
+        "news_updated": "2026-08-17T13:51:41.713979Z"
+      },
+      "322": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Sheffield Wednesday on loan for the rest of the season",
+        "news_updated": "2026-08-27T14:54:10.215357Z"
+      },
+      "326": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Torino on loan for the rest of the season",
+        "news_updated": "2026-09-01T13:12:39.210133Z"
+      },
+      "328": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 75,
+        "news": "Hamstring injury - 75% chance of playing",
+        "news_updated": "2026-10-16T17:30:09.428175Z"
+      },
+      "329": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Expected back 21 Nov",
+        "news_updated": "2026-08-30T16:00:08.564382Z"
+      },
+      "333": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Hamburg SV on loan for the rest of the season",
+        "news_updated": "2026-08-19T13:56:14.645970Z"
+      },
+      "341": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined ACF Fiorentina on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:04:47.189648Z"
+      },
+      "342": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined New England Revolution permanently",
+        "news_updated": "2026-07-28T12:59:09.492431Z"
+      },
+      "348": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined West Ham United on loan for the rest of the season",
+        "news_updated": "2026-08-19T13:56:14.666726Z"
+      },
+      "349": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-07-29T18:00:10.338170Z"
+      },
+      "353": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined TSV Hartberg on loan for the rest of the season",
+        "news_updated": "2026-08-18T14:11:18.638344Z"
+      },
+      "354": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-07-29T18:00:10.351066Z"
+      },
+      "357": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Unknown return date",
+        "news_updated": "2026-10-17T15:30:09.979166Z"
+      },
+      "360": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.565711Z"
+      },
+      "363": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.596909Z"
+      },
+      "365": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined St Mirren on loan for the rest of the season",
+        "news_updated": "2026-08-26T14:05:26.748768Z"
+      },
+      "366": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": null,
+        "news": "Ankle injury - 75% chance of playing",
+        "news_updated": "2026-10-25T17:00:09.888666Z"
+      },
+      "368": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Unknown return date",
+        "news_updated": "2026-10-17T15:00:08.293301Z"
+      },
+      "373": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Internazionale permanently",
+        "news_updated": "2026-08-16T18:30:07.426408Z"
+      },
+      "376": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Celta Vigo permanently",
+        "news_updated": "2026-07-23T12:01:23.628373Z"
+      },
+      "377": {
+        "status": "d",
+        "chance_next": 25,
+        "chance_this": 25,
+        "news": "Knee injury - 25% chance of playing",
+        "news_updated": "2026-10-20T18:30:09.999223Z"
+      },
+      "380": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Achilles injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.643771Z"
+      },
+      "383": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Valencia on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:05:49.104326Z"
+      },
+      "389": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 75,
+        "news": "Unspecified injury - 75% chance of playing",
+        "news_updated": "2026-10-19T15:30:09.094655Z"
+      },
+      "394": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Burnley on loan for the rest of the season",
+        "news_updated": "2026-08-18T14:11:56.324656Z"
+      },
+      "397": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-10-17T17:30:09.977110Z"
+      },
+      "402": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Barcelona permanently",
+        "news_updated": "2026-07-23T12:01:23.675537Z"
+      },
+      "403": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Muscular injury - Expected back 7 Nov",
+        "news_updated": "2026-10-18T13:00:09.266321Z"
+      },
+      "404": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Al Qadsiah permanently",
+        "news_updated": "2026-08-20T14:02:58.154273Z"
+      },
+      "407": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Benfica on loan for the rest of the season",
+        "news_updated": "2026-09-03T15:41:24.710479Z"
+      },
+      "408": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Sheffield United on loan for the rest of the season",
+        "news_updated": "2026-08-18T14:11:56.348781Z"
+      },
+      "409": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "has joined West Ham on loan for the rest of the seaon.",
+        "news_updated": "2026-09-03T10:34:10.733520Z"
+      },
+      "410": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Swansea City on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:02:01.136760Z"
+      },
+      "413": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Celta Vigo on loan for the rest of the season",
+        "news_updated": "2026-08-10T14:02:28.608415Z"
+      },
+      "415": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Expected back 25 Oct",
+        "news_updated": "2026-09-27T21:30:07.831640Z"
+      },
+      "423": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Unspecified injury - Unknown return date",
+        "news_updated": "2026-10-12T21:30:08.995810Z"
+      },
+      "425": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Lausanne-Sport permanently",
+        "news_updated": "2026-08-18T14:12:31.904433Z"
+      },
+      "429": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 75,
+        "news": "Hip injury - 75% chance of playing",
+        "news_updated": "2026-10-20T20:00:09.925594Z"
+      },
+      "432": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Unspecified injury - Expected back 8 Nov",
+        "news_updated": "2026-10-12T21:30:09.006287Z"
+      },
+      "433": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.706702Z"
+      },
+      "436": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined West Brom permanently",
+        "news_updated": "2026-09-01T13:16:48.584385Z"
+      },
+      "439": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Shin injury - Unknown return date",
+        "news_updated": "2026-09-20T19:30:08.505755Z"
+      },
+      "441": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Willem II on loan for the rest of the season",
+        "news_updated": "2026-09-14T16:12:42.090874Z"
+      },
+      "444": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Unknown return date",
+        "news_updated": "2026-09-10T16:00:09.127466Z"
+      },
+      "450": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Expected back 7 Nov",
+        "news_updated": "2026-09-19T14:00:09.046677Z"
+      },
+      "451": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined FC Kaiserslautern on loan for the rest of the season",
+        "news_updated": "2026-08-12T14:05:29.224600Z"
+      },
+      "463": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Juventus on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:07:16.549304Z"
+      },
+      "466": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Wolves on loan for the rest of the season",
+        "news_updated": "2026-09-04T12:37:43.515176Z"
+      },
+      "469": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 100,
+        "news": "Arm injury - 75% chance of playing",
+        "news_updated": "2026-10-24T00:00:10.181593Z"
+      },
+      "470": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined West Ham on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:19:54.503286Z"
+      },
+      "475": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.816304Z"
+      },
+      "477": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Southampton on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:19:54.536676Z"
+      },
+      "479": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Charlton Athletic on loan for the rest of the season",
+        "news_updated": "2026-09-01T13:16:05.383880Z"
+      },
+      "484": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined AC Milan on loan for the rest of the season",
+        "news_updated": "2026-09-01T13:23:52.340206Z"
+      },
+      "485": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Lille on loan for the rest of the season",
+        "news_updated": "2026-08-27T14:53:03.381941Z"
+      },
+      "487": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": null,
+        "news": "Muscular injury - 75% chance of playing",
+        "news_updated": "2026-10-24T13:00:08.751863Z"
+      },
+      "491": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Calf injury - Unknown return date",
+        "news_updated": "2026-10-09T14:30:11.491800Z"
+      },
+      "494": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Juventus on loan for the rest of the season",
+        "news_updated": "2026-08-19T13:55:33.193962Z"
+      },
+      "500": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Atletico Madrid permanently",
+        "news_updated": "2026-08-17T13:49:05.465401Z"
+      },
+      "505": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Internazionale permanently",
+        "news_updated": "2026-08-18T14:13:08.454214Z"
+      },
+      "506": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-10-19T22:30:08.875960Z"
+      },
+      "507": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Middlesbrough permanently",
+        "news_updated": "2026-08-18T14:13:08.474144Z"
+      },
+      "511": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined FC Porto on loan for the rest of the season",
+        "news_updated": "2026-09-01T13:24:26.858636Z"
+      },
+      "513": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.864304Z"
+      },
+      "515": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 75,
+        "news": "Unspecified injury - 75% chance of playing",
+        "news_updated": "2026-10-24T19:00:10.113555Z"
+      },
+      "516": {
+        "status": "s",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Suspended until 7 Nov",
+        "news_updated": "2026-10-10T18:30:09.519346Z"
+      },
+      "517": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-07-23T12:01:23.879434Z"
+      },
+      "518": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Juventus on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:02:43.386849Z"
+      },
+      "520": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Expected back 31 Oct",
+        "news_updated": "2026-10-18T13:00:09.356060Z"
+      },
+      "523": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined FC Köln on loan for the rest of the season",
+        "news_updated": "2026-09-04T12:39:48.098158Z"
+      },
+      "527": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "not included in squad.",
+        "news_updated": "2026-09-04T12:32:39.183614Z"
+      },
+      "528": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Leyton Orient permanently",
+        "news_updated": "2026-09-02T16:02:43.413625Z"
+      },
+      "530": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Wrexham permanently",
+        "news_updated": "2026-08-12T14:08:03.064533Z"
+      },
+      "532": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Unknown return date",
+        "news_updated": "2026-09-25T21:30:10.370384Z"
+      },
+      "537": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Swansea City on loan for the rest of the season",
+        "news_updated": "2026-08-29T00:34:52.425076Z"
+      },
+      "538": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined KV Mechelen on loan for the rest of the season",
+        "news_updated": "2026-08-12T14:08:03.081789Z"
+      },
+      "540": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Konyaspor permanently",
+        "news_updated": "2026-08-12T14:08:03.097784Z"
+      },
+      "541": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 75,
+        "news": "Groin injury - 75% chance of playing",
+        "news_updated": "2026-10-10T16:30:09.200467Z"
+      },
+      "546": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Ajax on loan for the rest of the season",
+        "news_updated": "2026-08-20T14:00:08.416985Z"
+      },
+      "547": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Knee injury - Unknown return date",
+        "news_updated": "2026-09-09T14:00:08.462705Z"
+      },
+      "553": {
+        "status": "d",
+        "chance_next": 50,
+        "chance_this": 50,
+        "news": "Knock - 50% chance of playing",
+        "news_updated": "2026-10-15T16:30:07.851112Z"
+      },
+      "554": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Expected back 1 Nov",
+        "news_updated": "2026-10-02T15:00:11.091226Z"
+      },
+      "560": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Ankle injury - Unknown return date",
+        "news_updated": "2026-09-17T14:00:26.419938Z"
+      },
+      "562": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Valencia on loan for the rest of the season",
+        "news_updated": "2026-08-25T14:04:09.529320Z"
+      },
+      "575": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Calf injury - Expected back 8 Nov",
+        "news_updated": "2026-09-21T13:30:09.030724Z"
+      },
+      "578": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Ankle injury - Unknown return date",
+        "news_updated": "2026-09-11T18:00:09.154412Z"
+      },
+      "583": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Unspecified injury - Expected back 31 Oct",
+        "news_updated": "2026-10-17T12:00:10.154091Z"
+      },
+      "586": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Groin injury - Expected back 31 Oct",
+        "news_updated": "2026-10-16T12:30:09.976274Z"
+      },
+      "589": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 75,
+        "news": "Calf injury - 75% chance of playing",
+        "news_updated": "2026-10-16T13:00:08.314070Z"
+      },
+      "596": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Expected back 2 Jan",
+        "news_updated": "2026-10-10T18:00:10.750593Z"
+      },
+      "599": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": null,
+        "news": "Illness - 75% chance of playing",
+        "news_updated": "2026-10-25T17:00:10.080582Z"
+      },
+      "601": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Huddersfield Town on loan for the rest of the season",
+        "news_updated": "2026-09-02T16:04:17.524642Z"
+      },
+      "606": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Oxford United on loan until January",
+        "news_updated": "2026-09-04T12:35:39.820426Z"
+      },
+      "609": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "has joined Arouca on loan for the rest of the seaon.",
+        "news_updated": "2026-09-11T14:41:57.406766Z"
+      },
+      "610": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "has joined  Real Salt Lake on loan for the rest of the seaon.",
+        "news_updated": "2026-08-28T11:30:08.336405Z"
+      },
+      "611": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Expected back 21 Nov",
+        "news_updated": "2026-10-17T19:30:10.120990Z"
+      },
+      "624": {
+        "status": "u",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Has joined Middlesbrough on loan for the rest of the season",
+        "news_updated": "2026-09-02T15:38:15.552951Z"
+      },
+      "632": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": null,
+        "news": "Thigh injury - 75% chance of playing",
+        "news_updated": "2026-10-25T17:30:10.276308Z"
+      },
+      "635": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 75,
+        "news": "Hamstring injury - 75% chance of playing",
+        "news_updated": "2026-10-21T22:00:10.028638Z"
+      },
+      "641": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Back injury - Unknown return date",
+        "news_updated": "2026-09-09T10:00:08.919489Z"
+      },
+      "649": {
+        "status": "d",
+        "chance_next": 75,
+        "chance_this": 75,
+        "news": "Illness - 75% chance of playing",
+        "news_updated": "2026-10-23T14:30:10.429365Z"
+      },
+      "652": {
+        "status": "i",
+        "chance_next": 0,
+        "chance_this": 0,
+        "news": "Hamstring injury - Expected back 31 Oct",
+        "news_updated": "2026-09-04T11:30:08.661589Z"
+      }
     }
   },
   "official_fpl_draft_rank": {
@@ -289151,7 +289074,7 @@
       "rating": 92
     },
     "14": {
-      "rating": 71
+      "rating": 70
     },
     "15": {
       "rating": 83
@@ -289202,13 +289125,13 @@
       "rating": 44
     },
     "31": {
-      "rating": 81
+      "rating": 80
     },
     "32": {
       "rating": 69
     },
     "33": {
-      "rating": 62
+      "rating": 61
     },
     "34": {
       "rating": 52
@@ -289268,7 +289191,7 @@
       "rating": 50
     },
     "53": {
-      "rating": 72
+      "rating": 71
     },
     "54": {
       "rating": 59
@@ -289280,7 +289203,7 @@
       "rating": 48
     },
     "57": {
-      "rating": 62
+      "rating": 61
     },
     "58": {
       "rating": 46
@@ -289301,7 +289224,7 @@
       "rating": 42
     },
     "64": {
-      "rating": 68
+      "rating": 67
     },
     "65": {
       "rating": 42
@@ -289382,7 +289305,7 @@
       "rating": 54
     },
     "91": {
-      "rating": 63
+      "rating": 62
     },
     "92": {
       "rating": 49
@@ -289394,7 +289317,7 @@
       "rating": 80
     },
     "95": {
-      "rating": 72
+      "rating": 71
     },
     "96": {
       "rating": 56
@@ -289439,7 +289362,7 @@
       "rating": 85
     },
     "110": {
-      "rating": 73
+      "rating": 72
     },
     "111": {
       "rating": 56
@@ -289556,7 +289479,7 @@
       "rating": 67
     },
     "149": {
-      "rating": 71
+      "rating": 70
     },
     "150": {
       "rating": 48
@@ -289592,7 +289515,7 @@
       "rating": 56
     },
     "161": {
-      "rating": 56
+      "rating": 55
     },
     "162": {
       "rating": 53
@@ -289637,7 +289560,7 @@
       "rating": 64
     },
     "176": {
-      "rating": 65
+      "rating": 64
     },
     "177": {
       "rating": 43
@@ -289709,7 +289632,7 @@
       "rating": 53
     },
     "200": {
-      "rating": 82
+      "rating": 81
     },
     "201": {
       "rating": 64
@@ -289718,10 +289641,10 @@
       "rating": 75
     },
     "203": {
-      "rating": 58
+      "rating": 57
     },
     "204": {
-      "rating": 74
+      "rating": 73
     },
     "205": {
       "rating": 42
@@ -289808,7 +289731,7 @@
       "rating": 57
     },
     "233": {
-      "rating": 71
+      "rating": 70
     },
     "234": {
       "rating": 44
@@ -289886,10 +289809,10 @@
       "rating": 68
     },
     "259": {
-      "rating": 66
+      "rating": 65
     },
     "260": {
-      "rating": 71
+      "rating": 70
     },
     "261": {
       "rating": 75
@@ -289946,7 +289869,7 @@
       "rating": 40
     },
     "279": {
-      "rating": 69
+      "rating": 68
     },
     "280": {
       "rating": 58
@@ -290090,7 +290013,7 @@
       "rating": 45
     },
     "327": {
-      "rating": 52
+      "rating": 57
     },
     "328": {
       "rating": 54
@@ -290099,31 +290022,31 @@
       "rating": 45
     },
     "330": {
-      "rating": 69
+      "rating": 72
     },
     "331": {
-      "rating": 59
+      "rating": 65
     },
     "332": {
-      "rating": 76
+      "rating": 80
     },
     "333": {
       "rating": 45
     },
     "334": {
-      "rating": 76
+      "rating": 80
     },
     "335": {
-      "rating": 74
+      "rating": 75
     },
     "336": {
-      "rating": 64
+      "rating": 65
     },
     "337": {
-      "rating": 53
+      "rating": 56
     },
     "338": {
-      "rating": 65
+      "rating": 68
     },
     "339": {
       "rating": 49
@@ -290144,13 +290067,13 @@
       "rating": 49
     },
     "345": {
-      "rating": 58
+      "rating": 62
     },
     "346": {
       "rating": 81
     },
     "347": {
-      "rating": 49
+      "rating": 50
     },
     "348": {
       "rating": 45
@@ -290177,7 +290100,7 @@
       "rating": 54
     },
     "356": {
-      "rating": 89
+      "rating": 88
     },
     "357": {
       "rating": 60
@@ -290207,10 +290130,10 @@
       "rating": 50
     },
     "366": {
-      "rating": 87
+      "rating": 85
     },
     "367": {
-      "rating": 81
+      "rating": 80
     },
     "368": {
       "rating": 75
@@ -290225,7 +290148,7 @@
       "rating": 67
     },
     "372": {
-      "rating": 68
+      "rating": 67
     },
     "373": {
       "rating": 50
@@ -290264,22 +290187,22 @@
       "rating": 84
     },
     "385": {
-      "rating": 77
+      "rating": 82
     },
     "386": {
       "rating": 60
     },
     "387": {
-      "rating": 81
+      "rating": 80
     },
     "388": {
       "rating": 87
     },
     "389": {
-      "rating": 81
+      "rating": 80
     },
     "390": {
-      "rating": 78
+      "rating": 77
     },
     "391": {
       "rating": 84
@@ -290324,7 +290247,7 @@
       "rating": 66
     },
     "405": {
-      "rating": 64
+      "rating": 63
     },
     "406": {
       "rating": 59
@@ -290360,16 +290283,16 @@
       "rating": 48
     },
     "417": {
-      "rating": 64
+      "rating": 63
     },
     "418": {
-      "rating": 66
+      "rating": 65
     },
     "419": {
       "rating": 57
     },
     "420": {
-      "rating": 56
+      "rating": 55
     },
     "421": {
       "rating": 49
@@ -290396,7 +290319,7 @@
       "rating": 86
     },
     "429": {
-      "rating": 69
+      "rating": 68
     },
     "430": {
       "rating": 49
@@ -290405,7 +290328,7 @@
       "rating": 58
     },
     "432": {
-      "rating": 57
+      "rating": 56
     },
     "433": {
       "rating": 44
@@ -290486,7 +290409,7 @@
       "rating": 49
     },
     "459": {
-      "rating": 58
+      "rating": 57
     },
     "460": {
       "rating": 64
@@ -290510,13 +290433,13 @@
       "rating": 42
     },
     "467": {
-      "rating": 63
+      "rating": 62
     },
     "468": {
       "rating": 44
     },
     "469": {
-      "rating": 71
+      "rating": 70
     },
     "470": {
       "rating": 40
@@ -290618,7 +290541,7 @@
       "rating": 64
     },
     "503": {
-      "rating": 68
+      "rating": 67
     },
     "504": {
       "rating": 87
@@ -290651,7 +290574,7 @@
       "rating": 52
     },
     "514": {
-      "rating": 65
+      "rating": 64
     },
     "515": {
       "rating": 67
@@ -290696,7 +290619,7 @@
       "rating": 43
     },
     "529": {
-      "rating": 53
+      "rating": 57
     },
     "530": {
       "rating": 37
@@ -290711,13 +290634,13 @@
       "rating": 66
     },
     "534": {
-      "rating": 53
+      "rating": 59
     },
     "535": {
       "rating": 42
     },
     "536": {
-      "rating": 55
+      "rating": 62
     },
     "537": {
       "rating": 37
@@ -290726,7 +290649,7 @@
       "rating": 37
     },
     "539": {
-      "rating": 43
+      "rating": 48
     },
     "540": {
       "rating": 37
@@ -290735,16 +290658,16 @@
       "rating": 48
     },
     "542": {
-      "rating": 71
+      "rating": 73
     },
     "543": {
       "rating": 42
     },
     "544": {
-      "rating": 67
+      "rating": 69
     },
     "545": {
-      "rating": 58
+      "rating": 63
     },
     "546": {
       "rating": 37
@@ -290753,7 +290676,7 @@
       "rating": 37
     },
     "548": {
-      "rating": 42
+      "rating": 44
     },
     "549": {
       "rating": 42
@@ -290762,10 +290685,10 @@
       "rating": 42
     },
     "551": {
-      "rating": 51
+      "rating": 55
     },
     "552": {
-      "rating": 75
+      "rating": 76
     },
     "553": {
       "rating": 45
@@ -290849,7 +290772,7 @@
       "rating": 64
     },
     "580": {
-      "rating": 74
+      "rating": 73
     },
     "581": {
       "rating": 52
@@ -290858,7 +290781,7 @@
       "rating": 48
     },
     "583": {
-      "rating": 53
+      "rating": 52
     },
     "584": {
       "rating": 44
@@ -290873,7 +290796,7 @@
       "rating": 60
     },
     "588": {
-      "rating": 68
+      "rating": 67
     },
     "589": {
       "rating": 43
@@ -290882,7 +290805,7 @@
       "rating": 44
     },
     "591": {
-      "rating": 66
+      "rating": 65
     },
     "592": {
       "rating": 60
@@ -290906,7 +290829,7 @@
       "rating": 51
     },
     "599": {
-      "rating": 59
+      "rating": 57
     },
     "600": {
       "rating": 55
@@ -291005,7 +290928,7 @@
       "rating": 61
     },
     "632": {
-      "rating": 66
+      "rating": 65
     },
     "633": {
       "rating": 47
@@ -367493,6 +367416,10 @@
       "status": "i",
       "news": "Unspecified injury - Unknown return date"
     },
+    "113": {
+      "status": "d",
+      "news": "Hip injury - 75% chance of playing"
+    },
     "118": {
       "status": "u",
       "news": "Has joined Burnley permanently"
@@ -367793,14 +367720,6 @@
       "status": "u",
       "news": "Has joined Hamburg SV on loan for the rest of the season"
     },
-    "335": {
-      "status": "d",
-      "news": "Foot injury - 50% chance of playing"
-    },
-    "336": {
-      "status": "d",
-      "news": "Thigh injury - 50% chance of playing"
-    },
     "341": {
       "status": "u",
       "news": "Has joined ACF Fiorentina on loan for the rest of the season"
@@ -367808,10 +367727,6 @@
     "342": {
       "status": "u",
       "news": "Has joined New England Revolution permanently"
-    },
-    "346": {
-      "status": "d",
-      "news": "Foot injury - 50% chance of playing"
     },
     "348": {
       "status": "u",
@@ -367844,6 +367759,10 @@
     "365": {
       "status": "u",
       "news": "Has joined St Mirren on loan for the rest of the season"
+    },
+    "366": {
+      "status": "d",
+      "news": "Ankle injury - 75% chance of playing"
     },
     "368": {
       "status": "i",
@@ -368013,10 +367932,6 @@
       "status": "u",
       "news": "Has joined Atletico Madrid permanently"
     },
-    "501": {
-      "status": "s",
-      "news": "Suspended until 31 Oct"
-    },
     "505": {
       "status": "u",
       "news": "Has joined Internazionale permanently"
@@ -368101,10 +368016,6 @@
       "status": "i",
       "news": "Knee injury - Unknown return date"
     },
-    "552": {
-      "status": "d",
-      "news": "Hamstring injury - 75% chance of playing"
-    },
     "553": {
       "status": "d",
       "news": "Knock - 50% chance of playing"
@@ -368145,6 +368056,10 @@
       "status": "i",
       "news": "Hamstring injury - Expected back 2 Jan"
     },
+    "599": {
+      "status": "d",
+      "news": "Illness - 75% chance of playing"
+    },
     "601": {
       "status": "u",
       "news": "Has joined Huddersfield Town on loan for the rest of the season"
@@ -368168,6 +368083,10 @@
     "624": {
       "status": "u",
       "news": "Has joined Middlesbrough on loan for the rest of the season"
+    },
+    "632": {
+      "status": "d",
+      "news": "Thigh injury - 75% chance of playing"
     },
     "635": {
       "status": "d",
