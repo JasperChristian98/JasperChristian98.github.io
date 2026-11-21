@@ -432,6 +432,78 @@
           "team2_high": 52.0
         }
       ]
+    },
+    "12": {
+      "captured_at": "2026-11-21T18:13:54.730561+00:00",
+      "deadline": "2026-11-27T18:30:00+00:00",
+      "model_version": "mcdraft-forecast-original-v1",
+      "fixtures": [
+        {
+          "team1": "danny’s doggy dudes",
+          "team2": "No Weimann No Cry",
+          "team1_win": 47.84757830925476,
+          "draw": 2.86198771926543,
+          "team2_win": 49.29043397147981,
+          "team1_mean": 38.3639,
+          "team2_mean": 38.7902,
+          "team1_low": 25.0,
+          "team1_high": 52.0,
+          "team2_low": 26.0,
+          "team2_high": 52.0
+        },
+        {
+          "team1": "Buendophilia",
+          "team2": "NoRSNoRB No Chance",
+          "team1_win": 46.549008213252215,
+          "draw": 2.91217400316891,
+          "team2_win": 50.53881778357888,
+          "team1_mean": 39.5388,
+          "team2_mean": 40.771,
+          "team1_low": 24.90000000000009,
+          "team1_high": 55.0,
+          "team2_low": 28.0,
+          "team2_high": 53.0
+        },
+        {
+          "team1": "Jacquet Potato",
+          "team2": "Ollie Gonna Squashya",
+          "team1_win": 48.63801228073457,
+          "draw": 2.68633572560325,
+          "team2_win": 48.675651993662186,
+          "team1_mean": 38.5166,
+          "team2_mean": 38.4841,
+          "team1_low": 25.0,
+          "team1_high": 52.0,
+          "team2_low": 25.0,
+          "team2_high": 52.0
+        },
+        {
+          "team1": "Kamararama FC",
+          "team2": "Jaap? Best Stam",
+          "team1_win": 57.163407258838234,
+          "draw": 2.5859631577962903,
+          "team2_win": 40.25062958336548,
+          "team1_mean": 40.7922,
+          "team2_mean": 35.3783,
+          "team1_low": 26.0,
+          "team1_high": 56.0,
+          "team2_low": 19.0,
+          "team2_high": 52.0
+        },
+        {
+          "team1": "PAUer Rangers",
+          "team2": "Backstreet Moyes",
+          "team1_win": 50.71446977724105,
+          "draw": 2.466770733525525,
+          "team2_win": 46.81875948923342,
+          "team1_mean": 39.7022,
+          "team2_mean": 38.3262,
+          "team1_low": 23.0,
+          "team1_high": 57.0,
+          "team2_low": 22.0,
+          "team2_high": 55.0
+        }
+      ]
     }
   }
 }
